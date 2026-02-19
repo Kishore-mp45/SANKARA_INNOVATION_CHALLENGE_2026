@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>PatientPath AI - Metrics</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+        }
+
+        @media(max-width: 768px) {
+            .metric-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            border-radius: 1rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+            z-index: 1;
+        }
+
+        .metric-title {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .metric-trend {
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .trend-up {
+            color: var(--accent-color);
+        }
+
+        .trend-down {
+            color: var(--danger-color);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Key Metrics</h1>
+                <p class="header-subtitle">Analysis of patient flow efficiency</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <div class="metric-title">
+                        Average Dwell Time
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                    </div>
+                    <div class="metric-value" id="val-dwell">14m 30s</div>
+                    <div class="metric-trend trend-down">↓ 12% vs last hour</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-title">
+                        Entry Rate
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                    </div>
+                    <div class="metric-value" id="val-entry">24 /hr</div>
+                    <div class="metric-trend trend-up">↑ 5% vs last hour</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-title">
+                        Exit Rate
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                    </div>
+                    <div class="metric-value" id="val-exit">18 /hr</div>
+                    <div class="metric-trend trend-up">↑ Stable</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-title">
+                        Utilization %
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 12V7H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14" />
+                            <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+                            <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+                        </svg>
+                    </div>
+                    <div class="metric-value" id="val-util">68%</div>
+                    <div class="metric-trend trend-up">High Effiency</div>
+                </div>
+            </div>
+
+            <div class="nav-buttons">
+                <a href="heatmap.html" class="btn btn-secondary">&larr; Back</a>
+                <a href="alerts.html" class="btn btn-primary">Next: Alerts &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/websocket.js"></script>
+    <script>
+        document.addEventListener('occupancy-update', (e) => {
+            const data = e.detail;
+
+            // Simulate derived metrics from the real-time count
+            // In a real backend, these would come as separate metric application events
+            const count = data.count;
+
+            // Dynamic Dwell Time based on count (inverse relationship simulation)
+            const dwellM = 30 - Math.floor(count / 2);
+            document.getElementById('val-dwell').innerText = `${Math.max(5, dwellM)}m 30s`;
+
+            // Entry Rate roughly proportional
+            const entry = Math.floor(count * 1.5);
+            document.getElementById('val-entry').innerText = `${entry} /hr`;
+
+            // Exit Rate
+            const exit = Math.floor(count * 1.2);
+            document.getElementById('val-exit').innerText = `${exit} /hr`;
+
+            // Utilization
+            const util = Math.min(100, Math.floor((count / 20) * 100)); // assuming max cap ~20 for a zone
+            document.getElementById('val-util').innerText = `${util}%`;
+        });
+    </script>
+
+</body>
+
+</html>

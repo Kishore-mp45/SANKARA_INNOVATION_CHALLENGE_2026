@@ -1,0 +1,21 @@
+# PatientPath AI Backend - Requirements
+# =====================================
+
+# Core Framework
+fastapi
+uvicorn[standard]
+
+# Database
+sqlalchemy
+
+# Validation
+pydantic
+
+# Data Processing
+pandas>=2.1.4
+
+# WebSocket support
+websockets
+
+# Utilities
+python-dateutil

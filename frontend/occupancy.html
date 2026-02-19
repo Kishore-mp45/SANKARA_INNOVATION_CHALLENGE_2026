@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Live Occupancy</title>
+    <link rel="stylesheet" href="css/style.css?v=100">
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
+            <li><a href="patient_dashboard.html" class="nav-item"><span class="step-badge">3</span> My Dashboard</a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Live Total Occupancy</h1>
+                <p class="header-subtitle">Real-time patient distribution</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <div class="card text-center"
+                style="padding: 4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px;">
+
+                <div id="status-badge" class="pulse-animation"
+                    style="background: rgba(16, 185, 129, 0.2); color: var(--accent-color); padding: 0.5rem 1.5rem; border-radius: 99px; margin-bottom: 2rem; font-weight: 600; border: 1px solid var(--accent-color);">
+                    NORMAL STATUS
+                </div>
+
+                <div style="font-size: 6rem; font-weight: 800; line-height: 1;" id="people-count">42</div>
+                <div style="color: var(--text-muted); font-size: 1.2rem; margin-top: 0.5rem;">People Detected</div>
+
+                <p style="margin-top: 3rem; color: var(--text-muted); font-size: 0.9rem;">
+                    Last Updated: <span id="last-updated">Just now</span>
+                </p>
+
+                <button id="simulate-btn" class="btn btn-secondary" style="margin-top: 2rem;">
+                    Simulate Update
+                </button>
+            </div>
+
+            <div class="nav-buttons">
+                <a href="index.html" class="btn btn-secondary">&larr; Back</a>
+                <a href="heatmap.html" class="btn btn-primary">Next: Zone Heatmap &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js?v=100"></script>
+    <script src="js/websocket.js"></script>
+    <script>
+        const countEl = document.getElementById('people-count');
+        const badgeEl = document.getElementById('status-badge');
+        const timestampEl = document.getElementById('last-updated');
+
+        document.addEventListener('occupancy-update', (e) => {
+            const data = e.detail; // { zone, count, timestamp }
+            updateUI(data.count, data.timestamp, data.zone);
+        });
+
+        function updateUI(count, timeStr, zoneName) {
+            countEl.textContent = count;
+            timestampEl.textContent = `${timeStr} (Zone: ${zoneName})`;
+
+            // Status Logic
+            badgeEl.className = 'pulse-animation';
+            if (count < 8) { // Adjusted thresholds for smaller capacity zones
+                badgeEl.textContent = "NORMAL STATUS";
+                badgeEl.style.color = "var(--accent-color)";
+                badgeEl.style.borderColor = "var(--accent-color)";
+                badgeEl.style.background = "rgba(16, 185, 129, 0.2)";
+            } else if (count < 15) {
+                badgeEl.textContent = "BUSY STATUS";
+                badgeEl.style.color = "var(--warning-color)";
+                badgeEl.style.borderColor = "var(--warning-color)";
+                badgeEl.style.background = "rgba(245, 158, 11, 0.2)";
+            } else {
+                badgeEl.textContent = "CRITICAL LIMIT";
+                badgeEl.style.color = "var(--danger-color)";
+                badgeEl.style.borderColor = "var(--danger-color)";
+                badgeEl.style.background = "rgba(239, 68, 68, 0.2)";
+            }
+        }
+    </script>
+
+</body>
+
+</html>

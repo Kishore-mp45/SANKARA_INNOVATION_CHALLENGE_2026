@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Patient Dashboard V6.5</title>
+    <!-- Force V6.5 Style Reload -->
+    <link rel="stylesheet" href="css/style.css?v=200">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        /* Dashboard Specific Styles */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .status-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .status-card h3 {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-card .value {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .progress-container {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+
+        .progress-track {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .progress-track::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--border-color);
+            z-index: 1;
+        }
+
+        .progress-step {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            flex: 1;
+        }
+
+        .step-circle {
+            width: 32px;
+            height: 32px;
+            background: var(--sidebar-bg);
+            border: 4px solid var(--border-color);
+            border-radius: 50%;
+            margin: 0 auto 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .step-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .progress-step.active .step-circle {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .progress-step.active .step-label {
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        .progress-step.completed .step-circle {
+            border-color: var(--primary-color);
+            background: white;
+            color: var(--primary-color);
+        }
+
+        .progress-step.completed .step-circle::after {
+            content: '✓';
+            font-size: 0.9rem;
+        }
+
+        .timeline-section {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-left: 2px solid var(--border-color);
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 0;
+            width: 10px;
+            height: 10px;
+            background: var(--sidebar-bg);
+            border: 2px solid var(--primary-color);
+            border-radius: 50%;
+        }
+
+        .timeline-item:last-child {
+            border-left: none;
+        }
+
+        .timeline-time {
+            min-width: 80px;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-on-track {
+            background: #d1fae5;
+            color: #047857;
+        }
+
+        .status-waiting {
+            background: #fef3c7;
+            color: #b45309;
+        }
+
+        .status-delayed {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        @media (max-width: 768px) {
+            .step-label {
+                display: none;
+            }
+
+            .progress-step.active .step-label {
+                display: block;
+                position: absolute;
+                width: 100px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar (Standard Full Sidebar - filtered by main.js) -->
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
+            <!-- Manually added Active Dashboard Item for Patient Context -->
+            <li><a href="patient_dashboard.html" class="nav-item active"><span class="step-badge">3</span> My
+                    Dashboard</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Patient Dashboard</h1>
+                <p class="header-subtitle" id="patient-id-display">Initializing...</p>
+            </div>
+            <!-- Header Controls injected by main.js -->
+        </header>
+
+        <div class="page-container fade-in">
+            <!-- Connection Status -->
+            <div style="text-align: right; margin-bottom: 1rem;">
+                <span class="status-badge status-on-track" id="connection-status">
+                    <span style="font-size: 1.2em; vertical-align: bottom;">•</span> <span
+                        id="conn-text">Connecting...</span>
+                </span>
+            </div>
+
+            <!-- Top Status Cards -->
+            <div class="status-grid">
+                <div class="status-card">
+                    <h3>Current Stage</h3>
+                    <div class="value" id="current-stage" style="color: var(--primary-color);">Waiting</div>
+                </div>
+                <div class="status-card">
+                    <h3>Time Elapsed</h3>
+                    <div class="value" id="est-wait">--</div>
+                    <div style="font-size: 0.8rem; color: #10b981;" id="wait-status"></div>
+                </div>
+                <div class="status-card">
+                    <h3>Next Department</h3>
+                    <div class="value" id="next-dept">...</div>
+                </div>
+                <div class="status-card">
+                    <h3>Last Updated</h3>
+                    <div class="value" id="last-updated">--:--</div>
+                </div>
+            </div>
+
+            <!-- Progress Tracker -->
+            <div class="progress-container">
+                <h3 style="color: var(--text-main); margin-bottom: 1rem; font-size: 1.1rem;">Treatment Journey</h3>
+                <div class="progress-track">
+                    <!-- Steps injected via JS -->
+                </div>
+            </div>
+
+            <!-- Recent History / Timeline -->
+            <div class="timeline-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3 style="color: var(--text-main); font-size: 1.1rem;">Activity History</h3>
+                    <button onclick="fetchPatientData()"
+                        style="background:none; border:none; color:var(--primary-color); cursor:pointer;">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+                <!-- V6.5: Explicit timeline container -->
+                <div id="timeline-list" style="min-height: 50px;">
+                    <!-- Timeline Items -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"
+        style="position: fixed; bottom: 2rem; right: 2rem; z-index: 1000;"></div>
+
+    <!-- MAIN JS for Layout/RBAC -->
+    <script src="js/main.js?v=200"></script>
+
+    <script>
+        console.log("Patient Dashboard V6.5 Initializing...");
+
+        const API_BASE_URL = 'http://localhost:8000';
+        // Use specific key for patient to avoid collision with staff login
+        let currentPatientId = localStorage.getItem('currentPatientId') || localStorage.getItem('currentUser');
+        let pollInterval = null;
+        let lastZone = null;
+
+        const steps = [
+            { key: 'registration', label: 'Registration' },
+            { key: 'vision_lab', label: 'Vision Test' },
+            { key: 'dilation_hall', label: 'Dilation' },
+            { key: 'diagnostics', label: 'Diagnostics' },
+            { key: 'consultation', label: 'Doctor Consult' },
+            { key: 'billing_insurance', label: 'Billing' },
+            { key: 'pharmacy', label: 'Pharmacy' },
+            { key: 'exit', label: 'Completed' }
+        ];
+
+        // Initialization
+        window.addEventListener('load', function () {
+            console.log("Window loaded. Checking ID:", currentPatientId);
+
+            // Double check session
+            if (!currentPatientId) {
+                console.warn("No patient ID found. Check login.");
+                // alert("Please login first.");
+                window.location.href = 'login.html';
+                return;
+            }
+
+            document.getElementById('patient-id-display').innerText = `Tracking ID: ${currentPatientId}`;
+
+            // Immediate Fetch
+            fetchPatientData();
+            startPolling();
+        });
+
+        function startPolling() {
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(fetchPatientData, 5000);
+        }
+
+        async function fetchPatientData() {
+            if (!currentPatientId) return;
+            try {
+                // Add timestamp to prevent browser caching
+                const response = await fetch(`${API_BASE_URL}/patient/tracking/${currentPatientId}?_=${new Date().getTime()}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log("Data fetched:", data);
+                    updateDashboardUI(data);
+
+                    // Visual "pulse" effect
+                    const statusBadge = document.getElementById('connection-status');
+                    document.getElementById('conn-text').innerText = "Live Updates Active";
+                    statusBadge.className = 'status-badge status-on-track';
+                    statusBadge.style.opacity = '0.5';
+                    setTimeout(() => statusBadge.style.opacity = '1', 300);
+                } else if (response.status === 404) {
+                    // Patient not registered by staff yet
+                    console.warn("Patient not found in database yet:", currentPatientId);
+                    document.getElementById('current-stage').innerText = "Not Yet Registered";
+                    document.getElementById('last-updated').innerText = "--:--";
+                    document.getElementById('next-dept').innerText = "Waiting for Staff";
+                    document.getElementById('conn-text').innerText = "Waiting for Registration...";
+                    document.getElementById('connection-status').className = 'status-badge status-waiting';
+                    // Clear progress and timeline
+                    const track = document.querySelector('.progress-track');
+                    if (track) track.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 1rem;">Your tracking ID has not been registered yet. Please visit the Registration desk.</p>';
+                    const timeline = document.getElementById('timeline-list');
+                    if (timeline) timeline.innerHTML = '<div style="color: var(--text-muted); padding: 1rem;">No activity recorded yet. Staff will register your visit shortly.</div>';
+                } else {
+                    console.error("Fetch failed with status:", response.status);
+                    document.getElementById('conn-text').innerText = "Connecting...";
+                    document.getElementById('connection-status').className = 'status-badge status-waiting';
+                }
+            } catch (err) {
+                console.error("Polling error", err);
+                document.getElementById('conn-text').innerText = "Offline / Retrying...";
+                document.getElementById('connection-status').className = 'status-badge status-delayed';
+            }
+        }
+
+        function updateDashboardUI(data) {
+            // 1. Update Top Cards
+            const zoneName = formatZone(data.current_zone);
+            document.getElementById('current-stage').innerText = zoneName || "Waiting";
+
+            // Use updated_at or entry_time
+            // FIX: Backend sends UTC without Z. Append Z to force UTC parsing, then toLocaleTimeString converts to local.
+            let timeVal = data.updated_at || data.entry_time;
+            if (timeVal && !timeVal.endsWith('Z')) timeVal += 'Z';
+
+            document.getElementById('last-updated').innerText = timeVal ? new Date(timeVal).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--';
+
+            // Display dwell time (time elapsed since entry)
+            if (data.dwell_time_minutes !== null && data.dwell_time_minutes !== undefined) {
+                const mins = Math.round(data.dwell_time_minutes);
+                if (mins < 60) {
+                    document.getElementById('est-wait').innerText = `${mins} min${mins !== 1 ? 's' : ''}`;
+                } else {
+                    const hrs = Math.floor(mins / 60);
+                    const remainMins = mins % 60;
+                    document.getElementById('est-wait').innerText = `${hrs}h ${remainMins}m`;
+                }
+                // Status indicator
+                const waitStatus = document.getElementById('wait-status');
+                if (data.status === 'entered' || data.status === 'waiting') {
+                    waitStatus.innerText = 'In Progress';
+                    waitStatus.style.color = '#f59e0b';
+                } else if (data.status === 'exited') {
+                    waitStatus.innerText = 'Completed';
+                    waitStatus.style.color = '#10b981';
+                } else {
+                    waitStatus.innerText = 'Active';
+                    waitStatus.style.color = '#10b981';
+                }
+
+                // Show last action if available
+                if (data.last_action) {
+                    waitStatus.innerText = data.last_action; // Override with specific action
+                    waitStatus.style.fontSize = '0.9rem';
+                }
+            }
+
+            // Calculate 'Next Department'
+            const currentIndex = steps.findIndex(s => s.key === data.current_zone);
+            let nextStep = "Completed";
+            if (currentIndex >= 0 && currentIndex < steps.length - 1) {
+                nextStep = steps[currentIndex + 1].label;
+            }
+            document.getElementById('next-dept').innerText = nextStep;
+
+            // 2. Update Progress Bar
+            renderProgressBar(data.current_zone);
+
+            // 3. Timeline (Simple)
+            renderTimeline(data);
+
+            lastZone = data.current_zone;
+        }
+
+        function renderProgressBar(currentKey) {
+            const track = document.querySelector('.progress-track');
+            track.innerHTML = '';
+            const currentStepIndex = steps.findIndex(s => s.key === currentKey);
+
+            steps.forEach((step, index) => {
+                const el = document.createElement('div');
+                el.className = 'progress-step';
+
+                if (currentKey === 'exit' || (currentStepIndex !== -1 && index < currentStepIndex)) {
+                    el.classList.add('completed');
+                } else if (index === currentStepIndex) {
+                    el.classList.add('active');
+                }
+
+                el.innerHTML = `
+                    <div class="step-circle">${index + 1}</div>
+                    <div class="step-label">${step.label}</div>
+                `;
+                track.appendChild(el);
+            });
+        }
+
+        // History Management
+        function getLocalHistory() {
+            const key = `patientHistory_${currentPatientId}`;
+            try {
+                return JSON.parse(localStorage.getItem(key) || '[]');
+            } catch (e) { return []; }
+        }
+
+        function saveHistory(history) {
+            const key = `patientHistory_${currentPatientId}`;
+            localStorage.setItem(key, JSON.stringify(history));
+        }
+
+        function updateHistory(data) {
+            let history = getLocalHistory();
+
+            // Format current data item
+            let timeVal = data.updated_at || data.entry_time;
+            if (timeVal && !timeVal.endsWith('Z')) timeVal += 'Z';
+
+            const newItem = {
+                time: timeVal,
+                action: data.last_action || `Status: ${formatZone(data.current_zone)}`,
+                zone: data.current_zone
+            };
+
+            // Check if this specific update already exists (by time and action)
+            const exists = history.some(item =>
+                new Date(item.time).getTime() === new Date(newItem.time).getTime() &&
+                item.action === newItem.action
+            );
+
+            if (!exists) {
+                // Add to history
+                history.unshift(newItem); // Add to top
+                // Keep max 50 items
+                if (history.length > 50) history.pop();
+                saveHistory(history);
+            }
+            return history;
+        }
+
+        function renderTimeline(data) {
+            const list = document.getElementById('timeline-list');
+            list.innerHTML = '';
+
+            // 1. Update and get history
+            const history = updateHistory(data);
+
+            // 2. Render History Items
+            history.forEach((item, index) => {
+                const isLatest = index === 0;
+                let statusHtml = '';
+
+                // Determine status badge
+                const actionLower = item.action.toLowerCase();
+                if (actionLower.includes('completed') || actionLower.includes('done') || actionLower.includes('finished')) {
+                    statusHtml = '<div class="status-badge" style="background:#d1fae5; color:#047857; margin-top:5px; font-size:0.75rem;">Completed</div>';
+                } else if (isLatest) {
+                    statusHtml = '<div class="status-badge status-waiting" style="margin-top:5px; font-size:0.75rem;">In Progress</div>';
+                } else {
+                    statusHtml = '<div style="color:#6b7280; font-size:0.8rem; margin-top:2px;">Recorded</div>';
+                }
+
+                addTimelineItem(list, item.time, item.action, statusHtml, isLatest);
+            });
+
+            // 3. Always add Entry item at the end if not present (optional, but good for context)
+            if (data.entry_time) {
+                let entryTime = data.entry_time;
+                if (!entryTime.endsWith('Z')) entryTime += 'Z';
+
+                // Check if entry is already in history (fuzzy match time)
+                const entryExists = history.some(h => Math.abs(new Date(h.time).getTime() - new Date(entryTime).getTime()) < 1000);
+
+                if (!entryExists) {
+                    addTimelineItem(list, entryTime, "Checked In / Registration", '<div style="color:#10b981; font-size:0.8rem; margin-top:2px;">Completed</div>', false);
+                }
+            }
+        }
+
+        function addTimelineItem(container, timeStr, text, statusHtml, isLatest) {
+            const div = document.createElement('div');
+            div.className = 'timeline-item';
+            const time = new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+
+            div.innerHTML = `
+                <div class="timeline-time">${time}</div>
+                <div>
+                    <div style="font-weight: 600; color: var(--text-main);">${text}</div>
+                    ${statusHtml}
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function formatZone(zoneKey) {
+            if (!zoneKey) return '';
+            return zoneKey.split('_')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
+    </script>
+</body>
+
+</html>

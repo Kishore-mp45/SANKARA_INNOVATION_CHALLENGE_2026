@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Resource Allocation Panel</title>
+    <link rel="stylesheet" href="css/style.css?v=300">
+    <link rel="stylesheet" href="css/admin.css?v=300">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        /* ============================================================
+           Resource Allocation Panel — Scoped Styles
+           Hospital-grade Digital Twin resource monitoring UI
+           ============================================================ */
+
+        .resource-panel {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* ---------- Header Bar ---------- */
+        .resource-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .resource-header h1 {
+            font-size: 1.5rem;
+            color: var(--admin-primary, #60a5fa);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .resource-header h1 i {
+            font-size: 1.3rem;
+        }
+
+        .resource-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .last-updated-label {
+            font-size: 0.85rem;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .last-updated-label span {
+            color: var(--text-main, #e2e8f0);
+            font-weight: 600;
+        }
+
+        .btn-refresh {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1.2rem;
+            background: var(--admin-primary, #60a5fa);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s;
+        }
+
+        .btn-refresh:hover {
+            background: #3b82f6;
+            transform: translateY(-1px);
+        }
+
+        .btn-refresh:active {
+            transform: translateY(0);
+        }
+
+        .btn-refresh.spinning i {
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ---------- Role-Gate Overlay ---------- */
+        .access-denied-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: var(--bg-color, #0f172a);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .access-denied-overlay i {
+            font-size: 3rem;
+            color: #ef4444;
+        }
+
+        .access-denied-overlay h2 {
+            color: var(--text-main, #e2e8f0);
+            margin: 0;
+        }
+
+        .access-denied-overlay p {
+            max-width: 400px;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .access-denied-overlay a {
+            color: var(--admin-primary, #60a5fa);
+            text-decoration: none;
+        }
+
+        /* ---------- Metric Cards Grid ---------- */
+        .resource-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .resource-card {
+            background: var(--card-bg, #1e293b);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 12px;
+            padding: 1.75rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+            overflow: hidden;
+        }
+
+        .resource-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            border-radius: 12px 12px 0 0;
+            transition: background 0.3s;
+        }
+
+        .resource-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Status Color Variants */
+        .resource-card.status-green::before {
+            background: #10b981;
+        }
+
+        .resource-card.status-green:hover {
+            border-color: #10b981;
+        }
+
+        .resource-card.status-yellow::before {
+            background: #f59e0b;
+        }
+
+        .resource-card.status-yellow:hover {
+            border-color: #f59e0b;
+        }
+
+        .resource-card.status-red::before {
+            background: #ef4444;
+        }
+
+        .resource-card.status-red:hover {
+            border-color: #ef4444;
+        }
+
+        /* Card Icon */
+        .resource-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            transition: transform 0.3s;
+        }
+
+        .resource-card:hover .resource-icon {
+            transform: scale(1.1);
+        }
+
+        .resource-icon.icon-beds {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .resource-icon.icon-rooms {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+
+        .resource-icon.icon-doctors {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .resource-icon.icon-staff {
+            background: rgba(139, 92, 246, 0.15);
+            color: #8b5cf6;
+        }
+
+        .resource-icon.icon-equip {
+            background: rgba(236, 72, 153, 0.15);
+            color: #ec4899;
+        }
+
+        /* Card Value */
+        .resource-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+            transition: color 0.3s;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .resource-value.color-green {
+            color: #10b981;
+        }
+
+        .resource-value.color-yellow {
+            color: #f59e0b;
+        }
+
+        .resource-value.color-red {
+            color: #ef4444;
+        }
+
+        /* Card Label & Sub-label */
+        .resource-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main, #e2e8f0);
+            margin-bottom: 0.25rem;
+        }
+
+        .resource-sublabel {
+            font-size: 0.78rem;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        /* Status Pill */
+        .resource-status-pill {
+            margin-top: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .pill-green {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .pill-yellow {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+
+        .pill-red {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        /* Tooltip */
+        .resource-tooltip {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(148, 163, 184, 0.15);
+            color: var(--text-muted, #94a3b8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            cursor: help;
+        }
+
+        .resource-tooltip .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: 130%;
+            right: 0;
+            width: 200px;
+            background: #0f172a;
+            color: #e2e8f0;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            padding: 0.65rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color, #334155);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: opacity 0.2s, visibility 0.2s;
+            z-index: 10;
+            text-align: left;
+            font-weight: 400;
+        }
+
+        .resource-tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* ---------- Summary Bar ---------- */
+        .resource-summary {
+            background: var(--card-bg, #1e293b);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 12px;
+            padding: 1.25rem 1.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .summary-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .summary-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .summary-dot.green {
+            background: #10b981;
+        }
+
+        .summary-dot.yellow {
+            background: #f59e0b;
+        }
+
+        .summary-dot.red {
+            background: #ef4444;
+        }
+
+        /* ---------- Animated Number Transition ---------- */
+        @keyframes pulseGlow {
+
+            0%,
+            100% {
+                text-shadow: none;
+            }
+
+            50% {
+                text-shadow: 0 0 12px currentColor;
+            }
+        }
+
+        .resource-value.updating {
+            animation: pulseGlow 0.4s ease;
+        }
+
+        /* ---------- Responsive ---------- */
+        @media (max-width: 768px) {
+            .resource-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .resource-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .resource-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Access Denied Overlay (shown for non-admin) -->
+    <div class="access-denied-overlay" id="access-denied">
+        <i class="fas fa-shield-alt"></i>
+        <h2>Access Restricted</h2>
+        <p>The Resource Allocation Panel is available to <strong>Administrators</strong> only.
+            Please contact your system administrator for access.</p>
+        <a href="index.html"><i class="fas fa-arrow-left"></i> Return to Home</a>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="admin_dashboard.html" class="nav-item"><span class="step-badge">9</span> Admin Center</a></li>
+            <li><a href="resource_allocation.html" class="nav-item active"><span class="step-badge">10</span>
+                    Resources</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-panel">
+        <div class="resource-panel">
+
+            <!-- Header -->
+            <div class="resource-header">
+                <h1><i class="fas fa-hospital"></i> Resource Allocation Panel</h1>
+                <div class="resource-header-actions">
+                    <div class="last-updated-label">
+                        Last Updated: <span id="last-updated-time">--:--:--</span>
+                    </div>
+                    <button class="btn-refresh" id="btn-refresh" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Metric Cards -->
+            <div class="resource-grid">
+
+                <!-- 1. Available Beds -->
+                <div class="resource-card" id="card-beds">
+                    <div class="resource-tooltip">
+                        <i class="fas fa-info"></i>
+                        <div class="tooltip-text">Total available (unoccupied) beds across all wards. Green ≥ 20, Yellow
+                            5–19, Red < 5.</div>
+                        </div>
+                        <div class="resource-icon icon-beds"><i class="fas fa-bed"></i></div>
+                        <div class="resource-value" id="val-beds">--</div>
+                        <div class="resource-label">Available Beds</div>
+                        <div class="resource-sublabel">Out of <span id="total-beds">--</span> total</div>
+                        <div class="resource-status-pill" id="pill-beds">Loading</div>
+                    </div>
+
+                    <!-- 2. Busy Rooms -->
+                    <div class="resource-card" id="card-rooms">
+                        <div class="resource-tooltip">
+                            <i class="fas fa-info"></i>
+                            <div class="tooltip-text">Rooms currently occupied by patients or procedures. Green ≤ 5,
+                                Yellow 6–10, Red > 10.</div>
+                        </div>
+                        <div class="resource-icon icon-rooms"><i class="fas fa-door-open"></i></div>
+                        <div class="resource-value" id="val-rooms">--</div>
+                        <div class="resource-label">Busy Rooms</div>
+                        <div class="resource-sublabel">Out of <span id="total-rooms">--</span> total</div>
+                        <div class="resource-status-pill" id="pill-rooms">Loading</div>
+                    </div>
+
+                    <!-- 3. Free Doctors -->
+                    <div class="resource-card" id="card-doctors">
+                        <div class="resource-tooltip">
+                            <i class="fas fa-info"></i>
+                            <div class="tooltip-text">Doctors currently available for new consultations. Green ≥ 5,
+                                Yellow 2–4, Red < 2.</div>
+                            </div>
+                            <div class="resource-icon icon-doctors"><i class="fas fa-user-md"></i></div>
+                            <div class="resource-value" id="val-doctors">--</div>
+                            <div class="resource-label">Free Doctors</div>
+                            <div class="resource-sublabel">Out of <span id="total-doctors">--</span> on duty</div>
+                            <div class="resource-status-pill" id="pill-doctors">Loading</div>
+                        </div>
+
+                        <!-- 4. Free Staff -->
+                        <div class="resource-card" id="card-staff">
+                            <div class="resource-tooltip">
+                                <i class="fas fa-info"></i>
+                                <div class="tooltip-text">Support staff (nurses, technicians) available for assignments.
+                                    Green ≥ 10, Yellow 4–9, Red < 4.</div>
+                                </div>
+                                <div class="resource-icon icon-staff"><i class="fas fa-user-nurse"></i></div>
+                                <div class="resource-value" id="val-staff">--</div>
+                                <div class="resource-label">Free Staff</div>
+                                <div class="resource-sublabel">Out of <span id="total-staff">--</span> on shift</div>
+                                <div class="resource-status-pill" id="pill-staff">Loading</div>
+                            </div>
+
+                            <!-- 5. Equipment Usage -->
+                            <div class="resource-card" id="card-equip">
+                                <div class="resource-tooltip">
+                                    <i class="fas fa-info"></i>
+                                    <div class="tooltip-text">Percentage of critical medical equipment currently in use.
+                                        Green ≤ 60%, Yellow 61–85%, Red > 85%.</div>
+                                </div>
+                                <div class="resource-icon icon-equip"><i class="fas fa-microscope"></i></div>
+                                <div class="resource-value" id="val-equip">--%</div>
+                                <div class="resource-label">Equipment Usage</div>
+                                <div class="resource-sublabel"><span id="equip-active">--</span> of <span
+                                        id="equip-total">--</span> units active</div>
+                                <div class="resource-status-pill" id="pill-equip">Loading</div>
+                            </div>
+                        </div>
+
+                        <!-- Summary Legend -->
+                        <div class="resource-summary">
+                            <div class="summary-item">
+                                <span class="summary-dot green"></span> Green = Available / Good
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-dot yellow"></span> Yellow = Moderate / Caution
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-dot red"></span> Red = Critical / Low
+                            </div>
+                            <div class="summary-item" style="color: var(--text-main, #e2e8f0); font-weight: 600;">
+                                <i class="fas fa-satellite-dish" style="color: var(--admin-primary, #60a5fa);"></i>
+                                Digital Twin — Live Monitoring
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Scripts -->
+                <script src="js/main.js?v=300"></script>
+                <script>
+                    // =================================================================
+                    // Resource Allocation Panel — Controller
+                    // Uses dummy data initially; structured for API integration.
+                    //
+                    // Future API endpoints:
+                    //   GET /resources/beds      → { available, total }
+                    //   GET /resources/rooms     → { busy, total }
+                    //   GET /resources/doctors   → { free, total }
+                    //   GET /resources/staff     → { free, total }
+                    //   GET /resources/equipment → { usage_percent, active, total }
+                    // =================================================================
+
+                    const API_BASE = 'http://localhost:8000';
+
+                    // ---- Role-based Access Gate ----
+                    (function enforceAdminAccess() {
+                        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                        const role = (currentUser.role || '').toLowerCase();
+
+                        if (role !== 'admin') {
+                            document.getElementById('access-denied').style.display = 'flex';
+                            document.getElementById('main-panel').style.display = 'none';
+                            document.querySelector('.sidebar').style.display = 'none';
+                            return;
+                        }
+                    })();
+
+                    // ---- Dummy Data Generator (simulates realistic hospital state) ----
+                    function generateDummyData() {
+                        const totalBeds = 120;
+                        const availBeds = Math.floor(Math.random() * 40) + 10;   // 10-49
+
+                        const totalRooms = 25;
+                        const busyRooms = Math.floor(Math.random() * 15) + 3;    // 3-17
+
+                        const totalDoctors = 18;
+                        const freeDoctors = Math.floor(Math.random() * 8) + 1;   // 1-8
+
+                        const totalStaff = 35;
+                        const freeStaff = Math.floor(Math.random() * 15) + 2;    // 2-16
+
+                        const totalEquip = 40;
+                        const activeEquip = Math.floor(Math.random() * 30) + 5;  // 5-34
+                        const equipUsage = Math.round((activeEquip / totalEquip) * 100);
+
+                        return {
+                            beds: { available: availBeds, total: totalBeds },
+                            rooms: { busy: busyRooms, total: totalRooms },
+                            doctors: { free: freeDoctors, total: totalDoctors },
+                            staff: { free: freeStaff, total: totalStaff },
+                            equipment: { usage_percent: equipUsage, active: activeEquip, total: totalEquip }
+                        };
+                    }
+
+                    // ---- Fetch Data (tries API first, falls back to dummy) ----
+                    async function fetchResourceData() {
+                        try {
+                            // Attempt real API (future integration)
+                            const res = await fetch(`${API_BASE}/resources/status`, { signal: AbortSignal.timeout(2000) });
+                            if (res.ok) return await res.json();
+                        } catch (e) {
+                            // API not available — use dummy data
+                        }
+                        return generateDummyData();
+                    }
+
+                    // ---- Status Color Logic ----
+                    function getBedsStatus(available) {
+                        if (available >= 20) return 'green';
+                        if (available >= 5) return 'yellow';
+                        return 'red';
+                    }
+
+                    function getRoomsStatus(busy) {
+                        if (busy <= 5) return 'green';
+                        if (busy <= 10) return 'yellow';
+                        return 'red';
+                    }
+
+                    function getDoctorsStatus(free) {
+                        if (free >= 5) return 'green';
+                        if (free >= 2) return 'yellow';
+                        return 'red';
+                    }
+
+                    function getStaffStatus(free) {
+                        if (free >= 10) return 'green';
+                        if (free >= 4) return 'yellow';
+                        return 'red';
+                    }
+
+                    function getEquipStatus(percent) {
+                        if (percent <= 60) return 'green';
+                        if (percent <= 85) return 'yellow';
+                        return 'red';
+                    }
+
+                    const statusLabels = {
+                        green: 'Available',
+                        yellow: 'Moderate',
+                        red: 'Critical'
+                    };
+
+                    // ---- Animated Counter ----
+                    function animateValue(element, newValue, suffix = '') {
+                        const current = parseInt(element.textContent) || 0;
+                        const diff = newValue - current;
+                        if (diff === 0) { element.textContent = newValue + suffix; return; }
+
+                        const steps = 15;
+                        const increment = diff / steps;
+                        let step = 0;
+
+                        element.classList.add('updating');
+
+                        const timer = setInterval(() => {
+                            step++;
+                            const val = Math.round(current + increment * step);
+                            element.textContent = val + suffix;
+                            if (step >= steps) {
+                                clearInterval(timer);
+                                element.textContent = newValue + suffix;
+                                setTimeout(() => element.classList.remove('updating'), 300);
+                            }
+                        }, 25);
+                    }
+
+                    // ---- Apply Card Status ----
+                    function applyCardStatus(cardId, status) {
+                        const card = document.getElementById(cardId);
+                        const pill = document.getElementById(cardId.replace('card-', 'pill-'));
+                        const valEl = document.getElementById(cardId.replace('card-', 'val-'));
+
+                        // Remove old status classes
+                        card.classList.remove('status-green', 'status-yellow', 'status-red');
+                        pill.classList.remove('pill-green', 'pill-yellow', 'pill-red');
+                        valEl.classList.remove('color-green', 'color-yellow', 'color-red');
+
+                        // Apply new
+                        card.classList.add(`status-${status}`);
+                        pill.classList.add(`pill-${status}`);
+                        valEl.classList.add(`color-${status}`);
+                        pill.textContent = statusLabels[status];
+                    }
+
+                    // ---- Render All Metrics ----
+                    function renderMetrics(data) {
+                        // 1. Beds
+                        animateValue(document.getElementById('val-beds'), data.beds.available);
+                        document.getElementById('total-beds').textContent = data.beds.total;
+                        applyCardStatus('card-beds', getBedsStatus(data.beds.available));
+
+                        // 2. Rooms
+                        animateValue(document.getElementById('val-rooms'), data.rooms.busy);
+                        document.getElementById('total-rooms').textContent = data.rooms.total;
+                        applyCardStatus('card-rooms', getRoomsStatus(data.rooms.busy));
+
+                        // 3. Doctors
+                        animateValue(document.getElementById('val-doctors'), data.doctors.free);
+                        document.getElementById('total-doctors').textContent = data.doctors.total;
+                        applyCardStatus('card-doctors', getDoctorsStatus(data.doctors.free));
+
+                        // 4. Staff
+                        animateValue(document.getElementById('val-staff'), data.staff.free);
+                        document.getElementById('total-staff').textContent = data.staff.total;
+                        applyCardStatus('card-staff', getStaffStatus(data.staff.free));
+
+                        // 5. Equipment
+                        animateValue(document.getElementById('val-equip'), data.equipment.usage_percent, '%');
+                        document.getElementById('equip-active').textContent = data.equipment.active;
+                        document.getElementById('equip-total').textContent = data.equipment.total;
+                        applyCardStatus('card-equip', getEquipStatus(data.equipment.usage_percent));
+
+                        // Update timestamp
+                        const now = new Date();
+                        document.getElementById('last-updated-time').textContent =
+                            now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    }
+
+                    // ---- Refresh Button Handler ----
+                    async function refreshData() {
+                        const btn = document.getElementById('btn-refresh');
+                        btn.classList.add('spinning');
+                        btn.disabled = true;
+
+                        const data = await fetchResourceData();
+                        renderMetrics(data);
+
+                        setTimeout(() => {
+                            btn.classList.remove('spinning');
+                            btn.disabled = false;
+                        }, 600);
+                    }
+
+                    // ---- Auto-Refresh (every 15 seconds) ----
+                    let autoRefreshInterval = null;
+
+                    function startAutoRefresh() {
+                        refreshData(); // Initial load
+                        autoRefreshInterval = setInterval(refreshData, 15000);
+                    }
+
+                    // ---- Initialize ----
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                        if ((currentUser.role || '').toLowerCase() === 'admin') {
+                            startAutoRefresh();
+                        }
+                    });
+                </script>
+</body>
+
+</html>

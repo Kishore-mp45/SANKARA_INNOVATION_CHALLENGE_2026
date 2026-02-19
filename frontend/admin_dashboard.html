@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Admin Control Center</title>
+    <link rel="stylesheet" href="css/style.css?v=200">
+    <link rel="stylesheet" href="css/admin.css?v=200">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <!-- View-Only Links Removed for Admin Focus -->
+            <li><a href="admin_dashboard.html" class="nav-item active"><span class="step-badge">9</span> Admin
+                    Center</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <div>
+                    <h1 style="font-size: 1.5rem; color: var(--admin-primary);">PatientPath AI – Admin Control Center
+                    </h1>
+                    <p class="header-subtitle">Real-time Hospital Operations Oversight</p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <span class="status-badge"
+                        style="background:#d1fae5; color:#047857; display:flex; align-items:center; gap:0.5rem;">
+                        <span class="status-dot dot-green"></span> System Online
+                    </span>
+                    <button onclick="fetchStats()" class="btn-sm"><i class="fas fa-sync-alt"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <div class="admin-container fade-in">
+            <!-- Widgets Grid -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div>
+                        <div class="metric-value" id="active-patients">--</div>
+                        <div class="metric-label">Active Patients</div>
+                    </div>
+                    <div class="metric-icon"><i class="fas fa-users"></i></div>
+                </div>
+                <!-- 
+                <div class="metric-card">
+                    <div>
+                        <div class="metric-value" id="occupancy-rate">--%</div>
+                        <div class="metric-label">Avg Occupancy</div>
+                    </div>
+                    <div class="metric-icon"><i class="fas fa-chart-pie"></i></div>
+                </div>
+                -->
+                <div class="metric-card">
+                    <div>
+                        <div class="metric-value" style="color:#10b981;">Active</div>
+                        <div class="metric-label">AI Engine Status</div>
+                    </div>
+                    <div class="metric-icon"><i class="fas fa-brain"></i></div>
+                </div>
+            </div>
+
+            <!-- Activity Feed & Dept Status -->
+            <div class="feeds-container">
+                <!-- Live Notification Center -->
+                <div class="feed-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <i class="fas fa-stream" style="color:var(--admin-accent)"></i>
+                            Live Notification Center
+                        </div>
+                        <div class="panel-actions">
+                            <input type="text" id="log-search" placeholder="Search logs..." class="form-control"
+                                style="font-size:0.85rem; padding:0.4rem; width:150px;">
+                            <select id="role-filter" class="form-control" style="font-size:0.85rem; padding:0.4rem;">
+                                <option value="">All Roles</option>
+                                <option value="staff">Staff</option>
+                                <option value="system">System</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <button onclick="exportLogs()" class="btn-sm btn-primary">
+                                <i class="fas fa-download"></i> Export CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div class="activity-list" id="activity-list">
+                        <!-- Items injected by JS -->
+                        <div style="padding:2rem; text-align:center; color:#94a3b8;">Loading activity stream...</div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Dept Status & Distribution -->
+                <div style="display:flex; flex-direction:column; gap:1.5rem;">
+                    <!-- Department Status -->
+                    <div class="feed-panel" style="height: auto;">
+                        <div class="panel-header">
+                            <div class="panel-title">Department Activity</div>
+                        </div>
+                        <div style="padding:1rem;">
+                            <canvas id="deptChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- System Info -->
+                    <div class="feed-panel" style="height: auto; flex:1;">
+                        <div class="panel-header">
+                            <div class="panel-title">System Health</div>
+                        </div>
+                        <div style="padding:1.5rem;">
+                            <div
+                                style="display:flex; justify-content:space-between; margin-bottom:1rem; border-bottom:1px solid #f1f5f9; padding-bottom:0.5rem;">
+                                <span style="color:#64748b;">Backend Connection</span>
+                                <span style="color:#10b981; font-weight:600;"><i class="fas fa-check-circle"></i>
+                                    Online</span>
+                            </div>
+                            <div
+                                style="display:flex; justify-content:space-between; margin-bottom:1rem; border-bottom:1px solid #f1f5f9; padding-bottom:0.5rem;">
+                                <span style="color:#64748b;">Database Connection</span>
+                                <span style="color:#10b981; font-weight:600;"><i class="fas fa-check-circle"></i>
+                                    Connected</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between;">
+                                <span style="color:#64748b;">Last Backup</span>
+                                <span style="color:#64748b;">Today, 04:00 AM</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        let deptChartInstance = null;
+        let lastLogId = 0;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("Admin Dashboard Initialized");
+            fetchStats();
+            fetchActivity();
+
+            // Poll every 2 seconds
+            setInterval(fetchActivity, 2000);
+            // Poll stats every 10 seconds
+            setInterval(fetchStats, 10000);
+
+            // Filter listeners
+            document.getElementById('role-filter').addEventListener('change', fetchActivity);
+            document.getElementById('log-search').addEventListener('input', filterLocalLogs);
+        });
+
+        async function fetchStats() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/admin/dashboard-stats`);
+                if (response.ok) {
+                    const data = await response.json();
+
+                    document.getElementById('active-patients').innerText = data.active_patients;
+                    // Removed Latency and Alerts per user request
+
+                    updateDeptChart(data.zone_distribution);
+                }
+            } catch (error) {
+                console.error("Stats Fetch Error:", error);
+            }
+        }
+
+        async function fetchActivity() {
+            const role = document.getElementById('role-filter').value;
+            let url = `${API_BASE_URL}/admin/activity?limit=100`;
+            if (role) url += `&role=${role}`;
+
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    renderActivityList(data.logs);
+                }
+            } catch (error) {
+                console.error("Activity Fetch Error:", error);
+            }
+        }
+
+        function renderActivityList(logs) {
+            const container = document.getElementById('activity-list');
+            const search = document.getElementById('log-search').value.toLowerCase();
+
+            // Filter locally for search text
+            const filteredLogs = logs.filter(log =>
+                log.action.toLowerCase().includes(search) ||
+                log.details.toLowerCase().includes(search) ||
+                log.role.toLowerCase().includes(search)
+            );
+
+            if (filteredLogs.length === 0) {
+                container.innerHTML = '<div style="padding:2rem; text-align:center; color:#94a3b8;">No recent activity found.</div>';
+                return;
+            }
+
+            // Simple diff check to avoid re-rendering entire DOM if top items are same?
+            // For now, full re-render is safe as list is small (100 items).
+
+            let html = '';
+            filteredLogs.forEach(log => {
+                let iconClass = 'icon-info';
+                let iconContent = '<i class="fas fa-info"></i>';
+
+                if (log.severity === 'success') { iconClass = 'icon-success'; iconContent = '<i class="fas fa-check"></i>'; }
+                if (log.severity === 'warning') { iconClass = 'icon-warning'; iconContent = '<i class="fas fa-exclamation"></i>'; }
+                if (log.severity === 'error') { iconClass = 'icon-error'; iconContent = '<i class="fas fa-times"></i>'; }
+
+                // Specific icons based on action keywords
+                if (log.action.includes('Movement')) iconContent = '<i class="fas fa-walking"></i>';
+                if (log.action.includes('Treatment')) iconContent = '<i class="fas fa-user-md"></i>';
+
+                // Format Time
+                const date = new Date(log.timestamp);
+                const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                html += `
+                    <div class="activity-item">
+                        <div class="activity-icon ${iconClass}">
+                            ${iconContent}
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-header">
+                                <div class="activity-title">
+                                    ${log.action}
+                                    <span class="badge badge-role">${log.role}</span>
+                                </div>
+                                <div class="activity-time">${timeStr}</div>
+                            </div>
+                            <div class="activity-desc">${log.details}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function filterLocalLogs() {
+            // Trigger fetch which triggers render + filter
+            fetchActivity();
+        }
+
+        function updateDeptChart(zoneData) {
+            const ctx = document.getElementById('deptChart').getContext('2d');
+            const labels = zoneData.map(z => formatZone(z.name));
+            const data = zoneData.map(z => z.count);
+
+            if (deptChartInstance) {
+                deptChartInstance.data.labels = labels;
+                deptChartInstance.data.datasets[0].data = data;
+                deptChartInstance.update();
+            } else {
+                deptChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Patients',
+                            data: data,
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                            x: { ticks: { font: { size: 10 } } }
+                        }
+                    }
+                });
+            }
+        }
+
+        function formatZone(zoneKey) {
+            return zoneKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        }
+
+        function exportLogs() {
+            window.location.href = `${API_BASE_URL}/admin/export`;
+        }
+    </script>
+</body>
+
+</html>

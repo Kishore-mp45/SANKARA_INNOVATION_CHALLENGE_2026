@@ -1,0 +1,6 @@
+CRITICAL ERROR: name 'ActivityService' is not defined
+Traceback (most recent call last):
+  File "c:\PATIENTPATH-AI\backend\routers\patients.py", line 568, in update_patient_stage
+    ActivityService.add_log(
+    ^^^^^^^^^^^^^^^
+NameError: name 'ActivityService' is not defined. Did you mean: 'PatientService'?

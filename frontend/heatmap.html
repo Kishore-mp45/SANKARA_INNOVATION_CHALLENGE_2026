@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>PatientPath AI - Zone Heatmap</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .zone-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .zone-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .zone-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .zone-value {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 1rem 0;
+        }
+
+        .zone-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-dot {
+            height: 10px;
+            width: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        /* Tooltip behavior handled by title attribute or custom if needed */
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Zone Heatmap</h1>
+                <p class="header-subtitle">Occupancy density by department</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <div class="zone-grid" id="zone-container">
+                <!-- Zones will be rendered here -->
+            </div>
+
+            <div class="nav-buttons">
+                <a href="occupancy.html" class="btn btn-secondary">&larr; Back</a>
+                <a href="metrics.html" class="btn btn-primary">Next: Metrics &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/websocket.js"></script>
+    <script>
+        const zones = [
+            "vision_lab", "dilation_hall", "diagnostics",
+            "billing_insurance", "registration", "consultation",
+            "pharmacy"
+        ];
+        const container = document.getElementById('zone-container');
+
+        // Helper to format zone keys to titles
+        function formatZoneName(key) {
+            return key.split('_')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
+
+        // Initial Render (Empty state)
+        function renderInitialZones() {
+            container.innerHTML = '';
+            zones.forEach(zone => {
+                createZoneCard(zone, 0, 'Waiting...');
+            });
+        }
+
+        function createZoneCard(zone, count, timestamp) {
+            let color, status;
+            if (count <= 5) {
+                color = 'var(--accent-color)'; // Green
+                status = 'Low';
+            } else if (count <= 10) {
+                color = 'var(--warning-color)'; // Yellow/Orange
+                status = 'Med';
+            } else {
+                color = 'var(--danger-color)'; // Red
+                status = 'High';
+            }
+
+            // Find existing card or create new
+            let card = document.getElementById(`zone-card-${zone}`);
+            if (!card) {
+                card = document.createElement('div');
+                card.id = `zone-card-${zone}`;
+                card.className = 'zone-card';
+                container.appendChild(card);
+            }
+
+            card.style.borderTop = `4px solid ${color}`;
+            // Use formatted name for display
+            const displayName = formatZoneName(zone);
+            card.title = `${displayName}: ${count} people (${status})`;
+
+            card.innerHTML = `
+                <div class="zone-label">${displayName}</div>
+                <div class="zone-value" style="color: ${color}">${count}</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">
+                    <span class="status-dot" style="background: ${color}"></span>${status} Occupancy
+                </div>
+            `;
+
+            // Highlight update
+            card.animate([
+                { transform: 'scale(1)' },
+                { transform: 'scale(1.05)' },
+                { transform: 'scale(1)' }
+            ], { duration: 300 });
+        }
+
+        document.addEventListener('occupancy-update', (e) => {
+            const data = e.detail;
+            if (zones.includes(data.zone)) {
+                createZoneCard(data.zone, data.count, data.timestamp);
+            }
+        });
+
+        renderInitialZones();
+    </script>
+</body>
+
+</html>

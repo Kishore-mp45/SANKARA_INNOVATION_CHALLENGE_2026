@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>PatientPath AI - Video</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .video-container {
+            position: relative;
+            background: black;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            /* Fixed top left (relative to this page content) as requested, 
+               but "Fixed rectangle video panel top-left corner" usually means absolute/fixed positioning.
+               User said: "Fixed rectangle video panel top-left corner... Size 320x200px... Not movable" 
+               I will place it in the top-left of the content area. */
+            width: 320px;
+            height: 200px;
+            margin-bottom: 2rem;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Live Surveillance</h1>
+                <p class="header-subtitle">Real-time video feed</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <div class="video-control-panel" style="margin-bottom: 1rem; max-width: 320px;">
+                <label for="dept-select"
+                    style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Select
+                    Department Camera</label>
+                <select id="dept-select" class="form-select"
+                    style="width: 100%; padding: 0.5rem; border-radius: 6px; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color);">
+                    <option value="vision">Vision Lab</option>
+                    <option value="dilation">Dilation Hall</option>
+                    <option value="diagnostics">Diagnostics</option>
+                    <option value="billing">Billing & Insurance</option>
+                    <option value="registration">Registration</option>
+                    <option value="consultation">Consultation</option>
+                    <option value="pharmacy">Pharmacy</option>
+                </select>
+            </div>
+
+            <p style="margin-bottom:1rem; color: var(--text-muted);">
+                Monitoring Feed: <strong id="current-feed-name">Vision Lab</strong>
+            </p>
+
+            <div class="video-container">
+                <div class="video-overlay">LIVE</div>
+                <!-- Video Element -->
+                <video id="live-video" autoplay muted loop playsinline>
+                    <source src="assets/videos/vision.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+
+            <div class="card" style="max-width: 600px;">
+                <h3>Feed Status</h3>
+                <p style="color: var(--accent-color); font-weight: 500;">Signal Strength: Strong</p>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">
+                    AI detection overlay is processed server-side. This is the raw low-latency feed for operator
+                    verification.
+                </p>
+            </div>
+
+            <div class="nav-buttons">
+                <a href="prediction.html" class="btn btn-secondary">&larr; Back</a>
+                <a href="index.html" class="btn btn-primary">Finish (Home) &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        const videoPlayer = document.getElementById('live-video');
+        const deptSelect = document.getElementById('dept-select');
+        const feedName = document.getElementById('current-feed-name');
+        const videoContainer = document.querySelector('.video-container');
+
+        deptSelect.addEventListener('change', (e) => {
+            const dept = e.target.value;
+            const deptText = e.target.options[e.target.selectedIndex].text;
+
+            // Fade out
+            videoContainer.style.opacity = '0.5';
+            videoContainer.style.transition = 'opacity 0.3s ease';
+
+            setTimeout(() => {
+                // Update Source
+                videoPlayer.src = `assets/videos/${dept}.mp4`;
+                videoPlayer.play();
+
+                // Update Text
+                feedName.textContent = deptText;
+
+                // Fade in
+                videoContainer.style.opacity = '1';
+            }, 300);
+        });
+    </script>
+</body>
+
+</html>

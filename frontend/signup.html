@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Sign Up</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--bg-color);
+            margin: 0;
+        }
+
+        .login-card {
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            text-align: center;
+        }
+
+        .brand-logo {
+            margin-bottom: 2rem;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        select,
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-color);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        select:focus,
+        input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .btn-auth {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            margin-top: 1rem;
+        }
+
+        .btn-auth:hover {
+            opacity: 0.9;
+        }
+
+        .auth-link {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .auth-link a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .auth-link a:hover {
+            text-decoration: underline;
+        }
+
+        .error-msg {
+            color: #ef4444;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .success-msg {
+            color: #10b981;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-card fade-in">
+        <div class="brand-logo">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+
+        <h3 style="margin-bottom: 1.5rem; color: var(--text-color);">Create Account</h3>
+
+        <div class="form-group">
+            <label for="role-select">Select Role</label>
+            <select id="role-select" onchange="updateLabels()">
+                <option value="admin">Admin</option>
+                <option value="doctor">Doctor</option>
+                <option value="staff">Staff</option>
+                <option value="patient">Patient</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label id="id-label" for="user-id">Admin ID</label>
+            <input type="text" id="user-id" placeholder="Enter ID (e.g., ADM001)">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Create a password">
+        </div>
+
+        <button class="btn-auth" onclick="handleSignup()">Sign Up</button>
+
+        <div id="message-area" style="min-height: 20px;">
+            <p class="error-msg" id="error-text"></p>
+            <p class="success-msg" id="success-text"></p>
+        </div>
+
+        <div class="auth-link">
+            Already have an account? <a href="login.html">Login here</a>
+        </div>
+    </div>
+
+    <script>
+        function updateLabels() {
+            const role = document.getElementById('role-select').value;
+            const label = document.getElementById('id-label');
+            const placeholder = document.getElementById('user-id');
+
+            const config = {
+                admin: { label: 'Admin ID', ph: 'Enter Admin ID' },
+                doctor: { label: 'Doctor ID', ph: 'Enter Doctor ID' },
+                staff: { label: 'Staff ID', ph: 'Enter Staff ID' },
+                patient: { label: 'Patient ID', ph: 'Enter Patient ID' }
+            };
+
+            label.textContent = config[role].label;
+            placeholder.placeholder = config[role].ph;
+        }
+
+        function handleSignup() {
+            const role = document.getElementById('role-select').value;
+            const userId = document.getElementById('user-id').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const errorEl = document.getElementById('error-text');
+            const successEl = document.getElementById('success-text');
+
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+
+            if (!userId || !password) {
+                errorEl.textContent = "Please fill in all fields.";
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            // Get existing users
+            const users = JSON.parse(localStorage.getItem('ppa_users') || '{}');
+
+            // Check if ID already exists (Global uniqueness for simplicity, or Role-scoped?)
+            // User request implies roles are distinct, let's scope by ID to avoid ambiguity
+            if (users[userId]) {
+                errorEl.textContent = "ID already registered. Please login.";
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            // Save user
+            users[userId] = {
+                role: role,
+                password: password // In a real app, hash this!
+            };
+            localStorage.setItem('ppa_users', JSON.stringify(users));
+
+            successEl.textContent = "Account created successfully! Redirecting...";
+            successEl.style.display = 'block';
+
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 1000);
+        }
+
+        // Initialize
+        updateLabels();
+    </script>
+</body>
+
+</html>

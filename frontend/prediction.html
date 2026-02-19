@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>PatientPath AI - Prediction</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .prediction-banner {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 2px solid var(--primary-color);
+            border-radius: 1rem;
+            padding: 3rem;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(14, 165, 233, 0.3);
+            margin: 2rem 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .prediction-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .prediction-sub {
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item active"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <!-- New Layout Container -->
+        <div class="predictions-layout fade-in">
+
+            <!-- Left Column: AI Predictions -->
+            <div class="col-predictions">
+                <div class="section-header">
+                    <h2><i class="fas fa-brain" style="color: var(--primary-color); margin-right: 10px;"></i>AI
+                        Predictions</h2>
+                    <span class="badge-ml">ML-Powered</span>
+                </div>
+
+                <div id="predictions-list">
+                    <!-- Loading State -->
+                    <div class="prediction-card loading-card">
+                        <div class="skeleton-line" style="width: 60%;"></div>
+                        <div class="skeleton-line" style="width: 90%;"></div>
+                        <div class="skeleton-line" style="width: 80%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Decision Support -->
+            <div class="col-decisions">
+                <div class="section-header">
+                    <h2><i class="fas fa-bolt" style="color: #f59e0b; margin-right: 10px;"></i>Decision Support</h2>
+                    <span class="badge-ai">AI-Generated Actions</span>
+                </div>
+
+                <div id="decisions-list">
+                    <!-- Loading State -->
+                    <div class="decision-card loading-card">
+                        <div class="skeleton-line" style="width: 70%;"></div>
+                        <div class="skeleton-line" style="width: 40%; margin-top: 1rem;"></div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions-section">
+                    <h3 class="subsection-title">Quick Actions</h3>
+                    <div class="quick-actions-grid">
+                        <button class="quick-action-btn" onclick="triggerAction('add_staff')">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Add Staff</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="triggerAction('open_ward')">
+                            <i class="fas fa-door-open"></i>
+                            <span>Open Extra Ward</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="triggerAction('redirect')">
+                            <i class="fas fa-arrow-right"></i>
+                            <span>Redirect Patients</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <!-- Use FontAwesome for icons if not already included, checking head -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        const API_URL = 'http://localhost:8000/prediction/forecast';
+        const predList = document.getElementById('predictions-list');
+        const decList = document.getElementById('decisions-list');
+
+        async function fetchPrediction() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                renderUI(data);
+            } catch (error) {
+                console.error("Prediction fetch error:", error);
+                predList.innerHTML = '<div class="error-msg">Failed to load predictions. System requires backend connection.</div>';
+            }
+        }
+
+        function renderUI(data) {
+            // Render Predictions
+            if (data.predictions && data.predictions.length > 0) {
+                predList.innerHTML = data.predictions.map(p => `
+                    <div class="prediction-card border-left-${p.severity}">
+                        <div class="pred-header">
+                            <div class="pred-meta">
+                                <div class="pred-icon-circle"><i class="fas ${p.icon || 'fa-chart-line'}"></i></div>
+                                <span class="pred-time">${p.time_window}</span>
+                            </div>
+                            <span class="confidence-badge">${p.confidence}</span>
+                        </div>
+                        <h3 class="pred-title">${p.description}</h3>
+                        <div class="pred-recommendation">
+                            <i class="far fa-lightbulb"></i>
+                            <span><strong>Recommendation:</strong> ${p.recommendation}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                predList.innerHTML = '<div class="empty-state">No active predictions at this time.</div>';
+            }
+
+            // Render Decisions
+            if (data.decisions && data.decisions.length > 0) {
+                decList.innerHTML = data.decisions.map((d, index) => `
+                    <div class="decision-card" id="dec-${index}">
+                        <div class="decision-content">
+                            <h4 class="decision-title">${d.description}</h4> <!-- Using description as main text per design -->
+                        </div>
+                        <div class="decision-actions">
+                            <button class="btn-action-apply" onclick="applyDecision(${index}, '${d.action_label}')">
+                                <i class="fas fa-check-circle"></i> ${d.action_label || 'Apply'}
+                            </button>
+                            <button class="btn-action-dismiss" onclick="dismissDecision(${index})">Dismiss</button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                decList.innerHTML = '<div class="empty-state">No pending decisions.</div>';
+            }
+        }
+
+        function applyDecision(index, label) {
+            const card = document.getElementById(`dec-${index}`);
+            const btn = card.querySelector('.btn-action-apply');
+
+            // Visual feedback
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
+            btn.style.opacity = '0.8';
+
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-check"></i> Applied';
+                btn.classList.add('applied');
+
+                // Optional: remove after delay or keep as "applied" state
+                setTimeout(() => {
+                    card.style.opacity = '0.5';
+                    card.style.pointerEvents = 'none';
+                }, 1000);
+            }, 800);
+        }
+
+        function dismissDecision(index) {
+            const card = document.getElementById(`dec-${index}`);
+            card.style.opacity = '0';
+            setTimeout(() => card.remove(), 300);
+        }
+
+        function triggerAction(action) {
+            alert(`Quick Action Triggered: ${action.replace('_', ' ').toUpperCase()}`);
+        }
+
+        // Initial Load
+        fetchPrediction();
+        // Poll every 30 seconds
+        setInterval(fetchPrediction, 30000);
+    </script>
+</body>
+
+</html>

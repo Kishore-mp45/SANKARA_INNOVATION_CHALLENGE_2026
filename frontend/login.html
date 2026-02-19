@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- PatientPath AI Login V4.0 -->
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Login v4.0</title>
+    <script>
+        console.log("Login Page Loaded v4.0");
+
+        // Clear any existing session to prevent confusion on load
+        window.onload = function () {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('currentRole');
+            localStorage.removeItem('currentDept');
+            console.log("Session cleared for fresh login.");
+        };
+    </script>
+    <link rel="stylesheet" href="css/style.css?v=4.0">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--bg-color);
+            margin: 0;
+        }
+
+        .login-card {
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            text-align: center;
+        }
+
+        .brand-logo {
+            margin-bottom: 2rem;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        select,
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-color);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        select:focus,
+        input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            margin-top: 1rem;
+        }
+
+        .btn-login:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-card fade-in">
+        <div class="brand-logo"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg><span>PatientPath AI</span></div>
+        <h3 style="margin-bottom: 1.5rem; color: var(--text-color);">Welcome Back</h3>
+        <div class="form-group"><label for="role-select">Select Access Role</label><select id="role-select"
+                onchange="updateLabels()">
+                <option value="admin">Admin</option>
+                <option value="doctor">Doctor</option>
+                <option value="staff">Staff</option>
+                <option value="patient">Patient</option>
+            </select></div>
+        <div class="form-group" id="dept-group" style="display: none;"><label for="dept-select">Select
+                Department</label><select id="dept-select">
+                <option value="registration">Registration</option>
+                <option value="vision_lab">Vision Lab</option>
+                <option value="dilation_hall">Dilation Hall</option>
+                <option value="diagnostics">Diagnostics</option>
+                <option value="consultation">Consultation</option>
+                <option value="pharmacy">Pharmacy</option>
+                <option value="billing_insurance">Billing & Insurance</option>
+            </select></div>
+        <div class="form-group"><label id="id-label" for="user-id">Admin ID</label><input type="text" id="user-id"
+                placeholder="Enter ID"></div>
+        <div class="form-group"><label for="password">Password</label><input type="password" id="password"
+                placeholder="Enter Password"></div>
+        <button class="btn-login" onclick="handleLogin()">Login</button>
+        <p id="error-msg" style="color: #ef4444; font-size: 0.9rem; margin-top: 1rem; display: none;"></p>
+        <div style="margin-top: 1.5rem; font-size: 0.9rem; color: var(--text-muted);">New User? <a href="signup.html"
+                style="color: var(--primary-color); text-decoration: none; font-weight: 500;">Sign up here</a></div>
+    </div>
+
+    <script>
+        function updateLabels() {
+            const role = document.getElementById('role-select').value;
+            const label = document.getElementById('id-label');
+            const placeholder = document.getElementById('user-id');
+            const deptGroup = document.getElementById('dept-group');
+            const passwordGroup = document.getElementById('password').parentElement; // Get parent div of password
+            const loginBtn = document.querySelector('.btn-login');
+
+            const config = {
+                admin: { label: 'Admin ID', ph: 'Enter Admin ID', btn: 'Login' },
+                doctor: { label: 'Doctor ID', ph: 'Enter Doctor ID', btn: 'Login' },
+                staff: { label: 'Staff ID', ph: 'Enter Staff ID', btn: 'Login' },
+                patient: { label: 'Patient Tracking ID', ph: 'Enter Patient ID (e.g. CV-12345)', btn: 'Track Status' }
+            };
+
+            label.textContent = config[role].label;
+            placeholder.placeholder = config[role].ph;
+            loginBtn.textContent = config[role].btn;
+
+            // Show/Hide Logic
+            if (role === 'patient') {
+                passwordGroup.style.display = 'none';
+                deptGroup.style.display = 'none';
+            } else if (role === 'staff') {
+                passwordGroup.style.display = 'block';
+                deptGroup.style.display = 'block';
+            } else {
+                passwordGroup.style.display = 'block';
+                deptGroup.style.display = 'none';
+            }
+        }
+
+        function handleLogin() {
+            const role = document.getElementById('role-select').value;
+            const userId = document.getElementById('user-id').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const errorEl = document.getElementById('error-msg');
+            const deptSelect = document.getElementById('dept-select');
+
+            errorEl.style.display = 'none';
+
+            if (!userId) {
+                errorEl.textContent = "Please enter your ID.";
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            console.log("Attempting login", role, userId);
+
+            // PATIENT FLOW
+            if (role === 'patient') {
+                console.log("Redirecting to Patient Dashboard");
+                localStorage.setItem('currentUser', userId); // Keep for backward compatibility
+                localStorage.setItem('currentPatientId', userId); // New specific key
+                localStorage.setItem('currentRole', 'patient');
+                // Force fresh reload with timestamp
+                window.location.href = 'patient_dashboard.html?v=' + new Date().getTime();
+                return;
+            }
+
+            // STAFF/ADMIN FLOW
+            if (!password) {
+                errorEl.textContent = "Please enter credentials.";
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            // Retrieve users
+            const users = JSON.parse(localStorage.getItem('ppa_users') || '{}');
+            const user = users[userId];
+
+            if (!user) {
+                errorEl.textContent = "User ID not found. Please sign up.";
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (user.role !== role) {
+                errorEl.textContent = `ID exists but is not registered as ${role}. Try ${user.role}.`;
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (user.password !== password) {
+                errorEl.textContent = "Invalid password.";
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            // Success
+            localStorage.setItem('currentRole', role);
+            localStorage.setItem('currentUser', userId); // Track who is logged in
+
+            // Save Department if Staff
+            if (role === 'staff') {
+                localStorage.setItem('currentDept', deptSelect.value);
+            } else {
+                localStorage.removeItem('currentDept');
+            }
+
+            window.location.href = 'index.html';
+        }
+
+        // Init labels logic
+        updateLabels();
+    </script>
+</body>
+
+</html>

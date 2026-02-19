@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Home</title>
+    <link rel="stylesheet" href="css/style.css?v=100">
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
+            <li><a href="patient_dashboard.html" class="nav-item"><span class="step-badge">3</span> My Dashboard</a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>PatientPath AI</h1>
+                <p class="header-subtitle">Intelligent Hospital Operations</p>
+            </div>
+            <!-- RBAC Controls will be injected here by main.js -->
+        </header>
+
+        <div class="page-container fade-in" style="max-width: 1200px; padding-bottom: 4rem;">
+
+            <!-- Hero Section -->
+            <div class="hero-section text-center" style="padding: 4rem 1rem; max-width: 800px; margin: 0 auto;">
+                <h1
+                    style="font-size: 3rem; margin-bottom: 1.5rem; background: linear-gradient(135deg, #38bdf8 0%, #3b82f6 50%, #10b981 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.05em;">
+                    PatientPath AI
+                </h1>
+                <p style="font-size: 1.25rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 2.5rem;">
+                    An advanced real-time orchestrator for hospital flow and resource optimization.
+                    Monitor occupancy, predict admission spikes, and manage department resources instantly with
+                    AI-driven insights.
+                </p>
+                <a href="occupancy.html" class="btn btn-primary"
+                    style="padding: 1rem 2.5rem; font-size: 1.1rem; border-radius: 2rem;">
+                    Get Started
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                        style="margin-left: 0.5rem;">
+                        <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                </a>
+            </div>
+
+            <!-- Core Functionalities -->
+            <div class="features-container">
+                <style>
+                    /* Scoped Styles for Landing Page */
+                    .features-grid {
+                        display: grid;
+                        gap: 1.5rem;
+                        grid-template-columns: 1fr;
+                        /* Mobile Default */
+                        margin-top: 2rem;
+                    }
+
+                    /* Tablet */
+                    @media (min-width: 768px) {
+                        .features-grid {
+                            grid-template-columns: repeat(2, 1fr);
+                        }
+                    }
+
+                    /* Desktop */
+                    @media (min-width: 1024px) {
+                        .features-grid {
+                            grid-template-columns: repeat(3, 1fr);
+                        }
+                    }
+
+                    .feature-card {
+                        background: var(--card-bg);
+                        /* Use existing var */
+                        border: 1px solid var(--border-color);
+                        padding: 1.5rem;
+                        border-radius: 1rem;
+                        transition: all 0.3s ease;
+                        height: 100%;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: flex-start;
+                        position: relative;
+                        overflow: hidden;
+                    }
+
+                    .feature-card:hover {
+                        transform: translateY(-5px);
+                        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+                        border-color: var(--primary-color);
+                    }
+
+                    .feature-icon {
+                        font-size: 2rem;
+                        margin-bottom: 1rem;
+                        background: rgba(14, 165, 233, 0.1);
+                        width: 50px;
+                        height: 50px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border-radius: 12px;
+                    }
+
+                    .feature-title {
+                        font-weight: 700;
+                        font-size: 1.1rem;
+                        margin-bottom: 0.5rem;
+                        color: var(--text-main);
+                    }
+
+                    .feature-desc {
+                        font-size: 0.9rem;
+                        color: var(--text-muted);
+                        line-height: 1.5;
+                    }
+
+                    /* How It Works Steps */
+                    .steps-container {
+                        display: flex;
+                        justify-content: center;
+                        gap: 2rem;
+                        flex-wrap: wrap;
+                        margin-top: 5rem;
+                        text-align: center;
+                        position: relative;
+                    }
+
+                    .step-item {
+                        flex: 1;
+                        min-width: 250px;
+                        max-width: 300px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                    }
+
+                    .step-num {
+                        font-size: 1.5rem;
+                        font-weight: 800;
+                        color: var(--primary-color);
+                        margin-bottom: 1rem;
+                        position: relative;
+                        z-index: 1;
+                        background: var(--bg-color);
+                        padding: 0 1rem;
+                    }
+
+                    .step-line {
+                        position: absolute;
+                        top: 1.5rem;
+                        left: 20%;
+                        right: 20%;
+                        height: 2px;
+                        background: var(--border-color);
+                        z-index: 0;
+                        display: none;
+                        /* Hidden on mobile */
+                    }
+
+                    @media(min-width: 900px) {
+                        .step-line {
+                            display: block;
+                        }
+                    }
+                </style>
+
+                <h2 class="text-center" style="margin-bottom: 2rem; font-size: 1.8rem;">Core Functionalities</h2>
+
+                <div class="features-grid">
+                    <!-- Feature 1 -->
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">Live Occupancy Monitoring</div>
+                        <p class="feature-desc">Real-time person counting and density tracking across all hospital
+                            zones.</p>
+                    </div>
+                    <!-- Feature 2 -->
+                    <div class="feature-card">
+                        <div class="feature-icon">🌡️</div>
+                        <div class="feature-title">Department Heatmaps</div>
+                        <p class="feature-desc">Visual intensity maps to identify congestion hotspots instantly.</p>
+                    </div>
+                    <!-- Feature 3 -->
+                    <div class="feature-card">
+                        <div class="feature-icon">🔮</div>
+                        <div class="feature-title">Predictive Analytics</div>
+                        <p class="feature-desc">AI forecasts for peak hours and admission rates using historical data.
+                        </p>
+                    </div>
+                    <!-- Feature 4 -->
+                    <div class="feature-card">
+                        <div class="feature-icon">🛏️</div>
+                        <div class="feature-title">Bed & Resource Tracking</div>
+                        <p class="feature-desc">Monitor available beds and critical resources to reduce wait times.</p>
+                    </div>
+                    <!-- Feature 5 -->
+                    <div class="feature-card">
+                        <div class="feature-icon">🔐</div>
+                        <div class="feature-title">Role-Based Access Control</div>
+                        <p class="feature-desc">Secure, tailored views for Admins, Doctors, Staff, and Patients.</p>
+                    </div>
+                    <!-- Feature 6 -->
+                    <div class="feature-card">
+                        <div class="feature-icon">🎥</div>
+                        <div class="feature-title">Live Camera Monitoring</div>
+                        <p class="feature-desc">Direct low-latency video feeds from multiple hospital departments.</p>
+                    </div>
+                </div>
+                <!-- Feature 7 -->
+                <div class="feature-card" onclick="window.location.href='staff_panel.html'" style="cursor: pointer;">
+                    <div class="feature-icon">📋</div>
+                    <div class="feature-title">Staff Operations</div>
+                    <p class="feature-desc">Manage patient flow, update stages, and track department activity.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- How It Works (Minimal) -->
+        <div class="steps-container">
+            <div class="step-line"></div>
+            <div class="step-item">
+                <div class="step-num">01</div>
+                <div style="font-weight: 600;">Connect Cameras</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+                    System ingests standard CCTV feeds via secure RTSP/WebSocket.
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-num">02</div>
+                <div style="font-weight: 600;">AI Processing</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+                    Computer vision models detect people and usage in real-time.
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-num">03</div>
+                <div style="font-weight: 600;">Actionable Insights</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+                    Staff receive alerts and allocate resources efficiently.
+                </div>
+            </div>
+        </div>
+
+    </div>
+    </div>
+
+    <script>
+        // Force cleanup of theme data
+        localStorage.removeItem('theme');
+        document.documentElement.removeAttribute('data-theme');
+    </script>
+    <script src="js/main.js?v=100"></script>
+</body>
+
+</html>

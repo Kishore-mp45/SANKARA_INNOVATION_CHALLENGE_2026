@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>PatientPath AI - Alerts</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .alerts-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        .alert-item {
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            border-radius: 0.5rem;
+            border-left: 4px solid;
+            background: var(--sidebar-bg);
+            animation: fadeIn 0.4s ease forwards;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .alert-content {
+            flex-grow: 1;
+        }
+
+        .alert-time {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin-left: 1rem;
+        }
+
+        .severity-high {
+            border-color: var(--danger-color);
+            color: #fca5a5;
+        }
+
+        .severity-med {
+            border-color: var(--warning-color);
+            color: #fcd34d;
+        }
+
+        .severity-low {
+            border-color: var(--accent-color);
+            color: #86efac;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item active"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <!-- Alerts Header -->
+        <div class="alerts-header-section">
+            <div class="header-left">
+                <h1><i class="fas fa-exclamation-triangle" style="color: #f59e0b; margin-right: 12px;"></i>Active Alerts
+                </h1>
+            </div>
+            <div class="header-right">
+                <span class="critical-count-badge">17 critical</span>
+            </div>
+        </div>
+
+        <div class="page-container fade-in" style="max-width: 1000px; margin: 0 auto;">
+
+            <div class="alerts-list-container" id="alerts-list">
+                <!-- Alerts will be injected here -->
+
+                <!-- Example Static Alert for structure reference (Hidden in production) -->
+                <!-- 
+                <div class="alert-card critical">
+                    <div class="alert-icon-area">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="alert-body">
+                        <h3 class="alert-title">ICU reached critical capacity (90%)</h3>
+                        <span class="alert-time">less than a minute ago</span>
+                        <div class="alert-actions">
+                            <button class="btn-resolve"><i class="far fa-check-circle"></i> Resolve</button>
+                            <button class="btn-dismiss"><i class="fas fa-times"></i> Dismiss</button>
+                        </div>
+                    </div>
+                </div> 
+                -->
+            </div>
+
+            <div class="nav-buttons" style="margin-top: 2rem;">
+                <button id="add-alert-btn" class="btn btn-secondary" style="font-size: 0.9rem;">+ Simulate
+                    Alert</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/websocket.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        const list = document.getElementById('alerts-list');
+        const btn = document.getElementById('add-alert-btn');
+
+        // Initial Sample Data (To match reference image immediately)
+        const initialAlerts = [
+            {
+                msg: "ICU reached critical capacity (90%)",
+                time: "less than a minute ago",
+                severity: "critical"
+            },
+            {
+                msg: "ICU reached critical capacity (90%)",
+                time: "less than a minute ago",
+                severity: "critical"
+            },
+            {
+                msg: "ICU reached critical capacity (90%)",
+                time: "less than a minute ago",
+                severity: "critical"
+            },
+            {
+                msg: "Laboratory reached critical capacity (90%)",
+                time: "2 minutes ago",
+                severity: "critical"
+            }
+        ];
+
+        function renderAlert(data) {
+            const el = document.createElement('div');
+            el.className = `alert-card ${data.severity}`;
+
+            // Animation class
+            el.style.animation = 'slideInRight 0.5s ease forwards';
+
+            el.innerHTML = `
+                <div class="alert-icon-area">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="alert-body">
+                    <h3 class="alert-title">${data.msg}</h3>
+                    <span class="alert-time">${data.time}</span>
+                    <div class="alert-actions">
+                        <button class="btn-resolve" onclick="resolveAlert(this)"><i class="far fa-check-circle"></i> Resolve</button>
+                        <button class="btn-dismiss" onclick="dismissAlert(this)"><i class="fas fa-times"></i> Dismiss</button>
+                    </div>
+                </div>
+            `;
+            list.prepend(el);
+
+            // Limit to 50 items
+            if (list.children.length > 50) list.lastElementChild.remove();
+        }
+
+        // Render initial samples
+        initialAlerts.forEach(a => renderAlert(a));
+
+        function resolveAlert(btn) {
+            const card = btn.closest('.alert-card');
+            btn.innerHTML = '<i class="fas fa-check"></i> Resolved';
+            btn.classList.add('resolved-state');
+
+            setTimeout(() => {
+                card.style.opacity = '0.5';
+                // keep it visible but dimmed as per some UX patterns, or remove it:
+                setTimeout(() => {
+                    card.style.height = '0';
+                    card.style.margin = '0';
+                    card.style.padding = '0';
+                    card.style.opacity = '0';
+                    setTimeout(() => card.remove(), 300);
+                }, 1000);
+            }, 800);
+        }
+
+        function dismissAlert(btn) {
+            const card = btn.closest('.alert-card');
+            card.style.transform = 'translateX(100%)';
+            card.style.opacity = '0';
+            setTimeout(() => card.remove(), 300);
+        }
+
+        function addAlert(msg, severity = 'critical') {
+            renderAlert({
+                msg: msg,
+                time: "just now",
+                severity: severity
+            });
+        }
+
+        // Test Button (Manual)
+        btn.addEventListener('click', () => {
+            addAlert('New Emergency admission spike detected', 'critical');
+        });
+
+        // Real-time Logic (WebSocket)
+        document.addEventListener('occupancy-update', (e) => {
+            const data = e.detail;
+            if (data.count > 15) { // Threshold for demo
+                addAlert(`High Occupancy in ${data.zone} (${data.count} pax)`, 'critical');
+            }
+        });
+
+        // Listen for standard alert events
+        document.addEventListener('alert-new', (e) => {
+            // Convert standard event format to UI format
+            renderAlert({
+                msg: e.detail.message,
+                time: "just now",
+                severity: "critical" // Force critical look for demo or map strictly
+            });
+        });
+
+    </script>
+</body>
+
+</html>
