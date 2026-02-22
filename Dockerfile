@@ -28,9 +28,7 @@ WORKDIR /app/backend
 ENV USE_SQLITE=true
 ENV DEBUG=false
 ENV PYTHONUNBUFFERED=1
+ENV PORT=8000
 
-# Expose port
-EXPOSE 8000
-
-# Start the server
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Start the server - Railway sets PORT automatically
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT}
