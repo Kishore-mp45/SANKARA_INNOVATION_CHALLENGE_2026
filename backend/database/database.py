@@ -1,10 +1,10 @@
 """
 PatientPath AI - Database Connection
 ====================================
-MySQL database connection with SQLAlchemy.
+Supports MySQL (local) and SQLite (cloud deployment).
 """
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, declarative_base
 from contextlib import contextmanager
 import os
@@ -15,15 +15,30 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import settings
 
 
-# Create MySQL engine with connection pooling
-engine = create_engine(
-    settings.DATABASE_URL,
-    pool_size=10,           # Number of persistent connections
-    max_overflow=20,        # Extra connections allowed beyond pool_size
-    pool_recycle=3600,      # Recycle connections after 1 hour (avoid MySQL timeout)
-    pool_pre_ping=True,     # Verify connections are alive before using them
-    echo=settings.DATABASE_ECHO
-)
+# Build engine with appropriate settings for MySQL vs SQLite
+if settings.IS_SQLITE:
+    engine = create_engine(
+        settings.DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        echo=settings.DATABASE_ECHO
+    )
+    # Enable WAL mode and foreign keys for SQLite
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+else:
+    # MySQL engine with connection pooling
+    engine = create_engine(
+        settings.DATABASE_URL,
+        pool_size=10,
+        max_overflow=20,
+        pool_recycle=3600,
+        pool_pre_ping=True,
+        echo=settings.DATABASE_ECHO
+    )
 
 
 # Session factory

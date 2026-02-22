@@ -95,6 +95,7 @@
         </div>
     </div>
 
+    <script src="js/config.js"></script>
     <script src="js/main.js?v=999"></script>
     <script src="js/websocket.js"></script>
     <script>
@@ -202,7 +203,7 @@
         // Fetch fresh data from backend and restart sequence from Registration
         async function fetchAndRestart() {
             try {
-                const res = await fetch('/detection/latest');
+                const res = await fetch(API_BASE + '/detection/latest');
                 if (res.ok) {
                     const data = await res.json();
                     const fetchedZones = data.zones || {};

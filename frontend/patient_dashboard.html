@@ -313,12 +313,13 @@
         style="position: fixed; bottom: 2rem; right: 2rem; z-index: 1000;"></div>
 
     <!-- MAIN JS for Layout/RBAC -->
+    <script src="js/config.js"></script>
     <script src="js/main.js?v=999"></script>
 
     <script>
         console.log("Patient Dashboard V6.5 Initializing...");
 
-        const API_BASE_URL = '';
+        const API_BASE_URL = API_BASE;
         // Use specific key for patient to avoid collision with staff login
         let currentPatientId = localStorage.getItem('currentPatientId') || localStorage.getItem('currentUser');
         let pollInterval = null;

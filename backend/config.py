@@ -8,6 +8,24 @@ import os
 from typing import List
 
 
+def _build_default_db_url():
+    """Build default database URL. Uses MySQL locally, SQLite on cloud."""
+    env_url = os.getenv("DATABASE_URL")
+    if env_url:
+        return env_url
+    # Check if USE_SQLITE is set (for cloud deployment without MySQL)
+    if os.getenv("USE_SQLITE", "false").lower() == "true":
+        db_dir = os.path.dirname(os.path.abspath(__file__))
+        db_path = os.path.join(db_dir, "patientpath.db")
+        return f"sqlite:///{db_path}"
+    # Default: MySQL for local development
+    return (
+        f"mysql+pymysql://{os.getenv('DB_USER', 'root')}:{os.getenv('DB_PASSWORD', 'root')}"
+        f"@{os.getenv('DB_HOST', 'localhost')}:{os.getenv('DB_PORT', '3306')}"
+        f"/{os.getenv('DB_NAME', 'hospital')}?charset=utf8mb4"
+    )
+
+
 class Settings:
     """Application settings and configuration."""
     
@@ -21,18 +39,20 @@ class Settings:
     HOST: str = os.getenv("HOST", "0.0.0.0")
     PORT: int = int(os.getenv("PORT", "8000"))
     
-    # MySQL Database Configuration
+    # MySQL Database Configuration (used locally)
     DB_HOST: str = os.getenv("DB_HOST", "127.0.0.1")
     DB_PORT: int = int(os.getenv("DB_PORT", "3306"))
     DB_USER: str = os.getenv("DB_USER", "root")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "root")
     DB_NAME: str = os.getenv("DB_NAME", "hospital")
     
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        f"mysql+pymysql://{os.getenv('DB_USER', 'root')}:{os.getenv('DB_PASSWORD', 'root')}@{os.getenv('DB_HOST', 'localhost')}:{os.getenv('DB_PORT', '3306')}/{os.getenv('DB_NAME', 'hospital')}?charset=utf8mb4"
-    )
+    # Database URL - auto-detects MySQL (local) or SQLite (cloud)
+    DATABASE_URL: str = _build_default_db_url()
     DATABASE_ECHO: bool = DEBUG
+    
+    @property
+    def IS_SQLITE(self) -> bool:
+        return self.DATABASE_URL.startswith("sqlite")
     
     # CORS Configuration
     CORS_ORIGINS: List[str] = [

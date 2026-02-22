@@ -3,7 +3,9 @@
  * Handles connection, subscriptions, and event dispatching.
  */
 
-const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
+const WS_URL = (typeof WS_BASE !== 'undefined' && WS_BASE) 
+    ? WS_BASE + '/ws' 
+    : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
 let socket = null;
 let reconnectTimer = null;
 

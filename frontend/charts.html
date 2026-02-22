@@ -135,6 +135,7 @@
             </div>
         </div>
 
+        <script src="js/config.js"></script>
         <script src="js/main.js?v=999"></script>
         <script src="js/websocket.js"></script>
         <script>
@@ -233,7 +234,7 @@
             // Fetch department activity data from admin stats endpoint
             async function fetchDeptActivity() {
                 try {
-                    const res = await fetch('/admin/dashboard-stats');
+                    const res = await fetch(API_BASE + '/admin/dashboard-stats');
                     if (res.ok) {
                         const data = await res.json();
                         if (data.zone_distribution) {
@@ -353,7 +354,7 @@
             // -----------------------------------------------------
             async function fetchInitialChartData() {
                 try {
-                    const res = await fetch('/detection/latest');
+                    const res = await fetch(API_BASE + '/detection/latest');
                     if (res.ok) {
                         const data = await res.json();
                         const zones = data.zones || {};

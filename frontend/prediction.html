@@ -90,12 +90,13 @@
         </div>
     </div>
 
+    <script src="js/config.js"></script>
     <script src="js/main.js?v=999"></script>
     <!-- Use FontAwesome for icons if not already included, checking head -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <script>
-        const API_URL = '/prediction/bottleneck';
+        const API_URL = API_BASE + '/prediction/bottleneck';
         const predList = document.getElementById('predictions-list');
 
         async function fetchPrediction() {

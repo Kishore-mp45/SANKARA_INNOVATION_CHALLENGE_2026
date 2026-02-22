@@ -402,9 +402,10 @@
         </div>
     </div>
 
+    <script src="js/config.js"></script>
     <script src="js/main.js?v=999"></script>
     <script>
-        var API_BASE = '';
+        var ALERT_API_BASE = API_BASE;
         var alertsList = document.getElementById('alerts-list');
         var decisionsList = document.getElementById('decisions-list');
         var countersPill = document.getElementById('alert-counters');
@@ -412,7 +413,7 @@
 
         async function fetchLiveAlerts() {
             try {
-                var res = await fetch(API_BASE + '/prediction/live-alerts');
+                var res = await fetch(ALERT_API_BASE + '/prediction/live-alerts');
                 if (!res.ok) throw new Error('Failed to fetch');
                 var data = await res.json();
                 renderAlerts(data.alerts || []);

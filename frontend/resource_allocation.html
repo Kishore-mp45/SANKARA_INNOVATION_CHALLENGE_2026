@@ -582,6 +582,7 @@
                 </div>
 
                 <!-- Scripts -->
+                <script src=\"js/config.js\"></script>
                 <script src="js/main.js?v=999"></script>
                 <script>
                     // =================================================================
@@ -596,7 +597,7 @@
                     //   GET /resources/equipment → { usage_percent, active, total }
                     // =================================================================
 
-                    const API_BASE = '';
+                    const RESOURCE_API_BASE = API_BASE;
 
                     // ---- Role-based Access Gate ----
                     (function enforceAdminAccess() {
@@ -641,7 +642,7 @@
                     async function fetchResourceData() {
                         try {
                             // Attempt real API (future integration)
-                            const res = await fetch(`${API_BASE}/resources/status`, { signal: AbortSignal.timeout(2000) });
+                            const res = await fetch(`${RESOURCE_API_BASE}/resources/status`, { signal: AbortSignal.timeout(2000) });
                             if (res.ok) return await res.json();
                         } catch (e) {
                             // API not available — use dummy data
@@ -809,7 +810,7 @@
 
                     async function fetchStaffAllocation() {
                         try {
-                            const res = await fetch(API_BASE + '/prediction/staff-recommendation');
+                            const res = await fetch(RESOURCE_API_BASE + '/prediction/staff-recommendation');
                             if (!res.ok) return;
                             const data = await res.json();
                             const grid = document.getElementById('staff-alloc-grid');

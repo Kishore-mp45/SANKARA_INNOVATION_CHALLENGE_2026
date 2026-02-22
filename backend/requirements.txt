@@ -9,6 +9,7 @@ uvicorn[standard]
 sqlalchemy
 pymysql
 cryptography
+aiosqlite
 
 # Validation
 pydantic
