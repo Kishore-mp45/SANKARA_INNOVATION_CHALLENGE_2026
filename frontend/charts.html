@@ -233,7 +233,7 @@
             // Fetch department activity data from admin stats endpoint
             async function fetchDeptActivity() {
                 try {
-                    const res = await fetch('http://localhost:8000/admin/dashboard-stats');
+                    const res = await fetch('/admin/dashboard-stats');
                     if (res.ok) {
                         const data = await res.json();
                         if (data.zone_distribution) {
@@ -353,7 +353,7 @@
             // -----------------------------------------------------
             async function fetchInitialChartData() {
                 try {
-                    const res = await fetch('http://localhost:8000/detection/latest');
+                    const res = await fetch('/detection/latest');
                     if (res.ok) {
                         const data = await res.json();
                         const zones = data.zones || {};

@@ -202,7 +202,7 @@
         // Fetch fresh data from backend and restart sequence from Registration
         async function fetchAndRestart() {
             try {
-                const res = await fetch('http://localhost:8000/detection/latest');
+                const res = await fetch('/detection/latest');
                 if (res.ok) {
                     const data = await res.json();
                     const fetchedZones = data.zones || {};

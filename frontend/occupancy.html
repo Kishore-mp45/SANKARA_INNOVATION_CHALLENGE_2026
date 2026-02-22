@@ -483,7 +483,7 @@
 
         async function fetchOccupancy() {
             try {
-                const res = await fetch('http://localhost:8000/detection/latest');
+                const res = await fetch('/detection/latest');
                 if (res.ok) {
                     const data = await res.json();
                     updateDisplay(currentDept, data.zones || {});
