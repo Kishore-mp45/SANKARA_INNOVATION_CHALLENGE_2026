@@ -1,0 +1,29 @@
+# PatientPath AI Backend - Production Requirements (lightweight)
+# ===============================================================
+
+# Core Framework
+fastapi
+uvicorn[standard]
+
+# Database
+sqlalchemy
+pymysql
+cryptography
+aiosqlite
+
+# Validation
+pydantic
+
+# Data Processing
+pandas>=2.1.4
+
+# WebSocket support
+websockets
+
+# Utilities
+python-dateutil
+
+# Machine Learning (lightweight only)
+scikit-learn
+xgboost
+numpy

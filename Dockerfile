@@ -1,21 +1,16 @@
 FROM python:3.11-slim
 
-# Install system dependencies for OpenCV and other packages
+# Install minimal system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1 \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender1 \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
-# Copy backend requirements and install
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy backend requirements and install (production-light, no OpenCV/YOLO)
+COPY backend/requirements-prod.txt .
+RUN pip install --no-cache-dir -r requirements-prod.txt
 
 # Copy backend code
 COPY backend/ ./backend/
