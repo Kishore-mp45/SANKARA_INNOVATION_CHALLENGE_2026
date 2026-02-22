@@ -36,7 +36,7 @@ class AnalyticsService:
         avg_dwell = AnalyticsService._calculate_avg_dwell_time(db)
         
         return {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now().isoformat(),
             "total_occupancy": total_occupancy,
             "total_capacity": total_capacity,
             "occupancy_rate": round(total_occupancy / total_capacity, 3) if total_capacity > 0 else 0,
@@ -48,7 +48,7 @@ class AnalyticsService:
     @staticmethod
     def get_hourly_metrics(db: Session, hours: int = 24) -> List[Dict[str, Any]]:
         """Get hourly aggregated metrics."""
-        since = datetime.utcnow() - timedelta(hours=hours)
+        since = datetime.now() - timedelta(hours=hours)
         
         metrics = db.query(Metric).filter(
             Metric.timestamp >= since,
@@ -60,7 +60,7 @@ class AnalyticsService:
     @staticmethod
     def get_zone_analytics(db: Session, zone_name: str, hours: int = 24) -> Dict[str, Any]:
         """Get analytics for a specific zone."""
-        since = datetime.utcnow() - timedelta(hours=hours)
+        since = datetime.now() - timedelta(hours=hours)
         
         logs = db.query(OccupancyLog).filter(
             OccupancyLog.zone_name == zone_name,
@@ -124,7 +124,7 @@ class AnalyticsService:
         avg_dwell = AnalyticsService._calculate_avg_dwell_time(db)
         
         return {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now().isoformat(),
             "total_patients": total_patients,
             "active_patients": active_patients,
             "total_zones": len(zones),

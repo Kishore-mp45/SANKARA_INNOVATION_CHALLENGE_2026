@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PatientPath AI - Sign Up</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=4.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
             display: flex;
@@ -115,6 +116,66 @@
             margin-top: 0.5rem;
             display: none;
         }
+
+        /* Password wrapper for eye toggle */
+        .pw-wrapper {
+            position: relative;
+        }
+
+        .pw-wrapper input {
+            padding-right: 2.75rem;
+        }
+
+        .pw-toggle {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0;
+            font-size: 1rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .pw-toggle:hover {
+            color: var(--primary-color);
+        }
+
+        /* Password requirements */
+        .pw-requirements {
+            margin-top: 0.6rem;
+            padding: 0;
+            list-style: none;
+        }
+
+        .pw-req-item {
+            font-size: 0.78rem;
+            padding: 0.15rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--text-muted);
+            transition: color 0.2s;
+        }
+
+        .pw-req-item i {
+            font-size: 0.7rem;
+            width: 14px;
+            text-align: center;
+        }
+
+        .pw-req-item.met {
+            color: #10b981;
+        }
+
+        .pw-req-item.unmet {
+            color: #ef4444;
+        }
     </style>
 </head>
 
@@ -147,7 +208,19 @@
 
         <div class="form-group">
             <label for="password">Password</label>
-            <input type="password" id="password" placeholder="Create a password">
+            <div class="pw-wrapper">
+                <input type="password" id="password" placeholder="Create a password" oninput="validatePasswordLive()">
+                <button type="button" class="pw-toggle" onclick="togglePassword()" title="Show/Hide password">
+                    <i class="fas fa-eye" id="pw-eye-icon"></i>
+                </button>
+            </div>
+            <ul class="pw-requirements" id="pw-requirements">
+                <li class="pw-req-item" id="req-length"><i class="fas fa-circle"></i> Minimum 8 characters</li>
+                <li class="pw-req-item" id="req-upper"><i class="fas fa-circle"></i> At least one uppercase letter (A-Z)</li>
+                <li class="pw-req-item" id="req-lower"><i class="fas fa-circle"></i> At least one lowercase letter (a-z)</li>
+                <li class="pw-req-item" id="req-number"><i class="fas fa-circle"></i> At least one number (0-9)</li>
+                <li class="pw-req-item" id="req-symbol"><i class="fas fa-circle"></i> At least one symbol (!@#$%&*)</li>
+            </ul>
         </div>
 
         <button class="btn-auth" onclick="handleSignup()">Sign Up</button>
@@ -179,6 +252,61 @@
             placeholder.placeholder = config[role].ph;
         }
 
+        function togglePassword() {
+            const pwInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('pw-eye-icon');
+            if (pwInput.type === 'password') {
+                pwInput.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                pwInput.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
+
+        function checkPasswordRules(password) {
+            return {
+                length: password.length >= 8,
+                upper: /[A-Z]/.test(password),
+                lower: /[a-z]/.test(password),
+                number: /[0-9]/.test(password),
+                symbol: /[^A-Za-z0-9]/.test(password)
+            };
+        }
+
+        function updateRequirementUI(rules, highlight) {
+            const map = {
+                length: 'req-length',
+                upper: 'req-upper',
+                lower: 'req-lower',
+                number: 'req-number',
+                symbol: 'req-symbol'
+            };
+            for (const [key, elId] of Object.entries(map)) {
+                const el = document.getElementById(elId);
+                const icon = el.querySelector('i');
+                el.classList.remove('met', 'unmet');
+                if (rules[key]) {
+                    el.classList.add('met');
+                    icon.className = 'fas fa-check-circle';
+                } else if (highlight) {
+                    el.classList.add('unmet');
+                    icon.className = 'fas fa-times-circle';
+                } else {
+                    icon.className = 'fas fa-circle';
+                }
+            }
+        }
+
+        function validatePasswordLive() {
+            const password = document.getElementById('password').value;
+            const rules = checkPasswordRules(password);
+            // Show green checks as user types, but don't show red until they try to submit
+            updateRequirementUI(rules, false);
+        }
+
         function handleSignup() {
             const role = document.getElementById('role-select').value;
             const userId = document.getElementById('user-id').value.trim();
@@ -195,11 +323,21 @@
                 return;
             }
 
+            // Validate password strength
+            const rules = checkPasswordRules(password);
+            const allMet = Object.values(rules).every(v => v);
+            updateRequirementUI(rules, true); // Highlight unmet in red
+
+            if (!allMet) {
+                errorEl.textContent = "Password does not meet the requirements.";
+                errorEl.style.display = 'block';
+                return;
+            }
+
             // Get existing users
             const users = JSON.parse(localStorage.getItem('ppa_users') || '{}');
 
-            // Check if ID already exists (Global uniqueness for simplicity, or Role-scoped?)
-            // User request implies roles are distinct, let's scope by ID to avoid ambiguity
+            // Check if ID already exists
             if (users[userId]) {
                 errorEl.textContent = "ID already registered. Please login.";
                 errorEl.style.display = 'block';
@@ -209,7 +347,7 @@
             // Save user
             users[userId] = {
                 role: role,
-                password: password // In a real app, hash this!
+                password: password
             };
             localStorage.setItem('ppa_users', JSON.stringify(users));
 

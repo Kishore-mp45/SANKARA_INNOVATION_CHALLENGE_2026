@@ -38,15 +38,14 @@ class OccupancyService:
                 exit_count=exit_cnt,
                 confidence_score=data.confidence_score,
                 source=data.source,
-                unique_ids=json.dumps(data.unique_ids) if data.unique_ids else None,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now()
             )
             self.db.add(log)
             
             # Update zone occupancy
             if zone:
                 zone.current_occupancy = data.people_count
-                zone.updated_at = datetime.utcnow()
+                zone.updated_at = datetime.now()
             
             self.db.commit()
             self.db.refresh(log)
@@ -98,7 +97,7 @@ class OccupancyService:
             })
             
         return {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now().isoformat(),
             "total_occupancy": total_occupancy,
             "total_capacity": total_capacity,
             "overall_percentage": (total_occupancy / total_capacity * 100) if total_capacity else 0,
@@ -106,7 +105,85 @@ class OccupancyService:
         }
 
     def get_hourly_aggregates(self, zone_name: str, hours: int) -> List[Dict]:
-        return []
+        """Get hourly aggregated occupancy from occupancy_logs."""
+        end_time = datetime.now()
+        start_time = end_time - timedelta(hours=hours)
+
+        query = self.db.query(
+            func.date(OccupancyLog.timestamp).label('day'),
+            func.hour(OccupancyLog.timestamp).label('hour'),
+            func.round(func.avg(OccupancyLog.people_count), 1).label('avg_count'),
+            func.max(OccupancyLog.people_count).label('peak_count'),
+            func.count().label('samples')
+        ).filter(
+            OccupancyLog.timestamp >= start_time,
+            OccupancyLog.timestamp <= end_time
+        )
+
+        if zone_name:
+            query = query.filter(OccupancyLog.zone_name == zone_name)
+
+        rows = query.group_by('day', 'hour').order_by('day', 'hour').all()
+
+        return [
+            {
+                "day": str(row.day),
+                "hour": int(row.hour),
+                "avg_count": float(row.avg_count) if row.avg_count else 0,
+                "peak_count": int(row.peak_count) if row.peak_count else 0,
+                "samples": int(row.samples)
+            }
+            for row in rows
+        ]
+
+    def get_peak_heatmap_data(self, zone_name: str, range_type: str) -> Tuple[List[Dict], int]:
+        """
+        Get heatmap data grouped by day-of-week and hour for a specific zone.
+        Returns (data_rows, zone_capacity).
+        """
+        now = datetime.now()
+        current_hour = now.hour
+
+        if range_type == 'today':
+            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            end = now
+        else:
+            start = now - timedelta(days=7)
+            end = now
+
+        query = self.db.query(
+            func.dayofweek(OccupancyLog.timestamp).label('dow'),
+            func.hour(OccupancyLog.timestamp).label('hour'),
+            func.round(func.avg(OccupancyLog.people_count), 1).label('avg_count'),
+            func.max(OccupancyLog.people_count).label('peak_count'),
+            func.count().label('samples')
+        ).filter(
+            OccupancyLog.zone_name == zone_name,
+            OccupancyLog.timestamp >= start,
+            OccupancyLog.timestamp <= end,
+            func.hour(OccupancyLog.timestamp) >= 8,
+            func.hour(OccupancyLog.timestamp) <= 20
+        )
+
+        if range_type == 'today':
+            query = query.filter(func.hour(OccupancyLog.timestamp) <= current_hour)
+
+        rows = query.group_by('dow', 'hour').order_by('dow', 'hour').all()
+
+        zone = self.db.query(Zone).filter(Zone.zone_name == zone_name).first()
+        capacity = zone.capacity_limit if zone else 20
+
+        result = []
+        for row in rows:
+            result.append({
+                'dow': int(row.dow),
+                'hour': int(row.hour),
+                'avg_count': float(row.avg_count) if row.avg_count else 0,
+                'peak_count': int(row.peak_count) if row.peak_count else 0,
+                'samples': int(row.samples)
+            })
+
+        return result, capacity
 
     def get_zone_trend(self, zone_name: str, minutes: int) -> Dict:
         return {"direction": "stable", "rate": 0}

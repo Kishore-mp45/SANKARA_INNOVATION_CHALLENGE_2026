@@ -15,15 +15,15 @@ const USER_ROLES = {
         label: 'Administrator'
     },
     doctor: {
-        allowed_pages: ['index.html', 'occupancy.html', 'heatmap.html', 'metrics.html', 'alerts.html', 'video.html'],
+        allowed_pages: ['index.html', 'occupancy.html', 'alerts.html', 'video.html', 'doctor_dashboard.html'],
         label: 'Doctor'
     },
     staff: {
-        allowed_pages: ['index.html', 'occupancy.html', 'heatmap.html', 'metrics.html', 'staff_panel.html'],
+        allowed_pages: ['index.html', 'occupancy.html', 'staff_panel.html'],
         label: 'Hospital Staff'
     },
     patient: {
-        allowed_pages: ['index.html', 'occupancy.html', 'patient_dashboard.html'], // Added dashboard
+        allowed_pages: ['index.html', 'patient_dashboard.html'],
         label: 'Patient'
     }
 };
@@ -113,12 +113,12 @@ function applyRoleBasedAccess(role) {
         const navMenu = document.querySelector('.nav-menu');
         if (navMenu && !navMenu.querySelector('a[href="admin_dashboard.html"]')) {
             const li = document.createElement('li');
-            li.innerHTML = '<a href="admin_dashboard.html" class="nav-item"><span class="step-badge">10</span> Admin Center</a>';
+            li.innerHTML = '<a href="admin_dashboard.html" class="nav-item"><span class="step-badge">9</span> Admin Center</a>';
             navMenu.appendChild(li);
         }
         if (navMenu && !navMenu.querySelector('a[href="resource_allocation.html"]')) {
             const li2 = document.createElement('li');
-            li2.innerHTML = '<a href="resource_allocation.html" class="nav-item"><span class="step-badge">11</span> Resources</a>';
+            li2.innerHTML = '<a href="resource_allocation.html" class="nav-item"><span class="step-badge">10</span> Resources</a>';
             navMenu.appendChild(li2);
         }
     }
@@ -128,6 +128,24 @@ function applyRoleBasedAccess(role) {
     if (role !== 'admin') {
         document.querySelectorAll('.rbac-admin-only').forEach(el => el.style.display = 'none');
     }
+
+    // Re-number all visible sidebar items sequentially
+    renumberSidebar();
+}
+
+function renumberSidebar() {
+    const navMenu = document.querySelector('.nav-menu');
+    if (!navMenu) return;
+    const allItems = navMenu.querySelectorAll('li');
+    let visibleIndex = 1;
+    allItems.forEach(li => {
+        if (li.style.display === 'none') return;
+        const badge = li.querySelector('.step-badge');
+        if (badge) {
+            badge.textContent = visibleIndex;
+            visibleIndex++;
+        }
+    });
 }
 
 function setupHeaderControls(role, label) {

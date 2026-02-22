@@ -24,8 +24,8 @@ class ActivityService:
         Severity: info, success, warning, error, critical
         """
         entry = {
-            "id": int(datetime.utcnow().timestamp() * 1000), # Simple unique ID logic
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "id": int(datetime.now().timestamp() * 1000), # Simple unique ID logic
+            "timestamp": datetime.now().isoformat(),
             "action": action,
             "details": details,
             "severity": severity,

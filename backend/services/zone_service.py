@@ -54,7 +54,7 @@ class ZoneService:
         for key, value in update_data.items():
             setattr(zone, key, value)
         
-        zone.updated_at = datetime.utcnow()
+        zone.updated_at = datetime.now()
         self.db.commit()
         self.db.refresh(zone)
         return zone
@@ -64,7 +64,7 @@ class ZoneService:
         if not zone:
             return None
         zone.current_occupancy = new_count
-        zone.updated_at = datetime.utcnow()
+        zone.updated_at = datetime.now()
         self.db.commit()
         self.db.refresh(zone)
         return zone

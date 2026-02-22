@@ -29,8 +29,8 @@ class Zone(Base):
     warning_threshold = Column(Float, default=0.8)  # 80%
     critical_threshold = Column(Float, default=0.95)  # 95%
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     
     @property
     def occupancy_rate(self) -> float:

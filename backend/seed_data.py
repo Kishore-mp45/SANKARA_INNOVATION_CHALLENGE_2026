@@ -136,9 +136,14 @@ def seed_patients(db, count: int = 50):
     statuses = [PatientStatus.ENTERED, PatientStatus.WAITING, PatientStatus.IN_ROOM]
     
     for i in range(count - existing_count):
-        # Random entry time in the last 24 hours
-        hours_ago = random.randint(0, 24)
-        entry_time = datetime.utcnow() - timedelta(hours=hours_ago)
+        # Ensure at least 5 patients are in the last 2 hours for predictions
+        if i < 5:
+            minutes_ago = random.randint(5, 120)
+            entry_time = datetime.now() - timedelta(minutes=minutes_ago)
+        else:
+            # Random entry time in the last 24 hours
+            hours_ago = random.randint(0, 24)
+            entry_time = datetime.now() - timedelta(hours=hours_ago)
         
         # Some patients have exited
         has_exited = random.random() < 0.3
@@ -181,7 +186,7 @@ def seed_occupancy_logs(db, hours: int = 24):
         base_count = zone.current_occupancy
         
         for h in range(hours, 0, -1):
-            timestamp = datetime.utcnow() - timedelta(hours=h)
+            timestamp = datetime.now() - timedelta(hours=h)
             
             # Simulate occupancy variation
             variation = random.randint(-5, 5)
@@ -217,7 +222,7 @@ def seed_metrics(db, hours: int = 24):
         return
     
     for h in range(hours, 0, -1):
-        timestamp = datetime.utcnow() - timedelta(hours=h)
+        timestamp = datetime.now() - timedelta(hours=h)
         period_start = timestamp - timedelta(hours=1)
         
         metric = Metric(
@@ -280,7 +285,7 @@ def seed_alerts(db, count: int = 5):
         hours_ago = random.randint(0, 12)
         
         alert = Alert(
-            timestamp=datetime.utcnow() - timedelta(hours=hours_ago),
+            timestamp=datetime.now() - timedelta(hours=hours_ago),
             alert_type=template["alert_type"],
             severity=template["severity"],
             message=f"{template['message']} in {zone}",
@@ -292,6 +297,125 @@ def seed_alerts(db, count: int = 5):
     
     db.commit()
     logger.info(f"Seeded {count - existing_count} new alerts")
+
+
+def seed_activity_logs():
+    """Seed activity logs using real patient data from the database."""
+    from services.activity_service import ActivityService
+
+    # Only seed if empty (fresh start)
+    if len(ActivityService.logs()) > 0:
+        logger.info("Activity logs already populated, skipping")
+        return
+
+    logger.info("Seeding activity logs from database records...")
+
+    now = datetime.now()
+
+    try:
+        with get_db_context() as db:
+            # Fetch real active patients (in facility)
+            active_patients = db.query(Patient).filter(
+                Patient.status != PatientStatus.EXITED
+            ).order_by(Patient.entry_time.desc()).limit(15).all()
+
+            # Fetch real exited patients for discharge logs
+            exited_patients = db.query(Patient).filter(
+                Patient.status == PatientStatus.EXITED
+            ).order_by(Patient.entry_time.desc()).limit(5).all()
+
+            if not active_patients:
+                logger.info("No patients in database, skipping activity log seeding")
+                return
+
+            departments = ["registration", "vision_lab", "dilation_hall",
+                           "consultation", "diagnostics", "pharmacy", "billing_insurance"]
+            dept_display = {
+                "registration": "Registration", "vision_lab": "Vision Lab",
+                "dilation_hall": "Dilation Hall", "consultation": "Consultation",
+                "diagnostics": "Diagnostics", "pharmacy": "Pharmacy",
+                "billing_insurance": "Billing & Insurance"
+            }
+
+            events = []
+            offset = 2  # minutes ago, increases as we go back in time
+
+            # Generate entries from real active patients
+            for p in active_patients:
+                zone = p.current_zone or "registration"
+                display_zone = dept_display.get(zone, zone)
+
+                # Patient entry event
+                events.append({
+                    "action": "Patient Entry",
+                    "details": f"{p.name} ({p.tracking_id}) entered at registration",
+                    "severity": "success", "role": "system", "user_id": "System",
+                    "offset": offset
+                })
+                offset += random.randint(3, 8)
+
+                # Movement to current zone (if not registration)
+                if zone != "registration":
+                    events.append({
+                        "action": f"Movement Detected: {zone}",
+                        "details": f"Patient {p.tracking_id} moved to {display_zone} (Confidence: {round(random.uniform(0.90, 0.98), 2)})",
+                        "severity": "info", "role": "system", "user_id": "CV-Module",
+                        "offset": offset
+                    })
+                    offset += 1
+
+                    events.append({
+                        "action": "Treatment Started",
+                        "details": f"{p.tracking_id} | registration -> {zone}",
+                        "severity": "success", "role": "staff", "user_id": "Staff-User",
+                        "offset": offset
+                    })
+                    offset += random.randint(4, 10)
+
+            # Generate discharge events from real exited patients
+            for p in exited_patients:
+                dwell = int(p.dwell_time_minutes or 0) or random.randint(45, 180)
+                events.append({
+                    "action": "Patient Discharged",
+                    "details": f"{p.name} ({p.tracking_id}) exited — dwell time: {dwell}min",
+                    "severity": "info", "role": "system", "user_id": "System",
+                    "offset": offset
+                })
+                offset += random.randint(5, 12)
+
+            # Add a few staff check-in events using real department names
+            for dept_key in random.sample(departments, 4):
+                display = dept_display.get(dept_key, dept_key)
+                staff_count = random.randint(2, 4)
+                optimal = staff_count + random.randint(0, 1)
+                events.append({
+                    "action": "Staff Check-in",
+                    "details": f"Staff checked in to {display} — now {staff_count} staff (optimal: {optimal})",
+                    "severity": "success", "role": "staff", "user_id": "Staff-User",
+                    "offset": offset
+                })
+                offset += random.randint(6, 15)
+
+        # Sort events by offset descending (oldest first) for correct insertion order
+        events.sort(key=lambda e: e["offset"], reverse=True)
+
+        for event in events:
+            ts = now - timedelta(minutes=event["offset"])
+            entry = {
+                "id": int(ts.timestamp() * 1000),
+                "timestamp": ts.isoformat(),
+                "action": event["action"],
+                "details": event["details"],
+                "severity": event["severity"],
+                "role": event["role"],
+                "user_id": event["user_id"]
+            }
+            ActivityService._logs.append(entry)
+
+        logger.info(f"Seeded {len(events)} activity log entries from real patient data")
+
+    except Exception as e:
+        logger.warning(f"Activity log seeding failed: {e}")
 
 
 def seed_initial_data():
@@ -310,7 +434,11 @@ def seed_initial_data():
             seed_occupancy_logs(db, hours=24)
             seed_metrics(db, hours=24)
             seed_alerts(db, count=5)
-        
+
+        # Seed activity logs (in-memory, no db needed)
+        # Activity logs are populated in real-time by actual operations
+        # (patient entry, discharge, staff check-in, treatments, movements)
+
         logger.info("=" * 50)
         logger.info("Database seeding completed successfully!")
         logger.info("=" * 50)

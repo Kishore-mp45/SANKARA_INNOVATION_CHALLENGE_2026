@@ -42,10 +42,11 @@
             <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
             <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
             <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
-            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="charts.html" class="nav-item active"><span class="step-badge">6</span> Charts</a></li>
             <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
             <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
-            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">10</span> Staff Panel</a></li>
         </ul>
     </div>
 
@@ -65,13 +66,14 @@
                         <canvas id="lineChart"></canvas>
                     </div>
                 </div>
+                <!-- Department Activity (moved from Admin Center) -->
                 <div class="chart-card">
-                    <h3>Peak Zones</h3>
+                    <h3>Department Activity</h3>
                     <div style="position: relative; height: 300px; width: 100%;">
-                        <canvas id="barChart"></canvas>
+                        <canvas id="deptActivityChart"></canvas>
                     </div>
                 </div>
-                <!-- New Radar Chart -->
+                <!-- Radar Chart -->
                 <div class="chart-card">
                     <h3>Department Utilization Overview</h3>
                     <div style="position: relative; height: 300px; width: 100%;">
@@ -85,7 +87,6 @@
                 <div class="heatmap-header">
                     <div class="header-left">
                         <h2>
-                            <!-- SVG Icon directly embedded for reliability -->
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2"
                                 style="color: var(--primary-color); margin-right: 10px; vertical-align: middle;">
@@ -99,11 +100,13 @@
                     </div>
                     <div class="heatmap-controls">
                         <select id="dept-select" class="heatmap-select">
-                            <option value="Vision Lab">Vision Lab</option>
-                            <option value="Diagnostics">Diagnostics</option>
-                            <option value="Consultation">Consultation</option>
-                            <option value="Pharmacy">Pharmacy</option>
                             <option value="Registration">Registration</option>
+                            <option value="Vision Lab">Vision Lab</option>
+                            <option value="Dilation Hall">Dilation Hall</option>
+                            <option value="Diagnostics">Diagnostics</option>
+                            <option value="Doctor Consult">Doctor Consult</option>
+                            <option value="Pharmacy">Pharmacy</option>
+                            <option value="Billing & Insurance">Billing & Insurance</option>
                         </select>
                         <div class="time-toggle">
                             <button class="toggle-btn active" onclick="setHeatmapRange('weekly')">Weekly</button>
@@ -114,360 +117,393 @@
 
                 <div class="heatmap-legend">
                     <div class="legend-item"><span class="dot low"></span> Low (< 30%)</div>
-                            <div class="legend-item"><span class="dot med"></span> Medium (30-60%)</div>
-                            <div class="legend-item"><span class="dot busy"></span> Busy (60-90%)</div>
-                            <div class="legend-item"><span class="dot critical"></span> Critical (> 90%)</div>
-                    </div>
-
-                    <div class="heatmap-container-wrapper">
-                        <div class="heatmap-container" id="heatmap-grid">
-                            <!-- JS GENERATED GRID -->
-                        </div>
-                    </div>
+                    <div class="legend-item"><span class="dot med"></span> Medium (30-60%)</div>
+                    <div class="legend-item"><span class="dot busy"></span> Busy (60-90%)</div>
+                    <div class="legend-item"><span class="dot critical"></span> Critical (> 90%)</div>
                 </div>
 
-                <div class="nav-buttons">
-                    <a href="alerts.html" class="btn btn-secondary">&larr; Back</a>
-                    <a href="prediction.html" class="btn btn-primary">Next: Prediction &rarr;</a>
+                <div class="heatmap-container-wrapper">
+                    <div class="heatmap-container" id="heatmap-grid">
+                        <!-- JS GENERATED GRID -->
+                    </div>
                 </div>
             </div>
 
-            <script src="js/main.js"></script>
-            <script src="js/websocket.js"></script>
-            <script>
-                // -----------------------------------------------------
-                // 1. Initialize Line Chart (Live Feed Trend)
-                // -----------------------------------------------------
-                const ctxLine = document.getElementById('lineChart').getContext('2d');
-                const lineChart = new Chart(ctxLine, {
-                    type: 'line',
-                    data: {
-                        labels: [],
-                        datasets: [{
-                            label: 'Detected Persons (Live Stream)',
-                            data: [],
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.3,
-                            fill: true,
-                            pointRadius: 2
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        animation: false, // Disable animation for smoother realtime updates
-                        scales: {
-                            x: {
-                                grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                                ticks: { color: '#94a3b8', maxTicksLimit: 8 }
-                            },
-                            y: {
-                                beginAtZero: true,
-                                suggestedMax: 10,
-                                grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                                ticks: { color: '#94a3b8' }
-                            }
+            <div class="nav-buttons">
+                <a href="alerts.html" class="btn btn-secondary">&larr; Back</a>
+                <a href="prediction.html" class="btn btn-primary">Next: Prediction &rarr;</a>
+            </div>
+        </div>
+
+        <script src="js/main.js?v=999"></script>
+        <script src="js/websocket.js"></script>
+        <script>
+            // Hospital sequential zone order
+            const ZONE_ORDER = [
+                { key: 'registration',      label: 'Registration' },
+                { key: 'vision_lab',        label: 'Vision Lab' },
+                { key: 'dilation_hall',     label: 'Dilation Hall' },
+                { key: 'diagnostics',       label: 'Diagnostics' },
+                { key: 'consultation',      label: 'Doctor Consult' },
+                { key: 'pharmacy',          label: 'Pharmacy' },
+                { key: 'billing_insurance', label: 'Billing & Insurance' },
+            ];
+
+            const zoneKeys = ZONE_ORDER.map(z => z.key);
+            const zoneLabels = ZONE_ORDER.map(z => z.label);
+            const zoneCounts = new Array(ZONE_ORDER.length).fill(0);
+
+            // -----------------------------------------------------
+            // 1. Line Chart (Hourly Occupancy Trend)
+            // -----------------------------------------------------
+            const ctxLine = document.getElementById('lineChart').getContext('2d');
+            const lineChart = new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Detected Persons (Live Stream)',
+                        data: [],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#94a3b8', maxTicksLimit: 8 }
                         },
-                        plugins: {
-                            legend: { labels: { color: '#e2e8f0' } }
+                        y: {
+                            beginAtZero: true,
+                            suggestedMax: 10,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#94a3b8' }
                         }
-                    }
-                });
-
-                // -----------------------------------------------------
-                // 2. Initialize Bar Chart (Zone Distribution)
-                // -----------------------------------------------------
-                const ctxBar = document.getElementById('barChart').getContext('2d');
-                // Pre-define zones to match the producer's cycle
-                const zoneLabels = [
-                    "Vision Lab", "Dilation Hall", "Diagnostics",
-                    "Billing & Insurance", "Registration", "Consultation", "Pharmacy"
-                ];
-                // Initial counts (start at 0)
-                const zoneCounts = new Array(zoneLabels.length).fill(0);
-
-                const barChart = new Chart(ctxBar, {
-                    type: 'bar',
-                    data: {
-                        labels: zoneLabels,
-                        datasets: [{
-                            label: 'Current Occupancy',
-                            data: zoneCounts,
-                            backgroundColor: [
-                                '#10b981', '#3b82f6', '#f59e0b', '#ef4444',
-                                '#8b5cf6', '#ec4899', '#06b6d4'
-                            ],
-                            borderRadius: 4,
-                            borderWidth: 0
-                        }]
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: { ticks: { color: '#94a3b8', font: { size: 10 } } },
-                            y: { beginAtZero: true, ticks: { color: '#94a3b8' } }
-                        },
-                        plugins: {
-                            legend: { display: false }
-                        }
-                    }
-                });
-
-                // -----------------------------------------------------
-                // 3. Initialize Radar Chart (Utilization Overview)
-                // -----------------------------------------------------
-                const ctxRadar = document.getElementById('radarChart').getContext('2d');
-                const radarChart = new Chart(ctxRadar, {
-                    type: 'radar',
-                    data: {
-                        labels: ['Vision Lab', 'Dilation Hall', 'Diagnostics', 'Billing Insurance', 'Registration', 'Consultation', 'Pharmacy'],
-                        datasets: [{
-                            label: 'Utilization %',
-                            data: [65, 59, 90, 81, 56, 55, 40], // Dummy Data
-                            fill: true,
-                            backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                            borderColor: '#10b981',
-                            pointBackgroundColor: '#10b981',
-                            pointBorderColor: '#fff',
-                            pointHoverBackgroundColor: '#fff',
-                            pointHoverBorderColor: '#10b981',
-                            pointRadius: 4,
-                            pointHoverRadius: 6
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            r: {
-                                angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
-                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                                pointLabels: {
-                                    color: '#94a3b8',
-                                    font: { size: 11, family: "'Inter', sans-serif" }
-                                },
-                                ticks: {
-                                    backdropColor: 'transparent',
-                                    color: 'rgba(255, 255, 255, 0.5)',
-                                    z: 1
-                                },
-                                suggestedMin: 0,
-                                suggestedMax: 100
-                            }
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function (context) {
-                                        return context.label + ': ' + context.raw + '%';
-                                    }
-                                },
-                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                                titleColor: '#e2e8f0',
-                                bodyColor: '#e2e8f0',
-                                borderColor: '#334155',
-                                borderWidth: 1
-                            }
-                        }
-                    }
-                });
-
-                // -----------------------------------------------------
-                // 3. Real-time Update Logic
-                // -----------------------------------------------------
-                document.addEventListener('occupancy-update', (e) => {
-                    const data = e.detail;
-                    const time = data.timestamp;
-                    // Ensure count is a number
-                    const count = Number(data.count);
-                    const zone = data.zone;
-
-                    updateLineChart(time, count);
-                    updateBarChart(zone, count);
-
-                    // Visual Debug Indicator
-                    // Add a small timestamp to the page title or a console log helper
-                    // document.title = `Charts - Last: ${time} (${count})`;
-                });
-
-                function updateLineChart(label, value) {
-                    // Push Data
-                    lineChart.data.labels.push(label);
-                    lineChart.data.datasets[0].data.push(value);
-
-                    // Limit History (20 points)
-                    if (lineChart.data.labels.length > 20) {
-                        lineChart.data.labels.shift();
-                        lineChart.data.datasets[0].data.shift();
-                    }
-                    lineChart.update();
-                }
-
-                function updateBarChart(zoneName, value) {
-                    // Update specific bar
-                    const index = zoneLabels.indexOf(zoneName);
-                    if (index !== -1) {
-                        barChart.data.datasets[0].data[index] = value;
-                        // Force full update to ensure visibility
-                        barChart.update();
+                    plugins: {
+                        legend: { labels: { color: '#e2e8f0' } }
                     }
                 }
+            });
 
-                // -----------------------------------------------------
-                // 4. Peak Hour Heatmap Logic
-                // -----------------------------------------------------
+            // -----------------------------------------------------
+            // 2. Department Activity Chart (moved from Admin Center)
+            // -----------------------------------------------------
+            const ctxDeptAct = document.getElementById('deptActivityChart').getContext('2d');
+            let deptActivityChart = new Chart(ctxDeptAct, {
+                type: 'bar',
+                data: {
+                    labels: zoneLabels,
+                    datasets: [{
+                        label: 'Patients',
+                        data: new Array(ZONE_ORDER.length).fill(0),
+                        backgroundColor: [
+                            '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6',
+                            '#ec4899', '#06b6d4', '#ef4444'
+                        ],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1, color: '#94a3b8' },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        },
+                        x: {
+                            ticks: { font: { size: 10 }, color: '#94a3b8' },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        }
+                    }
+                }
+            });
 
-                const heatmapGrid = document.getElementById('heatmap-grid');
-                const deptSelect = document.getElementById('dept-select');
-                let currentRange = 'weekly'; // 'weekly' or 'today'
-
-                // Constants
-                const HOURS = 13; // 8 AM to 8 PM
-                const START_HOUR = 8;
-                const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-                // Mock Data Generator
-                function generateHeatmapData(dept, range) {
-                    const data = [];
-
-                    // Adjust base intensity based on department
-                    let baseIntensity = 20;
-                    if (dept === 'Registration') baseIntensity = 50;
-                    if (dept === 'Pharmacy') baseIntensity = 40;
-                    if (dept === 'Vision Lab') baseIntensity = 15;
-
-                    const rows = range === 'weekly' ? 7 : 1;
-                    const dayLabels = range === 'weekly' ? DAYS : ['Today'];
-
-                    for (let r = 0; r < rows; r++) {
-                        const rowData = [];
-                        for (let h = 0; h < HOURS; h++) {
-                            const hour = START_HOUR + h;
-
-                            // Simulate Peak Hours (10am - 2pm)
-                            let intensity = baseIntensity + Math.random() * 20;
-                            if (hour >= 10 && hour <= 14) intensity += 30; // Peak
-                            if (hour >= 16 && hour <= 18) intensity += 10; // Mini peak
-
-                            // Weekend dip
-                            if (range === 'weekly' && (r === 5 || r === 6)) intensity -= 20;
-
-                            // Clamp
-                            intensity = Math.max(0, Math.min(100, intensity));
-
-                            // Determine Status
-                            let status = 'low';
-                            if (intensity > 30) status = 'med';
-                            if (intensity > 60) status = 'busy';
-                            if (intensity > 90) status = 'critical';
-
-                            rowData.push({
-                                day: dayLabels[r],
-                                hour: hour,
-                                count: Math.floor(intensity / 2),
-                                pct: Math.floor(intensity),
-                                status: status
+            // Fetch department activity data from admin stats endpoint
+            async function fetchDeptActivity() {
+                try {
+                    const res = await fetch('http://localhost:8000/admin/dashboard-stats');
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.zone_distribution) {
+                            const labels = [];
+                            const counts = [];
+                            // Map to sequential order
+                            ZONE_ORDER.forEach(zone => {
+                                const found = data.zone_distribution.find(z => z.name === zone.key);
+                                labels.push(zone.label);
+                                counts.push(found ? found.count : 0);
                             });
+                            deptActivityChart.data.labels = labels;
+                            deptActivityChart.data.datasets[0].data = counts;
+                            deptActivityChart.update();
                         }
-                        data.push(rowData);
                     }
-                    return data;
+                } catch (e) {
+                    console.warn('Dept activity fetch error:', e);
                 }
+            }
 
-                function renderHeatmap() {
-                    const dept = deptSelect.value;
-                    const data = generateHeatmapData(dept, currentRange);
+            // -----------------------------------------------------
+            // 4. Radar Chart (Utilization Overview)
+            // -----------------------------------------------------
+            const ctxRadar = document.getElementById('radarChart').getContext('2d');
+            const ZONE_CAPACITIES = [15, 12, 20, 15, 10, 12, 10]; // match ZONE_ORDER
+            const radarChart = new Chart(ctxRadar, {
+                type: 'radar',
+                data: {
+                    labels: zoneLabels,
+                    datasets: [{
+                        label: 'Utilization %',
+                        data: new Array(ZONE_ORDER.length).fill(0),
+                        fill: true,
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        borderColor: '#10b981',
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#10b981',
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            pointLabels: {
+                                color: '#94a3b8',
+                                font: { size: 11, family: "'Inter', sans-serif" }
+                            },
+                            ticks: {
+                                backdropColor: 'transparent',
+                                color: 'rgba(255, 255, 255, 0.5)',
+                                z: 1
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 100
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return context.label + ': ' + context.raw + '%';
+                                }
+                            },
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#e2e8f0',
+                            bodyColor: '#e2e8f0',
+                            borderColor: '#334155',
+                            borderWidth: 1
+                        }
+                    }
+                }
+            });
 
-                    heatmapGrid.innerHTML = '';
+            // -----------------------------------------------------
+            // 5. Real-time Update from WebSocket
+            // -----------------------------------------------------
+            document.addEventListener('occupancy-update', (e) => {
+                const data = e.detail;
+                const time = data.timestamp;
+                const count = Number(data.count);
+                const zone = data.zone; // zone key like "registration"
 
-                    // 1. Create Layout Config
-                    heatmapGrid.style.gridTemplateColumns = `80px repeat(${HOURS}, 1fr)`;
+                updateLineChart(time, count);
+                updateRadarByKey(zone, count);
+            });
 
-                    // 2. Render Header Row (Hours)
-                    const spacer = document.createElement('div');
-                    heatmapGrid.appendChild(spacer); // Top-left corner empty
+            function updateLineChart(label, value) {
+                lineChart.data.labels.push(label);
+                lineChart.data.datasets[0].data.push(value);
+                if (lineChart.data.labels.length > 20) {
+                    lineChart.data.labels.shift();
+                    lineChart.data.datasets[0].data.shift();
+                }
+                lineChart.update();
+            }
 
+            function updateRadarByKey(zoneKey, value) {
+                const index = zoneKeys.indexOf(zoneKey);
+                if (index !== -1) {
+                    const pct = Math.min(100, Math.round((value / ZONE_CAPACITIES[index]) * 100));
+                    radarChart.data.datasets[0].data[index] = pct;
+                    radarChart.update();
+                }
+            }
+
+            // -----------------------------------------------------
+            // 6. Fetch initial data from detection endpoint
+            // -----------------------------------------------------
+            async function fetchInitialChartData() {
+                try {
+                    const res = await fetch('http://localhost:8000/detection/latest');
+                    if (res.ok) {
+                        const data = await res.json();
+                        const zones = data.zones || {};
+
+                        ZONE_ORDER.forEach((zone, i) => {
+                            const det = zones[zone.key];
+                            if (det) {
+                                const pct = Math.min(100, Math.round((det.count / ZONE_CAPACITIES[i]) * 100));
+                                radarChart.data.datasets[0].data[i] = pct;
+                            }
+                        });
+
+                        radarChart.update();
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch initial chart data:', e);
+                }
+            }
+
+            // Initialize
+            fetchInitialChartData();
+            fetchDeptActivity();
+            setInterval(fetchInitialChartData, 10000);
+            setInterval(fetchDeptActivity, 10000);
+
+            // -----------------------------------------------------
+            // 7. Peak Hour Heatmap Logic
+            // -----------------------------------------------------
+            const heatmapGrid = document.getElementById('heatmap-grid');
+            const deptSelect = document.getElementById('dept-select');
+            let currentRange = 'weekly';
+
+            const HOURS = 13; // 8 AM to 8 PM
+            const START_HOUR = 8;
+            const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+            function generateHeatmapData(dept, range) {
+                const data = [];
+                let baseIntensity = 20;
+                if (dept === 'Registration') baseIntensity = 50;
+                if (dept === 'Pharmacy') baseIntensity = 40;
+                if (dept === 'Vision Lab') baseIntensity = 15;
+                if (dept === 'Dilation Hall') baseIntensity = 25;
+                if (dept === 'Diagnostics') baseIntensity = 35;
+                if (dept === 'Doctor Consult') baseIntensity = 30;
+                if (dept === 'Billing & Insurance') baseIntensity = 20;
+
+                const rows = range === 'weekly' ? 7 : 1;
+                const dayLabels = range === 'weekly' ? DAYS : ['Today'];
+
+                for (let r = 0; r < rows; r++) {
+                    const rowData = [];
                     for (let h = 0; h < HOURS; h++) {
                         const hour = START_HOUR + h;
-                        const el = document.createElement('div');
-                        el.className = 'grid-header-col';
-                        const ampm = hour >= 12 ? 'P' : 'A';
-                        const displayHour = hour > 12 ? hour - 12 : hour;
-                        el.innerText = `${displayHour}${ampm}`;
-                        heatmapGrid.appendChild(el);
-                    }
+                        let intensity = baseIntensity + Math.random() * 20;
+                        if (hour >= 10 && hour <= 14) intensity += 30;
+                        if (hour >= 16 && hour <= 18) intensity += 10;
+                        if (range === 'weekly' && (r === 5 || r === 6)) intensity -= 20;
+                        intensity = Math.max(0, Math.min(100, intensity));
 
-                    // 3. Render Data Rows
-                    data.forEach(row => {
-                        // Row Label (Day)
-                        const label = document.createElement('div');
-                        label.className = 'grid-header-row';
-                        label.innerText = row[0].day;
-                        heatmapGrid.appendChild(label);
+                        let status = 'low';
+                        if (intensity > 30) status = 'med';
+                        if (intensity > 60) status = 'busy';
+                        if (intensity > 90) status = 'critical';
 
-                        // Cells
-                        row.forEach(cell => {
-                            const el = document.createElement('div');
-                            el.className = `heatmap-cell heat-${cell.status}`;
-
-                            // Interaction
-                            el.onmouseenter = (e) => showTooltip(e, cell);
-                            el.onmouseleave = hideTooltip;
-
-                            heatmapGrid.appendChild(el);
+                        rowData.push({
+                            day: dayLabels[r],
+                            hour: hour,
+                            count: Math.floor(intensity / 2),
+                            pct: Math.floor(intensity),
+                            status: status
                         });
-                    });
+                    }
+                    data.push(rowData);
+                }
+                return data;
+            }
+
+            function renderHeatmap() {
+                const dept = deptSelect.value;
+                const data = generateHeatmapData(dept, currentRange);
+                heatmapGrid.innerHTML = '';
+                heatmapGrid.style.gridTemplateColumns = `80px repeat(${HOURS}, 1fr)`;
+
+                const spacer = document.createElement('div');
+                heatmapGrid.appendChild(spacer);
+
+                for (let h = 0; h < HOURS; h++) {
+                    const hour = START_HOUR + h;
+                    const el = document.createElement('div');
+                    el.className = 'grid-header-col';
+                    const ampm = hour >= 12 ? 'P' : 'A';
+                    const displayHour = hour > 12 ? hour - 12 : hour;
+                    el.innerText = `${displayHour}${ampm}`;
+                    heatmapGrid.appendChild(el);
                 }
 
-                // Filters
-                deptSelect.addEventListener('change', () => {
-                    heatmapGrid.style.opacity = '0.5';
-                    setTimeout(() => {
-                        renderHeatmap();
-                        heatmapGrid.style.opacity = '1';
-                    }, 200);
+                data.forEach(row => {
+                    const label = document.createElement('div');
+                    label.className = 'grid-header-row';
+                    label.innerText = row[0].day;
+                    heatmapGrid.appendChild(label);
+
+                    row.forEach(cell => {
+                        const el = document.createElement('div');
+                        el.className = `heatmap-cell heat-${cell.status}`;
+                        el.onmouseenter = (e) => showTooltip(e, cell);
+                        el.onmouseleave = hideTooltip;
+                        heatmapGrid.appendChild(el);
+                    });
                 });
+            }
 
-                window.setHeatmapRange = (range) => {
-                    currentRange = range;
-                    document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
-                    event.target.classList.add('active');
+            deptSelect.addEventListener('change', () => {
+                heatmapGrid.style.opacity = '0.5';
+                setTimeout(() => {
                     renderHeatmap();
-                };
+                    heatmapGrid.style.opacity = '1';
+                }, 200);
+            });
 
-                // Tooltip Logic
-                let tooltip = document.createElement('div');
-                tooltip.className = 'heatmap-tooltip';
-                document.body.appendChild(tooltip);
+            window.setHeatmapRange = (range) => {
+                currentRange = range;
+                document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
+                event.target.classList.add('active');
+                renderHeatmap();
+            };
 
-                function showTooltip(e, cell) {
-                    const rect = e.target.getBoundingClientRect();
-                    const hourStr = (cell.hour > 12 ? cell.hour - 12 : cell.hour) + (cell.hour >= 12 ? 'PM' : 'AM');
+            let tooltip = document.createElement('div');
+            tooltip.className = 'heatmap-tooltip';
+            document.body.appendChild(tooltip);
 
-                    tooltip.innerHTML = `
+            function showTooltip(e, cell) {
+                const rect = e.target.getBoundingClientRect();
+                const hourStr = (cell.hour > 12 ? cell.hour - 12 : cell.hour) + (cell.hour >= 12 ? 'PM' : 'AM');
+                tooltip.innerHTML = `
                     <strong>${cell.day} ${hourStr}</strong><br>
                     ${cell.count} People - <span style="text-transform:capitalize">${cell.status}</span>
                 `;
+                tooltip.style.left = `${rect.left + window.scrollX - 40}px`;
+                tooltip.style.top = `${rect.top + window.scrollY - 50}px`;
+                tooltip.style.opacity = '1';
+            }
 
-                    const tooltipX = rect.left + window.scrollX - 40;
-                    const tooltipY = rect.top + window.scrollY - 50;
+            function hideTooltip() {
+                tooltip.style.opacity = '0';
+            }
 
-                    tooltip.style.left = `${tooltipX}px`;
-                    tooltip.style.top = `${tooltipY}px`;
-                    tooltip.style.opacity = '1';
-                }
-
-                function hideTooltip() {
-                    tooltip.style.opacity = '0';
-                }
-
-                // Initial Render
-                renderHeatmap();
-            </script>
+            renderHeatmap();
+        </script>
 
 
 </body>

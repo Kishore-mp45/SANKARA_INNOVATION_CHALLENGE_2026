@@ -40,7 +40,7 @@ class ConnectionManager:
         self.active_connections.append(websocket)
         self.connection_metadata[websocket] = {
             "client_id": client_id or f"client_{len(self.active_connections)}",
-            "connected_at": datetime.utcnow().isoformat(),
+            "connected_at": datetime.now().isoformat(),
             "subscriptions": ["occupancy", "alerts"]  # Default subscriptions
         }
         logger.info(f"WebSocket connected: {self.connection_metadata[websocket]['client_id']}")
@@ -124,7 +124,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 "client_id": manager.connection_metadata[websocket]["client_id"],
                 "subscriptions": manager.connection_metadata[websocket]["subscriptions"]
             },
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now().isoformat()
         }, websocket)
         
         while True:
@@ -141,7 +141,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 if command == "ping":
                     await manager.send_personal_message({
                         "type": "pong",
-                        "timestamp": datetime.utcnow().isoformat()
+                        "timestamp": datetime.now().isoformat()
                     }, websocket)
                 
                 elif command == "subscribe":
@@ -153,7 +153,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     await manager.send_personal_message({
                         "type": "subscribed",
                         "data": {"topics": topics},
-                        "timestamp": datetime.utcnow().isoformat()
+                        "timestamp": datetime.now().isoformat()
                     }, websocket)
                 
                 elif command == "unsubscribe":
@@ -165,7 +165,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     await manager.send_personal_message({
                         "type": "unsubscribed",
                         "data": {"topics": topics},
-                        "timestamp": datetime.utcnow().isoformat()
+                        "timestamp": datetime.now().isoformat()
                     }, websocket)
                 
                 elif command == "get_status":
@@ -175,7 +175,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             "connected_clients": manager.connection_count,
                             "your_subscriptions": manager.connection_metadata[websocket]["subscriptions"]
                         },
-                        "timestamp": datetime.utcnow().isoformat()
+                        "timestamp": datetime.now().isoformat()
                     }, websocket)
                 
                 # Handle incoming data from Producer (detect.py)
@@ -184,14 +184,14 @@ async def websocket_endpoint(websocket: WebSocket):
                     await manager.broadcast({
                         "type": "occupancy_update",
                         "data": data.get("data"),
-                        "timestamp": datetime.utcnow().isoformat()
+                        "timestamp": datetime.now().isoformat()
                     }, message_type="occupancy")
                     
             except asyncio.TimeoutError:
                 # Send heartbeat
                 await manager.send_personal_message({
                     "type": "heartbeat",
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now().isoformat()
                 }, websocket)
                 
     except WebSocketDisconnect:
@@ -223,7 +223,7 @@ async def broadcast_occupancy_update(data: dict):
     await manager.broadcast({
         "type": "occupancy_update",
         "data": data,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now().isoformat()
     }, message_type="occupancy")
 
 
@@ -232,7 +232,7 @@ async def broadcast_alert(data: dict):
     await manager.broadcast({
         "type": "alert",
         "data": data,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now().isoformat()
     }, message_type="alerts")
 
 
@@ -241,5 +241,5 @@ async def broadcast_metric_update(data: dict):
     await manager.broadcast({
         "type": "metric_update",
         "data": data,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now().isoformat()
     }, message_type="metrics")

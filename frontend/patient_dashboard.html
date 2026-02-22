@@ -217,6 +217,7 @@
             <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
             <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
             <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
             <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
             <!-- Manually added Active Dashboard Item for Patient Context -->
             <li><a href="patient_dashboard.html" class="nav-item active"><span class="step-badge">3</span> My
@@ -255,6 +256,11 @@
                     <div style="font-size: 0.8rem; color: #10b981;" id="wait-status"></div>
                 </div>
                 <div class="status-card">
+                    <h3>Dept Time</h3>
+                    <div class="value" id="dept-time">--</div>
+                    <div style="font-size: 0.8rem; color: #3b82f6;" id="dept-time-status"></div>
+                </div>
+                <div class="status-card">
                     <h3>Next Department</h3>
                     <div class="value" id="next-dept">...</div>
                 </div>
@@ -262,6 +268,19 @@
                     <h3>Last Updated</h3>
                     <div class="value" id="last-updated">--:--</div>
                 </div>
+            </div>
+
+            <!-- AI Predicted Wait Time Card -->
+            <div class="status-card" id="ai-wait-card" style="margin-bottom: 2rem; text-align: center; position: relative; overflow: hidden;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                    <i class="fas fa-brain" style="color: var(--primary-color); font-size: 1.1rem;"></i>
+                    <h3 style="margin: 0; font-size: 0.9rem;" id="ai-wait-title">AI Wait Time Prediction</h3>
+                </div>
+                <div id="ai-wait-dept" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">Loading department...</div>
+                <div id="ai-wait-value" style="font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, #3b82f6, #10b981); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.25rem;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 1.2rem; -webkit-text-fill-color: var(--text-muted);"></i>
+                </div>
+                <div id="ai-wait-label" style="font-size: 0.8rem; color: var(--text-muted);">Estimated by AI Model</div>
             </div>
 
             <!-- Progress Tracker -->
@@ -294,7 +313,7 @@
         style="position: fixed; bottom: 2rem; right: 2rem; z-index: 1000;"></div>
 
     <!-- MAIN JS for Layout/RBAC -->
-    <script src="js/main.js?v=200"></script>
+    <script src="js/main.js?v=999"></script>
 
     <script>
         console.log("Patient Dashboard V6.5 Initializing...");
@@ -311,8 +330,8 @@
             { key: 'dilation_hall', label: 'Dilation' },
             { key: 'diagnostics', label: 'Diagnostics' },
             { key: 'consultation', label: 'Doctor Consult' },
-            { key: 'billing_insurance', label: 'Billing' },
             { key: 'pharmacy', label: 'Pharmacy' },
+            { key: 'billing_insurance', label: 'Billing' },
             { key: 'exit', label: 'Completed' }
         ];
 
@@ -349,6 +368,7 @@
                     const data = await response.json();
                     console.log("Data fetched:", data);
                     updateDashboardUI(data);
+                    fetchPredictedWaitTime();
 
                     // Visual "pulse" effect
                     const statusBadge = document.getElementById('connection-status');
@@ -387,9 +407,8 @@
             document.getElementById('current-stage').innerText = zoneName || "Waiting";
 
             // Use updated_at or entry_time
-            // FIX: Backend sends UTC without Z. Append Z to force UTC parsing, then toLocaleTimeString converts to local.
+            // Timestamps are in local time from the backend, no Z suffix needed
             let timeVal = data.updated_at || data.entry_time;
-            if (timeVal && !timeVal.endsWith('Z')) timeVal += 'Z';
 
             document.getElementById('last-updated').innerText = timeVal ? new Date(timeVal).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--';
 
@@ -421,6 +440,21 @@
                     waitStatus.innerText = data.last_action; // Override with specific action
                     waitStatus.style.fontSize = '0.9rem';
                 }
+            }
+
+            // Display dept dwell time (time in current department)
+            if (data.dept_dwell_time_minutes !== null && data.dept_dwell_time_minutes !== undefined) {
+                const deptMins = Math.round(data.dept_dwell_time_minutes);
+                if (deptMins < 60) {
+                    document.getElementById('dept-time').innerText = `${deptMins} min${deptMins !== 1 ? 's' : ''}`;
+                } else {
+                    const dHrs = Math.floor(deptMins / 60);
+                    const dRemain = deptMins % 60;
+                    document.getElementById('dept-time').innerText = `${dHrs}h ${dRemain}m`;
+                }
+                const deptStatus = document.getElementById('dept-time-status');
+                deptStatus.innerText = formatZone(data.current_zone) || 'Current Dept';
+                deptStatus.style.color = '#3b82f6';
             }
 
             // Calculate 'Next Department'
@@ -481,7 +515,6 @@
 
             // Format current data item
             let timeVal = data.updated_at || data.entry_time;
-            if (timeVal && !timeVal.endsWith('Z')) timeVal += 'Z';
 
             const newItem = {
                 time: timeVal,
@@ -509,18 +542,76 @@
             const list = document.getElementById('timeline-list');
             list.innerHTML = '';
 
-            // 1. Update and get history
-            const history = updateHistory(data);
+            // Requirement: Activity history must appear empty after journey completed (exited)
+            if (data.status === 'exited') {
+                list.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                        <i class="fas fa-check-circle" style="font-size: 3rem; color: #10b981; margin-bottom: 1rem; display: block;"></i>
+                        <p style="font-weight: 600; color: var(--text-main); margin-bottom: 0.5rem;">Journey Completed</p>
+                        <p>Your activity history has been cleared as your visit is now finished.</p>
+                        <p style="margin-top: 1rem; font-size: 0.9rem;">Thank you for visiting PatientPath Hospital!</p>
+                    </div>
+                `;
+                return;
+            }
 
-            // 2. Render History Items
-            history.forEach((item, index) => {
+            let timelineItems = [];
+
+            // Use action_history from the API (authoritative source from database)
+            if (data.action_history && data.action_history.length > 0) {
+                data.action_history.forEach(entry => {
+                    timelineItems.push({
+                        time: entry.timestamp,
+                        action: entry.action,
+                        zone: entry.zone
+                    });
+                });
+            }
+
+            // Also inject consultation history (start/end from ConsultationLog)
+            if (data.consultation_history && data.consultation_history.length > 0) {
+                data.consultation_history.forEach(log => {
+                    if (log.start_time) {
+                        const exists = timelineItems.some(t =>
+                            t.action.includes("Consultation Started") &&
+                            Math.abs(new Date(t.time).getTime() - new Date(log.start_time).getTime()) < 2000
+                        );
+                        if (!exists) {
+                            timelineItems.push({ time: log.start_time, action: "Doctor Consultation Started", zone: "consultation" });
+                        }
+                    }
+                    if (log.end_time) {
+                        const exists = timelineItems.some(t =>
+                            (t.action.includes("Consultation Ended") || t.action.includes("Consultation Completed")) &&
+                            Math.abs(new Date(t.time).getTime() - new Date(log.end_time).getTime()) < 2000
+                        );
+                        if (!exists) {
+                            timelineItems.push({ time: log.end_time, action: "Doctor Consultation Ended", zone: "consultation" });
+                        }
+                    }
+                });
+            }
+
+            // Fallback: if no action_history yet, use the poll-based localStorage history
+            if (timelineItems.length === 0) {
+                const history = updateHistory(data);
+                timelineItems = history;
+            }
+
+            // Sort by time (newest first for display)
+            timelineItems.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+
+            // Render all items
+            timelineItems.forEach((item, index) => {
                 const isLatest = index === 0;
                 let statusHtml = '';
 
                 // Determine status badge
                 const actionLower = item.action.toLowerCase();
-                if (actionLower.includes('completed') || actionLower.includes('done') || actionLower.includes('finished')) {
+                if (actionLower.includes('completed') || actionLower.includes('done') || actionLower.includes('finished') || actionLower.includes('ended') || actionLower.includes('dispensed') || actionLower.includes('received') || actionLower.includes('verified') || actionLower.includes('generated')) {
                     statusHtml = '<div class="status-badge" style="background:#d1fae5; color:#047857; margin-top:5px; font-size:0.75rem;">Completed</div>';
+                } else if (actionLower.includes('started') || actionLower.includes('check-in') || actionLower.includes('registration') || actionLower.includes('administered')) {
+                    statusHtml = '<div class="status-badge" style="background:#dbeafe; color:#1d4ed8; margin-top:5px; font-size:0.75rem;">Started</div>';
                 } else if (isLatest) {
                     statusHtml = '<div class="status-badge status-waiting" style="margin-top:5px; font-size:0.75rem;">In Progress</div>';
                 } else {
@@ -530,14 +621,10 @@
                 addTimelineItem(list, item.time, item.action, statusHtml, isLatest);
             });
 
-            // 3. Always add Entry item at the end if not present (optional, but good for context)
+            // Always add Entry item at the end if not present
             if (data.entry_time) {
                 let entryTime = data.entry_time;
-                if (!entryTime.endsWith('Z')) entryTime += 'Z';
-
-                // Check if entry is already in history (fuzzy match time)
-                const entryExists = history.some(h => Math.abs(new Date(h.time).getTime() - new Date(entryTime).getTime()) < 1000);
-
+                const entryExists = timelineItems.some(h => Math.abs(new Date(h.time).getTime() - new Date(entryTime).getTime()) < 1000);
                 if (!entryExists) {
                     addTimelineItem(list, entryTime, "Checked In / Registration", '<div style="color:#10b981; font-size:0.8rem; margin-top:2px;">Completed</div>', false);
                 }
@@ -564,6 +651,44 @@
             return zoneKey.split('_')
                 .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                 .join(' ');
+        }
+
+        async function fetchPredictedWaitTime() {
+            if (!currentPatientId) return;
+            const waitTitle = document.getElementById('ai-wait-title');
+            const waitDept = document.getElementById('ai-wait-dept');
+            const waitValue = document.getElementById('ai-wait-value');
+            const waitLabel = document.getElementById('ai-wait-label');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/patient/predicted-wait-time/${currentPatientId}?_=${new Date().getTime()}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.available) {
+                        waitTitle.textContent = 'AI Wait Time Prediction';
+                        waitDept.textContent = `Average Waiting Time Predicted in ${data.department} by AI`;
+                        waitValue.style.cssText = 'font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, #3b82f6, #10b981); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.25rem;';
+                        waitValue.textContent = `${data.predicted_minutes} minutes`;
+                        waitLabel.textContent = `Estimated Waiting Time: ${data.formatted}`;
+                    } else {
+                        waitDept.textContent = data.department ? `Department: ${data.department}` : 'No department assigned';
+                        waitValue.style.cssText = 'font-size: 1.5rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;';
+                        waitValue.textContent = '--';
+                        waitLabel.textContent = 'Prediction unavailable for current stage';
+                    }
+                } else if (response.status === 404) {
+                    waitDept.textContent = 'Patient not registered yet';
+                    waitValue.style.cssText = 'font-size: 1.5rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;';
+                    waitValue.textContent = '--';
+                    waitLabel.textContent = 'Waiting for registration';
+                }
+            } catch (err) {
+                console.error("Wait time prediction fetch error:", err);
+                waitDept.textContent = 'Unable to connect';
+                waitValue.style.cssText = 'font-size: 1.5rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;';
+                waitValue.textContent = '--';
+                waitLabel.textContent = 'Retrying...';
+            }
         }
     </script>
 </body>

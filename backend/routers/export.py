@@ -44,7 +44,7 @@ async def export_occupancy_csv(
     
     # Set default time range
     if not end_time:
-        end_time = datetime.utcnow()
+        end_time = datetime.now()
     if not start_time:
         start_time = end_time - timedelta(hours=hours)
     
@@ -55,9 +55,9 @@ async def export_occupancy_csv(
     )
     
     # Generate filename
-    filename = f"occupancy_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+    filename = f"occupancy_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     if zone_name:
-        filename = f"occupancy_{zone_name}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+        filename = f"occupancy_{zone_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     
     return StreamingResponse(
         io.StringIO(csv_data),
@@ -93,7 +93,7 @@ async def export_patients_csv(
         end_time=end_time
     )
     
-    filename = f"patients_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+    filename = f"patients_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     
     return StreamingResponse(
         io.StringIO(csv_data),
@@ -131,7 +131,7 @@ async def export_metrics_csv(
         end_time=end_time
     )
     
-    filename = f"metrics_{metric_type}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+    filename = f"metrics_{metric_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     
     return StreamingResponse(
         io.StringIO(csv_data),

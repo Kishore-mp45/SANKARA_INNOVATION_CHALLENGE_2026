@@ -54,6 +54,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.requests = {}
     
     async def dispatch(self, request: Request, call_next):
+        # Skip rate limiting for static files and websocket
+        path = request.url.path
+        if path.endswith((".html", ".css", ".js", ".png", ".jpg", ".ico", ".svg", ".woff", ".woff2", ".ttf")) or path.startswith("/ws"):
+            return await call_next(request)
+
         client_ip = request.client.host if request.client else "unknown"
         current_time = time.time()
         

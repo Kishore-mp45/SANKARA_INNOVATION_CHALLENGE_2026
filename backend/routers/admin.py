@@ -5,29 +5,103 @@ from services.activity_service import ActivityService
 from services.patient_service import PatientService
 from services.zone_service import ZoneService
 from database import get_db
+from models.patient import Patient
 from sqlalchemy.orm import Session
 from datetime import datetime
+import json
 
 router = APIRouter(
     prefix="/admin",
     tags=["Admin"]
 )
 
+DEPT_DISPLAY = {
+    "registration": "Registration",
+    "vision_lab": "Vision Lab",
+    "dilation_hall": "Dilation Hall",
+    "consultation": "Consultation",
+    "diagnostics": "Diagnostics",
+    "pharmacy": "Pharmacy",
+    "billing_insurance": "Billing & Insurance",
+    "exit": "Exit",
+}
+
 @router.get("/activity")
-async def get_activity(limit: int = 100, role: Optional[str] = None):
-    """Get recent activity logs."""
+async def get_activity(limit: int = 100, role: Optional[str] = None, db: Session = Depends(get_db)):
+    """Get recent activity logs from patient action_history in the database."""
+    patients = db.query(Patient).filter(
+        Patient.action_history != None,
+        Patient.action_history != "[]"
+    ).all()
+
+    all_logs = []
+    for p in patients:
+        try:
+            history = json.loads(p.action_history) if p.action_history else []
+        except (json.JSONDecodeError, TypeError):
+            continue
+
+        for entry in history:
+            zone_key = entry.get("zone", "")
+            dept_name = DEPT_DISPLAY.get(zone_key, zone_key.replace("_", " ").title())
+            action_text = entry.get("action", "Unknown Action")
+
+            all_logs.append({
+                "id": int(datetime.fromisoformat(entry["timestamp"]).timestamp() * 1000) if entry.get("timestamp") else 0,
+                "timestamp": entry.get("timestamp", ""),
+                "action": action_text,
+                "details": f"{p.name} ({p.tracking_id}) - {dept_name}",
+                "severity": "success",
+                "role": "staff",
+                "user_id": "Staff"
+            })
+
+    # Sort by timestamp descending (newest first)
+    all_logs.sort(key=lambda x: x["timestamp"], reverse=True)
+
     return {
-        "logs": ActivityService.get_logs(limit, role)
+        "logs": all_logs[:limit]
     }
 
 @router.get("/export")
-async def export_activity():
-    """Export activity logs as CSV."""
-    csv_content = ActivityService.export_logs_csv()
-    filename = f"activity_log_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
-    
+async def export_activity(db: Session = Depends(get_db)):
+    """Export patient activity logs as CSV from database."""
+    import csv as csv_mod
+    import io
+
+    patients = db.query(Patient).filter(
+        Patient.action_history != None,
+        Patient.action_history != "[]"
+    ).all()
+
+    output = io.StringIO()
+    writer = csv_mod.writer(output)
+    writer.writerow(['Timestamp', 'Patient', 'Tracking ID', 'Action', 'Department'])
+
+    rows = []
+    for p in patients:
+        try:
+            history = json.loads(p.action_history) if p.action_history else []
+        except (json.JSONDecodeError, TypeError):
+            continue
+        for entry in history:
+            zone_key = entry.get("zone", "")
+            dept_name = DEPT_DISPLAY.get(zone_key, zone_key.replace("_", " ").title())
+            rows.append((
+                entry.get("timestamp", ""),
+                p.name,
+                p.tracking_id,
+                entry.get("action", ""),
+                dept_name
+            ))
+
+    rows.sort(key=lambda x: x[0], reverse=True)
+    for row in rows:
+        writer.writerow(row)
+
+    filename = f"activity_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     return PlainTextResponse(
-        content=csv_content,
+        content=output.getvalue(),
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )

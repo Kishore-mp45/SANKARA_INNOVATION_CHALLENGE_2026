@@ -9,6 +9,12 @@
     <link rel="stylesheet" href="css/admin.css?v=200">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @keyframes admin-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+    </style>
 </head>
 
 <body>
@@ -29,9 +35,12 @@
             <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
             <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
             <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
             <!-- View-Only Links Removed for Admin Focus -->
             <li><a href="admin_dashboard.html" class="nav-item active"><span class="step-badge">9</span> Admin
                     Center</a></li>
+            <li><a href="resource_allocation.html" class="nav-item"><span class="step-badge">10</span> Resources</a>
+            </li>
         </ul>
     </div>
 
@@ -64,21 +73,43 @@
                     </div>
                     <div class="metric-icon"><i class="fas fa-users"></i></div>
                 </div>
-                <!-- 
-                <div class="metric-card">
-                    <div>
-                        <div class="metric-value" id="occupancy-rate">--%</div>
-                        <div class="metric-label">Avg Occupancy</div>
-                    </div>
-                    <div class="metric-icon"><i class="fas fa-chart-pie"></i></div>
-                </div>
-                -->
                 <div class="metric-card">
                     <div>
                         <div class="metric-value" style="color:#10b981;">Active</div>
                         <div class="metric-label">AI Engine Status</div>
                     </div>
                     <div class="metric-icon"><i class="fas fa-brain"></i></div>
+                </div>
+                <div class="metric-card">
+                    <div>
+                        <div class="metric-value" id="cv-status" style="color:#10b981;">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 0.9rem;"></i>
+                        </div>
+                        <div class="metric-label">CV Detection Model</div>
+                    </div>
+                    <div class="metric-icon"><i class="fas fa-video"></i></div>
+                </div>
+                <div class="metric-card">
+                    <div>
+                        <div class="metric-value" id="total-detected">--</div>
+                        <div class="metric-label">Total Detected</div>
+                    </div>
+                    <div class="metric-icon"><i class="fas fa-people-arrows"></i></div>
+                </div>
+            </div>
+
+            <!-- Peak Hours Card -->
+            <div style="margin-bottom: 1.5rem;">
+                <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+                    <div style="width: 42px; height: 42px; background: rgba(245,158,11,0.12); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas fa-clock" style="color: #f59e0b; font-size: 1.1rem;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; margin-bottom: 0.2rem;">Peak Hours of Today</div>
+                        <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-main);" id="peak-hours-value">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 0.9rem; color: var(--text-muted);"></i> Loading...
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -92,14 +123,8 @@
                             Live Notification Center
                         </div>
                         <div class="panel-actions">
-                            <input type="text" id="log-search" placeholder="Search logs..." class="form-control"
-                                style="font-size:0.85rem; padding:0.4rem; width:150px;">
-                            <select id="role-filter" class="form-control" style="font-size:0.85rem; padding:0.4rem;">
-                                <option value="">All Roles</option>
-                                <option value="staff">Staff</option>
-                                <option value="system">System</option>
-                                <option value="admin">Admin</option>
-                            </select>
+                            <input type="text" id="log-search" placeholder="Search activity..." class="form-control"
+                                style="font-size:0.85rem; padding:0.4rem; width:180px;">
                             <button onclick="exportLogs()" class="btn-sm btn-primary">
                                 <i class="fas fa-download"></i> Export CSV
                             </button>
@@ -113,13 +138,40 @@
 
                 <!-- Right Column: Dept Status & Distribution -->
                 <div style="display:flex; flex-direction:column; gap:1.5rem;">
-                    <!-- Department Status -->
+                    <!-- Live CV Detection Occupancy -->
                     <div class="feed-panel" style="height: auto;">
                         <div class="panel-header">
-                            <div class="panel-title">Department Activity</div>
+                            <div class="panel-title">
+                                <i class="fas fa-video" style="color:#8b5cf6;"></i>
+                                Live Detection - Department Occupancy
+                            </div>
+                            <div style="display:flex; align-items:center; gap:0.5rem;">
+                                <span style="width:8px; height:8px; border-radius:50%; background:#ef4444; animation: admin-pulse 1.5s infinite;"></span>
+                                <span style="font-size:0.7rem; color:#ef4444; font-weight:600;">LIVE</span>
+                            </div>
                         </div>
-                        <div style="padding:1rem;">
-                            <canvas id="deptChart"></canvas>
+                        <!-- Flow indicator -->
+                        <div style="padding:0.5rem 1rem 0; display:flex; align-items:center; justify-content:center; gap:0.15rem; flex-wrap:wrap;">
+                            <span style="font-size:0.6rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">Patient Flow:</span>
+                            <span style="font-size:0.6rem; color:#10b981;">Registration</span>
+                            <span style="font-size:0.55rem; color:var(--text-muted); opacity:0.4;">&#9654;</span>
+                            <span style="font-size:0.6rem; color:#10b981;">Vision Lab</span>
+                            <span style="font-size:0.55rem; color:var(--text-muted); opacity:0.4;">&#9654;</span>
+                            <span style="font-size:0.6rem; color:#10b981;">Dilation</span>
+                            <span style="font-size:0.55rem; color:var(--text-muted); opacity:0.4;">&#9654;</span>
+                            <span style="font-size:0.6rem; color:#10b981;">Diagnostics</span>
+                            <span style="font-size:0.55rem; color:var(--text-muted); opacity:0.4;">&#9654;</span>
+                            <span style="font-size:0.6rem; color:#10b981;">Consult</span>
+                            <span style="font-size:0.55rem; color:var(--text-muted); opacity:0.4;">&#9654;</span>
+                            <span style="font-size:0.6rem; color:#10b981;">Pharmacy</span>
+                            <span style="font-size:0.55rem; color:var(--text-muted); opacity:0.4;">&#9654;</span>
+                            <span style="font-size:0.6rem; color:#10b981;">Billing</span>
+                        </div>
+                        <div id="cv-detection-grid" style="padding:0.75rem 1rem 1rem; display:grid; grid-template-columns: 1fr; gap:0.5rem;">
+                            <!-- CV detection cards injected by JS -->
+                            <div style="grid-column: 1 / -1; text-align:center; color:#94a3b8; padding:1rem;">
+                                <i class="fas fa-spinner fa-spin"></i> Waiting for CV model...
+                            </div>
                         </div>
                     </div>
 
@@ -153,9 +205,9 @@
     </div>
 
     <!-- Scripts -->
+    <script src="js/main.js?v=999"></script>
     <script>
         const API_BASE_URL = 'http://localhost:8000';
-        let deptChartInstance = null;
         let lastLogId = 0;
 
         // Initialize
@@ -163,14 +215,17 @@
             console.log("Admin Dashboard Initialized");
             fetchStats();
             fetchActivity();
+            fetchPeakHours();
+            fetchCVDetection();
 
             // Poll every 2 seconds
             setInterval(fetchActivity, 2000);
             // Poll stats every 10 seconds
             setInterval(fetchStats, 10000);
+            // Poll CV detection every 5 seconds
+            setInterval(fetchCVDetection, 5000);
 
             // Filter listeners
-            document.getElementById('role-filter').addEventListener('change', fetchActivity);
             document.getElementById('log-search').addEventListener('input', filterLocalLogs);
         });
 
@@ -181,9 +236,6 @@
                     const data = await response.json();
 
                     document.getElementById('active-patients').innerText = data.active_patients;
-                    // Removed Latency and Alerts per user request
-
-                    updateDeptChart(data.zone_distribution);
                 }
             } catch (error) {
                 console.error("Stats Fetch Error:", error);
@@ -191,9 +243,7 @@
         }
 
         async function fetchActivity() {
-            const role = document.getElementById('role-filter').value;
             let url = `${API_BASE_URL}/admin/activity?limit=100`;
-            if (role) url += `&role=${role}`;
 
             try {
                 const response = await fetch(url);
@@ -218,29 +268,51 @@
             );
 
             if (filteredLogs.length === 0) {
-                container.innerHTML = '<div style="padding:2rem; text-align:center; color:#94a3b8;">No recent activity found.</div>';
+                container.innerHTML = '<div style="padding:2rem; text-align:center; color:#94a3b8;"><i class="fas fa-stream" style="font-size:1.5rem; margin-bottom:0.5rem; display:block; opacity:0.4;"></i>No patient activity records found.</div>';
                 return;
             }
 
-            // Simple diff check to avoid re-rendering entire DOM if top items are same?
-            // For now, full re-render is safe as list is small (100 items).
-
             let html = '';
             filteredLogs.forEach(log => {
-                let iconClass = 'icon-info';
-                let iconContent = '<i class="fas fa-info"></i>';
+                let iconClass = 'icon-success';
+                let iconContent = '<i class="fas fa-check"></i>';
 
-                if (log.severity === 'success') { iconClass = 'icon-success'; iconContent = '<i class="fas fa-check"></i>'; }
-                if (log.severity === 'warning') { iconClass = 'icon-warning'; iconContent = '<i class="fas fa-exclamation"></i>'; }
-                if (log.severity === 'error') { iconClass = 'icon-error'; iconContent = '<i class="fas fa-times"></i>'; }
+                // Map actions to specific icons
+                const a = log.action.toLowerCase();
+                if (a.includes('registration') || a.includes('check-in')) {
+                    iconContent = '<i class="fas fa-clipboard-list"></i>';
+                    iconClass = 'icon-info';
+                } else if (a.includes('vision') || a.includes('screening')) {
+                    iconContent = '<i class="fas fa-eye"></i>';
+                } else if (a.includes('dilation')) {
+                    iconContent = '<i class="fas fa-clock"></i>';
+                } else if (a.includes('diagnostic') || a.includes('test')) {
+                    iconContent = '<i class="fas fa-x-ray"></i>';
+                } else if (a.includes('consultation') || a.includes('doctor')) {
+                    iconContent = '<i class="fas fa-stethoscope"></i>';
+                } else if (a.includes('medicine') || a.includes('dispensed') || a.includes('pharmacy')) {
+                    iconContent = '<i class="fas fa-pills"></i>';
+                } else if (a.includes('payment') || a.includes('billing') || a.includes('insurance')) {
+                    iconContent = '<i class="fas fa-file-invoice-dollar"></i>';
+                } else if (a.includes('discharged') || a.includes('exit')) {
+                    iconContent = '<i class="fas fa-sign-out-alt"></i>';
+                    iconClass = 'icon-warning';
+                } else if (a.includes('assign') || a.includes('id card')) {
+                    iconContent = '<i class="fas fa-id-card"></i>';
+                } else if (a.includes('treatment') || a.includes('started')) {
+                    iconContent = '<i class="fas fa-user-md"></i>';
+                } else if (a.includes('movement')) {
+                    iconContent = '<i class="fas fa-walking"></i>';
+                    iconClass = 'icon-info';
+                }
 
-                // Specific icons based on action keywords
-                if (log.action.includes('Movement')) iconContent = '<i class="fas fa-walking"></i>';
-                if (log.action.includes('Treatment')) iconContent = '<i class="fas fa-user-md"></i>';
-
-                // Format Time
-                const date = new Date(log.timestamp);
-                const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                // Format date + time
+                const date = new Date(log.timestamp.replace('Z', ''));
+                const now = new Date();
+                const isToday = date.toDateString() === now.toDateString();
+                const timeStr = isToday
+                    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                    : date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 html += `
                     <div class="activity-item">
@@ -251,7 +323,6 @@
                             <div class="activity-header">
                                 <div class="activity-title">
                                     ${log.action}
-                                    <span class="badge badge-role">${log.role}</span>
                                 </div>
                                 <div class="activity-time">${timeStr}</div>
                             </div>
@@ -269,46 +340,113 @@
             fetchActivity();
         }
 
-        function updateDeptChart(zoneData) {
-            const ctx = document.getElementById('deptChart').getContext('2d');
-            const labels = zoneData.map(z => formatZone(z.name));
-            const data = zoneData.map(z => z.count);
-
-            if (deptChartInstance) {
-                deptChartInstance.data.labels = labels;
-                deptChartInstance.data.datasets[0].data = data;
-                deptChartInstance.update();
-            } else {
-                deptChartInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Patients',
-                            data: data,
-                            backgroundColor: '#3b82f6',
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: { beginAtZero: true, ticks: { stepSize: 1 } },
-                            x: { ticks: { font: { size: 10 } } }
-                        }
-                    }
-                });
-            }
-        }
-
-        function formatZone(zoneKey) {
-            return zoneKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        }
-
         function exportLogs() {
             window.location.href = `${API_BASE_URL}/admin/export`;
         }
+
+        async function fetchPeakHours() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/prediction/peak-hours/today`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const el = document.getElementById('peak-hours-value');
+                    if (data.start_time !== 'N/A') {
+                        el.textContent = `${data.start_time} – ${data.end_time}`;
+                    } else {
+                        el.textContent = 'No peak detected today';
+                    }
+                }
+            } catch (e) {
+                console.error('Peak hours fetch error:', e);
+                document.getElementById('peak-hours-value').textContent = 'Unavailable';
+            }
+        }
+
+        // Hospital sequential order for CV detection display
+        const ADMIN_DEPT_ORDER = [
+            { key: 'registration',      name: 'Registration',        icon: 'fa-clipboard-list', capacity: 15 },
+            { key: 'vision_lab',        name: 'Vision Lab',          icon: 'fa-eye',            capacity: 12 },
+            { key: 'dilation_hall',     name: 'Dilation Hall',       icon: 'fa-clock',          capacity: 20 },
+            { key: 'diagnostics',       name: 'Diagnostics',         icon: 'fa-x-ray',          capacity: 15 },
+            { key: 'consultation',      name: 'Doctor Consult',      icon: 'fa-stethoscope',    capacity: 10 },
+            { key: 'pharmacy',          name: 'Pharmacy',            icon: 'fa-pills',          capacity: 12 },
+            { key: 'billing_insurance', name: 'Billing & Insurance', icon: 'fa-file-invoice-dollar', capacity: 10 },
+        ];
+
+        async function fetchCVDetection() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/detection/status`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const cvEl = document.getElementById('cv-status');
+                    const totalEl = document.getElementById('total-detected');
+                    const grid = document.getElementById('cv-detection-grid');
+
+                    if (data.running) {
+                        cvEl.innerHTML = '<span style="color:#10b981;">Running</span>';
+                    } else {
+                        cvEl.innerHTML = '<span style="color:#ef4444;">Offline</span>';
+                    }
+
+                    const detections = data.detections || {};
+
+                    if (Object.keys(detections).length === 0) {
+                        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#94a3b8; padding:1rem;"><i class="fas fa-spinner fa-spin"></i> Waiting for CV model...</div>';
+                        totalEl.textContent = '--';
+                        return;
+                    }
+
+                    let totalCount = 0;
+                    let html = '';
+
+                    ADMIN_DEPT_ORDER.forEach((dept, idx) => {
+                        const det = detections[dept.key];
+                        const count = det ? det.count : 0;
+                        const confidence = det ? det.confidence : 0;
+                        totalCount += count;
+
+                        let statusColor = '#10b981';
+                        let statusLabel = 'Low';
+                        const pct = Math.min(100, Math.round((count / dept.capacity) * 100));
+                        if (pct > 75) {
+                            statusColor = '#ef4444';
+                            statusLabel = 'High';
+                        } else if (pct > 40) {
+                            statusColor = '#f59e0b';
+                            statusLabel = 'Med';
+                        }
+
+                        html += '<div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-left:3px solid ' + statusColor + '; border-radius:8px; padding:0.6rem 0.8rem;">';
+                        html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">';
+                        html += '<div style="display:flex; align-items:center; gap:0.4rem;">';
+                        html += '<i class="fas ' + dept.icon + '" style="font-size:0.7rem; color:' + statusColor + '; opacity:0.8;"></i>';
+                        html += '<span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.03em;">' + dept.name + '</span>';
+                        html += '</div>';
+                        html += '<div style="display:flex; align-items:center; gap:0.5rem;">';
+                        html += '<span style="font-size:1rem; font-weight:700; color:var(--text-main);">' + count + '</span>';
+                        html += '<span style="font-size:0.6rem; font-weight:600; color:' + statusColor + '; text-transform:uppercase; letter-spacing:0.05em; background:' + statusColor + '18; padding:0.1rem 0.35rem; border-radius:3px;">' + statusLabel + '</span>';
+                        html += '</div>';
+                        html += '</div>';
+                        // Capacity bar
+                        html += '<div style="width:100%; height:4px; background:rgba(255,255,255,0.06); border-radius:2px; overflow:hidden;">';
+                        html += '<div style="width:' + pct + '%; height:100%; background:' + statusColor + '; border-radius:2px; transition:width 0.5s ease;"></div>';
+                        html += '</div>';
+                        html += '<div style="display:flex; justify-content:space-between; margin-top:0.2rem;">';
+                        html += '<span style="font-size:0.6rem; color:var(--text-muted);">' + pct + '% capacity</span>';
+                        html += '<span style="font-size:0.6rem; color:var(--text-muted);">' + (confidence > 0 ? (confidence * 100).toFixed(0) + '% conf' : '--') + '</span>';
+                        html += '</div>';
+                        html += '</div>';
+                    });
+
+                    grid.innerHTML = html;
+                    totalEl.textContent = totalCount;
+                }
+            } catch (e) {
+                console.error('CV Detection fetch error:', e);
+                document.getElementById('cv-status').innerHTML = '<span style="color:#ef4444;">Error</span>';
+            }
+        }
+
     </script>
 </body>
 

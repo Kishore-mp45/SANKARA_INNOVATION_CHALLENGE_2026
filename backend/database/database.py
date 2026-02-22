@@ -1,12 +1,11 @@
 """
 PatientPath AI - Database Connection
 ====================================
-SQLite database connection with SQLAlchemy.
+MySQL database connection with SQLAlchemy.
 """
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.pool import StaticPool
 from contextlib import contextmanager
 import os
 import sys
@@ -16,22 +15,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import settings
 
 
-# Create SQLite engine with proper configuration for concurrent access
+# Create MySQL engine with connection pooling
 engine = create_engine(
     settings.DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
+    pool_size=10,           # Number of persistent connections
+    max_overflow=20,        # Extra connections allowed beyond pool_size
+    pool_recycle=3600,      # Recycle connections after 1 hour (avoid MySQL timeout)
+    pool_pre_ping=True,     # Verify connections are alive before using them
     echo=settings.DATABASE_ECHO
 )
-
-
-# Enable WAL mode and foreign keys for SQLite
-@event.listens_for(engine, "connect")
-def set_sqlite_pragma(dbapi_conn, connection_record):
-    cursor = dbapi_conn.cursor()
-    cursor.execute("PRAGMA journal_mode=WAL")
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
 
 
 # Session factory

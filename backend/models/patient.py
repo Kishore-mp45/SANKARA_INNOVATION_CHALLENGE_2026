@@ -3,9 +3,10 @@ PatientPath AI - Patient Model
 ==============================
 """
 
-from sqlalchemy import Column, Integer, String, DateTime, Enum, Index
+from sqlalchemy import Column, Integer, String, DateTime, Enum, Index, Text
 from datetime import datetime
 import enum
+import json
 import sys
 import os
 
@@ -32,13 +33,14 @@ class Patient(Base):
     name = Column(String(100), nullable=True)
     tracking_id = Column(String(50), unique=True, nullable=False, index=True)
     mobile = Column(String(20), nullable=True)
-    entry_time = Column(DateTime, default=datetime.utcnow, nullable=False)
+    entry_time = Column(DateTime, default=datetime.now, nullable=False)
     exit_time = Column(DateTime, nullable=True)
     status = Column(Enum(PatientStatus), default=PatientStatus.ENTERED, nullable=False)
     current_zone = Column(String(50), nullable=True, index=True)
     last_action = Column(String(200), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    action_history = Column(Text, nullable=True, default="[]")
     
     __table_args__ = (
         Index('ix_patients_status_zone', 'status', 'current_zone'),
@@ -54,8 +56,18 @@ class Patient(Base):
         """Calculate dwell time in minutes."""
         if not self.entry_time:
             return 0.0
-        end_time = self.exit_time or datetime.utcnow()
+        end_time = self.exit_time or datetime.now()
         delta = end_time - self.entry_time
+        return round(delta.total_seconds() / 60, 2)
+
+    @property
+    def dept_dwell_time_minutes(self):
+        """Calculate time elapsed in current department (since last stage update)."""
+        reference_time = self.updated_at or self.entry_time
+        if not reference_time:
+            return 0.0
+        end_time = self.exit_time or datetime.now()
+        delta = end_time - reference_time
         return round(delta.total_seconds() / 60, 2)
 
     def to_dict(self):
@@ -71,6 +83,8 @@ class Patient(Base):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "dwell_time_minutes": self.dwell_time_minutes,
+            "dept_dwell_time_minutes": self.dept_dwell_time_minutes,
             "is_active": self.is_active,
-            "last_action": self.last_action
+            "last_action": self.last_action,
+            "action_history": json.loads(self.action_history) if self.action_history else []
         }

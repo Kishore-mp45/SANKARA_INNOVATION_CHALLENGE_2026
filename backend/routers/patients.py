@@ -27,6 +27,7 @@ from services import (
     AlertService,
     ActivityService
 )
+from services.prediction_service import PredictionService
 from schemas.occupancy import OccupancyUpdate
 from utils.logger import get_logger
 from utils.helpers import calculate_pagination
@@ -104,7 +105,16 @@ async def patient_enter(
     alert_service.check_zone_thresholds(zone)
     
     logger.info(f"Patient entered: ID={patient.id}, Zone={data.zone_name}")
-    
+
+    # Log to Activity Service
+    ActivityService.add_log(
+        action="Patient Entry",
+        details=f"{patient.name} ({patient.tracking_id}) entered at {data.zone_name}",
+        severity="success",
+        role="system",
+        user_id="System"
+    )
+
     return PatientResponse(
         id=patient.id,
         name=patient.name,
@@ -178,7 +188,16 @@ async def patient_exit(
             alert_service.check_zone_thresholds(zone)
     
     logger.info(f"Patient exited: ID={patient.id}, Dwell={patient.dwell_time_minutes}min")
-    
+
+    # Log to Activity Service
+    ActivityService.add_log(
+        action="Patient Discharged",
+        details=f"{patient.name} ({patient.tracking_id}) exited — dwell time: {patient.dwell_time_minutes}min",
+        severity="info",
+        role="system",
+        user_id="System"
+    )
+
     return PatientResponse(
         id=patient.id,
         name=patient.name,
@@ -291,6 +310,40 @@ async def list_patients(
 
 
 @router.get(
+    "/predicted-wait-time/{tracking_id}",
+    summary="Get Predicted Wait Time for Patient",
+    description="Returns AI-predicted average waiting time for the patient's current department."
+)
+async def get_predicted_wait_time(
+    tracking_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get predicted wait time for a specific patient based on their current department.
+    Uses the trained XGBoost waiting_model.pkl.
+    """
+    patient = PatientService.get_by_tracking_id(db, tracking_id)
+
+    if not patient:
+        raise HTTPException(status_code=404, detail=f"Patient {tracking_id} not found")
+
+    current_zone = patient.current_zone
+    if not current_zone:
+        return {
+            "tracking_id": tracking_id,
+            "department": None,
+            "predicted_minutes": None,
+            "formatted": "--",
+            "available": False,
+            "message": "Patient has no current department assigned."
+        }
+
+    result = PredictionService.predict_department_wait(db, current_zone)
+    result["tracking_id"] = tracking_id
+    return result
+
+
+@router.get(
     "/{patient_id}",
     response_model=PatientResponse,
     summary="Get Patient Details",
@@ -339,9 +392,32 @@ async def get_patient_by_tracking_id(
         if not patient:
             raise HTTPException(status_code=404, detail=f"Patient {tracking_id} not found")
         
-        # Return dict directly to bypass Pydantic model filtering if schema is stale
-        return patient.to_dict()
+        # Build response with consultation history
+        result = patient.to_dict()
 
+        # Include consultation logs for timeline display
+        from models.doctor import ConsultationLog, Doctor
+        logs = db.query(ConsultationLog).filter(
+            ConsultationLog.patient_id == tracking_id
+        ).order_by(ConsultationLog.start_time.desc()).limit(10).all()
+
+        consultation_history = []
+        for log in logs:
+            doctor = db.query(Doctor).filter(Doctor.id == log.doctor_id).first()
+            doctor_name = doctor.name if doctor else "Doctor"
+            entry = {
+                "start_time": log.start_time.isoformat() if log.start_time else None,
+                "end_time": log.end_time.isoformat() if log.end_time else None,
+                "doctor_name": doctor_name,
+                "notes": log.notes
+            }
+            consultation_history.append(entry)
+
+        result["consultation_history"] = consultation_history
+        return result
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching patient {tracking_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
@@ -487,102 +563,21 @@ async def update_patient_stage(
         pass
 
     try:
-        zone_service = ZoneService(db)
-        
-        # 1. Verify Patient
-        patient = PatientService.get_by_tracking_id(db, data.tracking_id)
-        if not patient:
-            # Auto-create for Registration workflow
-            # If staff is in "Registration" or just registering a new patient
-            # We create a new valid patient record
-            new_patient = PatientCreate(
-                name=data.name or "New Patient",
-                mobile=data.mobile,
-                tracking_id=data.tracking_id,
-                status=PatientStatus.ENTERED,
-                current_zone=data.department # Zone where registration happens
-            )
-            # Ensure zone exists for creation
-            start_zone = zone_service.get_zone_by_name(data.department)
-            if not start_zone:
-                 # If department name is invalid (e.g. "Registration" vs "registration"), fail
-                 raise HTTPException(status_code=404, detail=f"Initial Department '{data.department}' not found")
-            
-            patient = PatientService.create(db, new_patient)
-            
-            # Increment initial zone occupancy
-            if start_zone.current_occupancy < start_zone.capacity_limit * 2:
-                start_zone.current_occupancy += 1
-                db.commit()
-                
-            logger.info(f"Auto-created new patient {data.tracking_id} at {data.department}")
-        else:
-            # Patient exists - Update details if provided (e.g. updating info in Registration)
-            if data.department == "registration" and (data.name or data.mobile):
-                if data.name:
-                    patient.name = data.name
-                if data.mobile:
-                    patient.mobile = data.mobile
-                db.commit()
-                logger.info(f"Updated details for patient {data.tracking_id}")
-
-    # 2. Update Zone if next_department is provided
-        if data.next_department:
-            # Verify zone
-            target_zone = zone_service.get_zone_by_name(data.next_department)
-            if not target_zone:
-                 raise HTTPException(status_code=404, detail=f"Department '{data.next_department}' not found")
-            
-            # Logic to move patient
-            # Decrement old zone
-            if patient.current_zone and patient.current_zone != data.next_department:
-                old_zone = zone_service.get_zone_by_name(patient.current_zone)
-                if old_zone and old_zone.current_occupancy > 0:
-                    old_zone.current_occupancy -= 1
-                # Increment new zone
-                target_zone.current_occupancy += 1
-            
-            # Update patient zone
-            patient.current_zone = data.next_department
-
-        # 3. ALWAYS update timestamp so patient dashboard sees the change
-        #    SQLAlchemy onupdate only fires when column values actually change,
-        #    so we must explicitly set updated_at on every staff action.
-        patient.updated_at = datetime.utcnow()
-        patient.last_action = data.action  # Persist the specific action text
-        db.commit()
-        
-        # Check alerts for new zone if zone changed
-        if data.next_department:
-            try:
-                target_zone = zone_service.get_zone_by_name(data.next_department)
-                if target_zone:
-                    alert_service = AlertService(db)
-                    alert_service.check_zone_thresholds(target_zone)
-            except Exception as e:
-                logger.warning(f"Failed to check alerts: {e}")
-
-        # 4. Log Action
-        logger.info(f"STAFF UPDATE: Patient {data.tracking_id} | Dept: {data.department} | Action: {data.action} | Moving To: {data.next_department}")
-        
-        # Log to Activity Service (Admin Dashboard)
-        target_dept = data.next_department
-        if not target_dept or target_dept == data.department:
-             loc_desc = data.department
-        else:
-             loc_desc = f"{data.department} to {target_dept}"
-
-        ActivityService.add_log(
-            action=data.action or f"Update Status: {data.department}",
-            details=f"{data.tracking_id} --> {loc_desc} --> Updated by {data.staff_id or 'Staff'}",
-            severity="success",
-            role="Staff",
-            user_id=data.staff_id or "Staff-User"
+        # Use centralized service logic covering logging, alerts, and zone updates
+        patient = PatientService.update_patient_stage(
+            db=db,
+            tracking_id=data.tracking_id,
+            department=data.department,
+            action=data.action,
+            next_department=data.next_department,
+            staff_id=data.staff_id,
+            name=data.name,
+            mobile=data.mobile
         )
-
+        
         return SuccessResponse(
             success=True,
-            message=f"Patient {data.tracking_id} updated successfully. Action: {data.action}"
+            message=f"Patient {patient.tracking_id} updated successfully. Action: {patient.last_action}"
         )
     except HTTPException:
         raise

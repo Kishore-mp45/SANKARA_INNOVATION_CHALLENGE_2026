@@ -22,6 +22,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import uvicorn
+import asyncio
 import sys
 import os
 
@@ -50,6 +51,7 @@ from routers.metrics import router as metrics_router
 from routers.websocket import router as websocket_router
 from routers.export import router as export_router
 from routers.admin import router as admin_router
+from routers.doctor import router as doctor_router
 
 # Setup logging
 setup_logging()
@@ -85,11 +87,34 @@ async def lifespan(app: FastAPI):
     
     logger.info(f"Server ready at http://{settings.HOST}:{settings.PORT}")
     logger.info(f"API Documentation: http://{settings.HOST}:{settings.PORT}/docs")
-    
+
+    # Start CV Detection Service
+    try:
+        from services.cv_detection_service import CVDetectionService
+
+        project_root = os.path.dirname(backend_dir)
+        model_path = os.path.join(project_root, "ml_models", "yolov8n.pt")
+        video_dir = os.path.join(project_root, "frontend", "assets", "videos")
+
+        if os.path.isfile(model_path):
+            loop = asyncio.get_event_loop()
+            cv_service = CVDetectionService(model_path, video_dir, loop)
+            cv_service.start()
+            app.state.cv_service = cv_service
+            logger.info("CV Detection Service initialized and running")
+        else:
+            logger.warning(f"YOLOv8 model not found at {model_path}, CV detection disabled")
+            app.state.cv_service = None
+    except Exception as e:
+        logger.error(f"CV Detection Service failed to start: {e}")
+        app.state.cv_service = None
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down PatientPath AI backend...")
+    if hasattr(app.state, 'cv_service') and app.state.cv_service:
+        app.state.cv_service.stop()
 
 
 # Create FastAPI application
@@ -206,14 +231,21 @@ app.include_router(websocket_router)
 # Export routes
 app.include_router(export_router)
 
-# Prediction routes (New)
+# Doctor routes
+app.include_router(doctor_router)
+
+# Prediction routes (includes staff allocation)
 from routers.prediction import router as prediction_router
 app.include_router(prediction_router)
+
+# CV Detection routes
+from routers.detection import router as detection_router
+app.include_router(detection_router)
 
 # Serve frontend static files
 frontend_dir = os.path.join(os.path.dirname(backend_dir), "frontend")
 if os.path.isdir(frontend_dir):
-    app.mount("/frontend", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
 
 
 # =============================================================================

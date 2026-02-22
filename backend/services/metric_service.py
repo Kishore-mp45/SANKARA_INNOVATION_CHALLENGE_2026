@@ -54,7 +54,7 @@ class MetricService:
             avg_dwell = 0
         
         return {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now().isoformat(),
             "total_patients": total_patients,
             "active_patients": active_patients,
             "total_zones": len(zones),
@@ -71,7 +71,7 @@ class MetricService:
         summary = MetricService.get_dashboard_summary(db)
         
         metric = Metric(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(),
             metric_type="realtime",
             avg_occupancy=summary["occupancy_rate"] * 100,
             peak_occupancy=summary["total_occupancy"],

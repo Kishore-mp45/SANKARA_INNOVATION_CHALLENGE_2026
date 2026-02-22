@@ -5,7 +5,7 @@ import json
 from ultralytics import YOLO
 
 # Initialize YOLO model (using larger model for better accuracy)
-model = YOLO('yolov8n.pt')  # Can upgrade to yolov8m.pt or yolov8l.pt
+model = YOLO('ml_models/yolov8n.pt')  # Can upgrade to yolov8m.pt or yolov8l.pt
 
 # Video source (0 for webcam, or path to video file)
 video_source = 0  # Changed to 0 for webcam testing, or use specific file if available

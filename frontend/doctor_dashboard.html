@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>PatientPath AI - Doctor Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Reusing Staff Panel Styles + Specific Doctor Styles */
+        .staff-panel-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .workflow-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .form-select,
+        .form-input,
+        .form-textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-select:focus,
+        .form-input:focus,
+        .form-textarea:focus {
+            border-color: var(--primary-color);
+        }
+
+        .btn-update {
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn-update:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-update:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-check-in {
+            background: #10b981;
+        }
+
+        .btn-check-in:hover {
+            background: #059669;
+        }
+
+        .btn-check-out {
+            background: #ef4444;
+        }
+
+        .btn-check-out:hover {
+            background: #dc2626;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-online {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .status-offline {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        /* Overlay to lock panel */
+        .locked-panel {
+            position: relative;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item active"><span class="step-badge">9</span> Doctor
+                    Panel</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Doctor Consultation Dashboard</h1>
+                <p class="header-subtitle">Manage consultations and patient flow</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <div class="staff-panel-container">
+
+                <!-- Stats Bar -->
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <div class="stat-label">Current Status</div>
+                        <div class="stat-value" id="status-display"><span
+                                class="status-badge status-offline">OFFLINE</span></div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Check-In Time</div>
+                        <div class="stat-value" id="check-in-time">--:--</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Patients Seen</div>
+                        <div class="stat-value" id="patients-seen-count">0</div>
+                    </div>
+                </div>
+
+                <!-- Peak Hours Card -->
+                <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.2); margin-bottom: 1.5rem;">
+                    <div style="width: 42px; height: 42px; background: rgba(245,158,11,0.12); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas fa-clock" style="color: #f59e0b; font-size: 1.1rem;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; margin-bottom: 0.2rem;">Peak Hours of Today</div>
+                        <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-main);" id="peak-hours-value">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 0.9rem; color: var(--text-muted);"></i> Loading...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Check In/Out Actions -->
+                <div class="workflow-card">
+                    <div style="display: flex; gap: 1rem; justify-content: center;">
+                        <button id="btn-check-in" class="btn-update btn-check-in" onclick="checkIn()">
+                            <i class="fas fa-sign-in-alt"></i> CHECK IN
+                        </button>
+                        <button id="btn-check-out" class="btn-update btn-check-out" onclick="checkOut()" disabled>
+                            <i class="fas fa-sign-out-alt"></i> CHECK OUT
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Consultation Panel -->
+                <div id="consultation-panel" class="workflow-card locked-panel">
+                    <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);">Consultation Workflow</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">Patient ID</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" class="form-input" id="patient-id" placeholder="e.g. CV-12345">
+                            <button type="button" id="btn-start" class="btn-update" style="width: auto;"
+                                onclick="startConsultation()">
+                                Start
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="active-consultation"
+                        style="display: none; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                        <div class="form-group">
+                            <label class="form-label">Consultation Notes</label>
+                            <textarea class="form-textarea" id="consult-notes"
+                                placeholder="Enter findings, diagnosis, specs..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Next Stage</label>
+                            <select class="form-select" id="next-stage-select">
+                                <option value="pharmacy">Pharmacy</option>
+                                <option value="billing_insurance">Billing & Insurance</option>
+                                <option value="diagnostics">Diagnostics (Further Tests)</option>
+                            </select>
+                        </div>
+
+                        <button id="btn-complete" class="btn-update" onclick="completeConsultation()">
+                            <i class="fas fa-check-circle"></i> Complete Consultation
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"
+        style="position: fixed; bottom: 2rem; right: 2rem; z-index: 1000;"></div>
+
+    <script src="js/main.js?v=999"></script>
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+
+        // State
+        let doctorId = 1; // Simplification: Fixed ID for demo or retrieved from login
+        let isOnline = false;
+        let patientsSeen = 0;
+
+        // Elements
+        const btnCheckIn = document.getElementById('btn-check-in');
+        const btnCheckOut = document.getElementById('btn-check-out');
+        const statusDisplay = document.getElementById('status-display');
+        const checkInTimeDisplay = document.getElementById('check-in-time');
+        const consultPanel = document.getElementById('consultation-panel');
+        const activeConsultDiv = document.getElementById('active-consultation');
+        const patientIdInput = document.getElementById('patient-id');
+        const btnStart = document.getElementById('btn-start');
+
+        // Initialize user ID from local storage if set
+        const currentUser = localStorage.getItem('currentUser');
+        if (currentUser && !isNaN(currentUser)) {
+            doctorId = parseInt(currentUser);
+        }
+
+        // --- Check In/Out Logic ---
+
+        async function checkIn() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/doctor/check-in`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ doctor_id: doctorId, name: "Dr. Demo" })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatusUI(true, data.last_check_in);
+                    showToast("Checked In Successfully", "success");
+                }
+            } catch (error) {
+                console.error("Check-in failed:", error);
+                showToast("Check-in Failed", "error");
+            }
+        }
+
+        async function checkOut() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/doctor/check-out`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ doctor_id: doctorId })
+                });
+
+                if (response.ok) {
+                    updateStatusUI(false);
+                    showToast("Checked Out Successfully", "success");
+                    // Reset active consultation if any
+                    resetConsultationForm();
+                }
+            } catch (error) {
+                console.error("Check-out failed:", error);
+            }
+        }
+
+        function updateStatusUI(online, timeStr) {
+            isOnline = online;
+            if (online) {
+                statusDisplay.innerHTML = '<span class="status-badge status-online">ONLINE</span>';
+                if (timeStr) {
+                    const date = new Date(timeStr);
+                    checkInTimeDisplay.innerText = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                }
+                btnCheckIn.disabled = true;
+                btnCheckOut.disabled = false;
+                consultPanel.classList.remove('locked-panel');
+            } else {
+                statusDisplay.innerHTML = '<span class="status-badge status-offline">OFFLINE</span>';
+                checkInTimeDisplay.innerText = "--:--";
+                btnCheckIn.disabled = false;
+                btnCheckOut.disabled = true;
+                consultPanel.classList.add('locked-panel');
+            }
+        }
+
+
+        // --- Consultation Logic ---
+
+        async function startConsultation() {
+            const pid = patientIdInput.value.trim();
+            if (!pid) {
+                showToast("Enter Patient ID", "error");
+                return;
+            }
+
+            btnStart.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/doctor/consult/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ doctor_id: doctorId, patient_id: pid })
+                });
+
+                if (response.ok) {
+                    activeConsultDiv.style.display = 'block';
+                    patientIdInput.disabled = true;
+                    btnStart.style.display = 'none';
+                    showToast("Consultation Started", "success");
+                } else {
+                    const err = await response.json();
+                    showToast(err.detail || "Failed to start", "error");
+                }
+            } catch (error) {
+                showToast("Network Error", "error");
+            } finally {
+                btnStart.innerHTML = 'Start';
+            }
+        }
+
+        async function completeConsultation() {
+            const pid = patientIdInput.value.trim();
+            const notes = document.getElementById('consult-notes').value;
+            const nextStage = document.getElementById('next-stage-select').value;
+
+            const btnComplete = document.getElementById('btn-complete');
+            btnComplete.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btnComplete.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/doctor/consult/complete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        doctor_id: doctorId,
+                        patient_id: pid,
+                        notes: notes,
+                        next_stage: nextStage
+                    })
+                });
+
+                if (response.ok) {
+                    showToast("Consultation Completed", "success");
+                    patientsSeen++;
+                    document.getElementById('patients-seen-count').innerText = patientsSeen;
+                    resetConsultationForm();
+                } else {
+                    showToast("Failed to complete", "error");
+                }
+            } catch (error) {
+                showToast("Network Error", "error");
+            } finally {
+                btnComplete.innerHTML = '<i class="fas fa-check-circle"></i> Complete Consultation';
+                btnComplete.disabled = false;
+            }
+        }
+
+        function resetConsultationForm() {
+            activeConsultDiv.style.display = 'none';
+            patientIdInput.value = "";
+            patientIdInput.disabled = false;
+            btnStart.style.display = 'block';
+            document.getElementById('consult-notes').value = "";
+        }
+
+        // --- Toast Utility (Copied from Staff Panel) ---
+        function showToast(message, type) {
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.style.background = 'var(--card-bg)';
+            toast.style.color = 'white';
+            toast.style.padding = '1rem';
+            toast.style.borderRadius = '4px';
+            toast.style.marginBottom = '1rem';
+            toast.style.boxShadow = '0 4px 6px rgba(0,0,0,0.3)';
+            toast.style.borderLeft = type === 'error' ? '4px solid #ef4444' : '4px solid #10b981';
+
+            toast.innerHTML = `<span>${message}</span>`;
+            toastContainer.appendChild(toast);
+
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // --- Initial Load ---
+        // Verify current status
+        async function loadStatus() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/doctor/status/${doctorId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'online') {
+                        updateStatusUI(true, data.last_check_in);
+                    } else {
+                        updateStatusUI(false);
+                    }
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        loadStatus();
+        fetchPeakHours();
+
+        async function fetchPeakHours() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/prediction/peak-hours/today`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const el = document.getElementById('peak-hours-value');
+                    if (data.start_time !== 'N/A') {
+                        el.textContent = `${data.start_time} – ${data.end_time}`;
+                    } else {
+                        el.textContent = 'No peak detected today';
+                    }
+                }
+            } catch (e) {
+                console.error('Peak hours fetch error:', e);
+                document.getElementById('peak-hours-value').textContent = 'Unavailable';
+            }
+        }
+
+    </script>
+</body>
+
+</html>

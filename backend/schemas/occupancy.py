@@ -15,7 +15,6 @@ class OccupancyUpdate(BaseModel):
     exit_count: int = Field(0, ge=0)
     confidence_score: Optional[float] = Field(None, ge=0, le=1)
     source: str = "cv_detection"
-    unique_ids: Optional[List[int]] = Field(None, description="List of unique person IDs")
 
 
 class OccupancyBatchUpdate(BaseModel):
@@ -34,7 +33,6 @@ class OccupancyLogResponse(BaseModel):
     exit_count: int
     confidence_score: Optional[float]
     source: str
-    unique_ids: Optional[List[int]] = Field(None)
 
     model_config = {"from_attributes": True}
 

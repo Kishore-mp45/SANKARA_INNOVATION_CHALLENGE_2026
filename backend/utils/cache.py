@@ -21,7 +21,7 @@ class CacheManager:
         with self._lock:
             if key in self._cache:
                 value, expires_at = self._cache[key]
-                if datetime.utcnow() < expires_at:
+                if datetime.now() < expires_at:
                     return value
                 else:
                     del self._cache[key]
@@ -30,7 +30,7 @@ class CacheManager:
     def set(self, key: str, value: Any, ttl: int = 300):
         """Set value in cache with TTL (seconds)."""
         with self._lock:
-            expires_at = datetime.utcnow() + timedelta(seconds=ttl)
+            expires_at = datetime.now() + timedelta(seconds=ttl)
             self._cache[key] = (value, expires_at)
     
     def delete(self, key: str):

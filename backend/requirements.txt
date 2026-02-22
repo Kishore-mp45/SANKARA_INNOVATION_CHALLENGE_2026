@@ -7,6 +7,8 @@ uvicorn[standard]
 
 # Database
 sqlalchemy
+pymysql
+cryptography
 
 # Validation
 pydantic
@@ -19,3 +21,12 @@ websockets
 
 # Utilities
 python-dateutil
+
+# Machine Learning
+xgboost
+scikit-learn
+
+# Computer Vision
+ultralytics
+opencv-python-headless
+numpy

@@ -186,6 +186,7 @@
             <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
             <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
             <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
             <li><a href="staff_panel.html" class="nav-item active"><span class="step-badge">9</span> Staff Panel</a>
             </li>
 
@@ -197,13 +198,6 @@
             <div class="header-title-container">
                 <h1>Staff Workflow Panel</h1>
                 <p class="header-subtitle">Manual patient tracking and stage updates</p>
-            </div>
-            <div style="display: flex; gap: 1rem; align-items: center;">
-                <span style="color: var(--text-muted); font-size: 0.9rem;">Dr. Staff Member</span>
-                <div
-                    style="width: 32px; height: 32px; background: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-user-md" style="color: white;"></i>
-                </div>
             </div>
         </header>
 
@@ -233,6 +227,34 @@
                     </div>
                 </div>
 
+                <!-- Peak Hours Card -->
+                <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.2); margin-bottom: 1.5rem;">
+                    <div style="width: 42px; height: 42px; background: rgba(245,158,11,0.12); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas fa-clock" style="color: #f59e0b; font-size: 1.1rem;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; margin-bottom: 0.2rem;">Peak Hours of Today</div>
+                        <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-main);" id="peak-hours-value">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 0.9rem; color: var(--text-muted);"></i> Loading...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Staff Allocation & Check-in -->
+                <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.2); margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                        <div style="width: 42px; height: 42px; background: rgba(139,92,246,0.12); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-user-nurse" style="color: #8b5cf6; font-size: 1.1rem;"></i>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em;">AI Staff Allocation</div>
+                        </div>
+                    </div>
+                    <div id="staff-alloc-panel" style="display: grid; grid-template-columns: 1fr; gap: 0.75rem;">
+                        <div style="text-align: center; padding: 1rem; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+                    </div>
+                </div>
+
                 <!-- Workflow Form -->
                 <div class="workflow-card">
                     <form id="workflow-form">
@@ -245,7 +267,7 @@
                                 <option value="vision_lab">Vision Lab</option>
                                 <option value="dilation_hall">Dilation Hall</option>
                                 <option value="diagnostics">Diagnostics</option>
-                                <option value="consultation">Consultation</option>
+                                <!-- Consultation moved to Doctor Dashboard -->
                                 <option value="pharmacy">Pharmacy</option>
                                 <option value="billing_insurance">Billing & Insurance</option>
                             </select>
@@ -325,7 +347,7 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
 
-    <script src="js/main.js"></script>
+    <script src="js/main.js?v=999"></script>
     <script>
         // API Configuration
         const API_BASE_URL = 'http://localhost:8000';
@@ -338,7 +360,7 @@
             "consultation": ["Consultation Started", "Consultation Ended", "Surgery Recommended"],
             "pharmacy": ["Prescription Received", "Medicines Dispensed"],
             "billing_insurance": ["Bill Generated", "Payment Received", "Insurance Verified"],
-            "registration": ["Patient Check-In", "New Patient Registration", "Update Contact Info", "Verify Insurance", "Assign ID Card"]
+            "registration": ["Patient Check-In", "New Patient Registration", "Update Contact Info", "Verify Insurance", "Assign ID Card", "Patient Registration Completed"]
         };
 
         const deptSelect = document.getElementById('dept-select');
@@ -520,9 +542,11 @@
                 if (!finalNextDept) {
                     if (dept === "registration") finalNextDept = "vision_lab";
                     if (dept === "vision_lab") finalNextDept = "dilation_hall";
-                    if (dept === "dilation_hall") finalNextDept = "consultation";
+                    if (dept === "dilation_hall") finalNextDept = "diagnostics";
+                    if (dept === "diagnostics") finalNextDept = "consultation";
                     if (dept === "consultation") finalNextDept = "pharmacy";
                     if (dept === "pharmacy") finalNextDept = "billing_insurance";
+                    if (dept === "billing_insurance") finalNextDept = "exit";
                 }
             } else {
                 // Force stay if not completion
@@ -732,6 +756,86 @@
                 btnClearActivity.style.display = 'none';
             }
         }
+
+        // Fetch Peak Hours
+        (async function fetchPeakHours() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/prediction/peak-hours/today`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const el = document.getElementById('peak-hours-value');
+                    if (data.start_time !== 'N/A') {
+                        el.textContent = `${data.start_time} – ${data.end_time}`;
+                    } else {
+                        el.textContent = 'No peak detected today';
+                    }
+                }
+            } catch (e) {
+                console.error('Peak hours fetch error:', e);
+                document.getElementById('peak-hours-value').textContent = 'Unavailable';
+            }
+        })();
+
+        // Staff Allocation - fetch and render with check-in buttons
+        async function fetchStaffAllocation() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/prediction/staff-recommendation`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const panel = document.getElementById('staff-alloc-panel');
+                    if (!data.departments || data.departments.length === 0) {
+                        panel.innerHTML = '<div style="padding:1rem; color:var(--text-muted);">No data available.</div>';
+                        return;
+                    }
+                    let html = '';
+                    data.departments.forEach(dept => {
+                        const borderColor = dept.is_bottleneck ? '#ef4444' : '#10b981';
+                        const statusColor = dept.is_bottleneck ? '#ef4444' : '#10b981';
+                        const statusText = dept.is_bottleneck ? `${dept.deficit} Needed` : 'Sufficient';
+                        const statusIcon = dept.is_bottleneck ? 'fa-exclamation-triangle' : 'fa-check-circle';
+                        const zoneName = dept.zone_name || '';
+                        html += `
+                        <div style="background: rgba(30,41,59,0.5); border: 1px solid ${borderColor}; border-radius: 10px; padding: 1rem; display: flex; align-items: center; gap: 1rem;">
+                            <div style="flex:1;">
+                                <div style="font-weight: 600; color: var(--text-main); font-size: 0.95rem;">${dept.department}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                    Patients: <strong style="color:var(--text-main);">${dept.active_patients}</strong> &nbsp;|&nbsp;
+                                    Staff: <strong style="color:var(--text-main);">${dept.current_staff}</strong> / <strong style="color:#8b5cf6;">${dept.optimal_staff}</strong>
+                                </div>
+                                <div style="margin-top: 0.4rem; display: flex; align-items: center; gap: 0.3rem;">
+                                    <i class="fas ${statusIcon}" style="color: ${statusColor}; font-size: 0.8rem;"></i>
+                                    <span style="color: ${statusColor}; font-weight: 600; font-size: 0.8rem;">${statusText}</span>
+                                </div>
+                            </div>
+                            ${dept.is_bottleneck ? `<button onclick="staffCheckin('${zoneName}')" style="padding: 0.5rem 1rem; background: #8b5cf6; color: white; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap;">Check in</button>` : ''}
+                        </div>`;
+                    });
+                    panel.innerHTML = html;
+                }
+            } catch (e) {
+                console.error('Staff allocation fetch error:', e);
+                document.getElementById('staff-alloc-panel').innerHTML = '<div style="padding:1rem; color:var(--text-muted);">Unavailable</div>';
+            }
+        }
+
+        async function staffCheckin(zoneName) {
+            try {
+                const res = await fetch(`${API_BASE_URL}/prediction/staff-checkin/${zoneName}`, { method: 'POST' });
+                if (res.ok) {
+                    const data = await res.json();
+                    showToast(data.message || 'Checked in successfully', 'success');
+                    fetchStaffAllocation(); // Refresh immediately
+                } else {
+                    showToast('Check-in failed', 'error');
+                }
+            } catch (e) {
+                console.error('Staff check-in error:', e);
+                showToast('Network error during check-in', 'error');
+            }
+        }
+
+        fetchStaffAllocation();
+        setInterval(fetchStaffAllocation, 15000);
     </script>
 </body>
 

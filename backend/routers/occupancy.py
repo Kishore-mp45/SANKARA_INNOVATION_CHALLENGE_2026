@@ -113,8 +113,7 @@ async def update_occupancy(
         exit_count=log.exit_count,
         net_flow=log.net_flow,
         confidence_score=log.confidence_score,
-        source=log.source,
-        unique_ids=json.loads(log.unique_ids) if log.unique_ids else []
+        source=log.source
     )
 
 
@@ -245,7 +244,7 @@ async def get_occupancy_history(
     
     # Set default time range
     if not end_time:
-        end_time = datetime.utcnow()
+        end_time = datetime.now()
     if not start_time:
         start_time = end_time - timedelta(hours=hours)
     
@@ -347,13 +346,13 @@ async def get_latest_occupancy(
     """Get latest occupancy log for a zone."""
     occupancy_service = OccupancyService(db)
     log = occupancy_service.get_latest_log(zone_name)
-    
+
     if not log:
         raise HTTPException(
             status_code=404,
             detail=f"No occupancy data found for zone '{zone_name}'"
         )
-    
+
     return OccupancyLogResponse(
         id=log.id,
         timestamp=log.timestamp,
@@ -367,3 +366,33 @@ async def get_latest_occupancy(
         confidence_score=log.confidence_score,
         source=log.source
     )
+
+
+@router.get(
+    "/peak-heatmap",
+    summary="Get Peak Hour Heatmap Data",
+    description="Get real occupancy data grouped by day and hour for heatmap display."
+)
+async def get_peak_heatmap(
+    zone_name: str = Query(..., description="Zone name"),
+    range: str = Query("weekly", description="Range: 'weekly' or 'today'"),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns occupancy data aggregated by day-of-week and hour.
+    Used by the Peak Hour Heatmap chart in the frontend.
+
+    MySQL DAYOFWEEK: 1=Sunday, 2=Monday, ... 7=Saturday.
+
+    For 'today' mode, only hours up to the current hour are returned.
+    """
+    occupancy_service = OccupancyService(db)
+    data, capacity = occupancy_service.get_peak_heatmap_data(zone_name, range)
+
+    return {
+        "zone_name": zone_name,
+        "range": range,
+        "capacity": capacity,
+        "current_hour": datetime.now().hour,
+        "data": data
+    }

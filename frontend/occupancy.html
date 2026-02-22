@@ -6,6 +6,247 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PatientPath AI - Live Occupancy</title>
     <link rel="stylesheet" href="css/style.css?v=100">
+    <style>
+        .occ-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            max-width: 600px;
+        }
+
+        /* Selector row */
+        .selector-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .selector-row label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .dept-select {
+            flex: 1;
+            max-width: 260px;
+            padding: 0.5rem 0.7rem;
+            border-radius: 6px;
+            background: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        .live-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-left: auto;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #ef4444;
+        }
+
+        .live-tag .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Main detection card */
+        .detection-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .detection-card .card-banner {
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-banner .dept-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+        .card-banner .step-tag {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-color);
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.25rem 0.65rem;
+            border-radius: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .detection-card .count-section {
+            padding: 1.5rem 1.5rem 1rem;
+            text-align: center;
+        }
+
+        .count-section .big-count {
+            font-size: 5rem;
+            font-weight: 800;
+            line-height: 1;
+            transition: color 0.3s ease;
+        }
+
+        .count-section .count-label {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin-top: 0.3rem;
+        }
+
+        .count-section .status-pill {
+            display: inline-block;
+            margin-top: 0.75rem;
+            padding: 0.35rem 1.2rem;
+            border-radius: 99px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            border: 1px solid;
+        }
+
+        /* Stats row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .stats-row .stat-item {
+            padding: 1rem;
+            text-align: center;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .stats-row .stat-item:last-child {
+            border-right: none;
+        }
+
+        .stat-item .stat-val {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+
+        .stat-item .stat-lbl {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-top: 0.15rem;
+        }
+
+        /* Capacity bar */
+        .capacity-section {
+            padding: 0.75rem 1.5rem 1.25rem;
+        }
+
+        .cap-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .cap-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease, background 0.3s ease;
+        }
+
+        .cap-bar-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 0.3rem;
+        }
+
+        /* Flow bar */
+        .flow-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.15rem;
+            flex-wrap: wrap;
+            padding: 0.6rem 0.8rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: center;
+            gap: 0.1rem;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            padding: 0.15rem 0.3rem;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+
+        .flow-step.active-step {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+
+        .flow-step .step-num {
+            background: var(--text-muted);
+            color: #000;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            font-weight: 700;
+            margin-right: 0.2rem;
+        }
+
+        .flow-step.active-step .step-num {
+            background: var(--accent-color);
+        }
+
+        .flow-arrow {
+            color: var(--text-muted);
+            opacity: 0.3;
+            font-size: 0.65rem;
+            margin: 0 0.1rem;
+        }
+
+        /* Timestamp footer */
+        .timestamp-row {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+            opacity: 0.7;
+        }
+    </style>
 </head>
 
 <body>
@@ -18,46 +259,92 @@
         </div>
         <ul class="nav-menu">
             <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
-            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="occupancy.html" class="nav-item active"><span class="step-badge">2</span> Live Occupancy</a></li>
             <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
             <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
             <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
             <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
             <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
             <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
-            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
-            <li><a href="patient_dashboard.html" class="nav-item"><span class="step-badge">3</span> My Dashboard</a>
-            </li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">10</span> Staff Panel</a></li>
+            <li><a href="patient_dashboard.html" class="nav-item"><span class="step-badge">11</span> My Dashboard</a></li>
         </ul>
     </div>
 
     <div class="main-content">
         <header>
             <div class="header-title-container">
-                <h1>Live Total Occupancy</h1>
-                <p class="header-subtitle">Real-time patient distribution</p>
+                <h1>Live Occupancy</h1>
+                <p class="header-subtitle">Real-time detection for the selected department</p>
             </div>
         </header>
 
         <div class="page-container fade-in">
-            <div class="card text-center"
-                style="padding: 4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px;">
+            <div class="occ-layout">
 
-                <div id="status-badge" class="pulse-animation"
-                    style="background: rgba(16, 185, 129, 0.2); color: var(--accent-color); padding: 0.5rem 1.5rem; border-radius: 99px; margin-bottom: 2rem; font-weight: 600; border: 1px solid var(--accent-color);">
-                    NORMAL STATUS
+                <!-- Department Selector -->
+                <div class="selector-row">
+                    <label for="occ-dept-select">Department:</label>
+                    <select id="occ-dept-select" class="dept-select">
+                        <option value="registration">1. Registration</option>
+                        <option value="vision_lab">2. Vision Lab</option>
+                        <option value="dilation_hall">3. Dilation Hall</option>
+                        <option value="diagnostics">4. Diagnostics</option>
+                        <option value="consultation">5. Doctor Consult</option>
+                        <option value="pharmacy">6. Pharmacy</option>
+                        <option value="billing_insurance">7. Billing & Insurance</option>
+                    </select>
+                    <span class="live-tag"><span class="dot"></span> LIVE</span>
                 </div>
 
-                <div style="font-size: 6rem; font-weight: 800; line-height: 1;" id="people-count">42</div>
-                <div style="color: var(--text-muted); font-size: 1.2rem; margin-top: 0.5rem;">People Detected</div>
+                <!-- Patient Flow with active highlight -->
+                <div class="flow-bar" id="flow-bar"></div>
 
-                <p style="margin-top: 3rem; color: var(--text-muted); font-size: 0.9rem;">
-                    Last Updated: <span id="last-updated">Just now</span>
-                </p>
+                <!-- Main Detection Card -->
+                <div class="detection-card">
+                    <div class="card-banner" id="card-banner">
+                        <div class="dept-title" id="dept-title">Registration</div>
+                        <div class="step-tag" id="step-tag">Step 1</div>
+                    </div>
+                    <div class="count-section">
+                        <div class="big-count" id="big-count">--</div>
+                        <div class="count-label">People Detected</div>
+                        <div class="status-pill" id="status-pill"
+                            style="background:rgba(16,185,129,0.15); color:var(--accent-color); border-color:var(--accent-color);">
+                            LOW
+                        </div>
+                    </div>
+                    <div class="stats-row">
+                        <div class="stat-item">
+                            <div class="stat-val" id="stat-confidence">--</div>
+                            <div class="stat-lbl">Confidence</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-val" id="stat-capacity">--</div>
+                            <div class="stat-lbl">Capacity Used</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-val" id="stat-model">YOLOv8n</div>
+                            <div class="stat-lbl">Model</div>
+                        </div>
+                    </div>
+                    <div class="capacity-section">
+                        <div class="cap-bar-bg">
+                            <div class="cap-bar-fill" id="cap-bar-fill" style="width:0%; background:#10b981;"></div>
+                        </div>
+                        <div class="cap-bar-labels">
+                            <span id="cap-pct-label">0% capacity</span>
+                            <span id="cap-count-label">0 / 0</span>
+                        </div>
+                    </div>
+                </div>
 
-                <button id="simulate-btn" class="btn btn-secondary" style="margin-top: 2rem;">
-                    Simulate Update
-                </button>
+                <!-- Timestamp -->
+                <div class="timestamp-row">
+                    Last updated: <span id="last-updated">Waiting for CV model...</span>
+                </div>
+
             </div>
 
             <div class="nav-buttons">
@@ -67,41 +354,157 @@
         </div>
     </div>
 
-    <script src="js/main.js?v=100"></script>
+    <script src="js/main.js?v=999"></script>
     <script src="js/websocket.js"></script>
     <script>
-        const countEl = document.getElementById('people-count');
-        const badgeEl = document.getElementById('status-badge');
-        const timestampEl = document.getElementById('last-updated');
+        // Hospital sequential department flow
+        const DEPT_ORDER = [
+            { key: 'registration',      name: 'Registration',        step: 1, capacity: 15 },
+            { key: 'vision_lab',        name: 'Vision Lab',          step: 2, capacity: 12 },
+            { key: 'dilation_hall',     name: 'Dilation Hall',       step: 3, capacity: 20 },
+            { key: 'diagnostics',       name: 'Diagnostics',         step: 4, capacity: 15 },
+            { key: 'consultation',      name: 'Doctor Consult',      step: 5, capacity: 10 },
+            { key: 'pharmacy',          name: 'Pharmacy',            step: 6, capacity: 12 },
+            { key: 'billing_insurance', name: 'Billing & Insurance', step: 7, capacity: 10 },
+        ];
 
-        document.addEventListener('occupancy-update', (e) => {
-            const data = e.detail; // { zone, count, timestamp }
-            updateUI(data.count, data.timestamp, data.zone);
+        const deptSelect = document.getElementById('occ-dept-select');
+        let currentDept = 'registration';
+
+        // Build flow bar with highlight
+        function renderFlowBar(activeKey) {
+            const bar = document.getElementById('flow-bar');
+            let html = '';
+            DEPT_ORDER.forEach((dept, i) => {
+                const isActive = dept.key === activeKey;
+                const shortName = dept.name.length > 10 ? dept.name.split(' ')[0] : dept.name;
+                html += '<div class="flow-step' + (isActive ? ' active-step' : '') + '">';
+                html += '<span class="step-num">' + dept.step + '</span>' + shortName;
+                html += '</div>';
+                if (i < DEPT_ORDER.length - 1) {
+                    html += '<span class="flow-arrow">&#9654;</span>';
+                }
+            });
+            bar.innerHTML = html;
+        }
+
+        function getDeptInfo(key) {
+            return DEPT_ORDER.find(d => d.key === key) || DEPT_ORDER[0];
+        }
+
+        function updateDisplay(zoneKey, detections) {
+            const dept = getDeptInfo(zoneKey);
+            const det = detections[zoneKey];
+            const count = det ? det.count : 0;
+            const confidence = det ? det.confidence : 0;
+            const capacity = dept.capacity;
+            const pct = Math.min(100, Math.round((count / capacity) * 100));
+
+            // Title
+            document.getElementById('dept-title').textContent = dept.name;
+            document.getElementById('step-tag').textContent = 'Step ' + dept.step;
+
+            // Count
+            const bigCount = document.getElementById('big-count');
+            bigCount.textContent = count;
+
+            // Status
+            let statusLabel, statusColor;
+            if (pct <= 40) {
+                statusLabel = 'LOW';
+                statusColor = '#10b981';
+            } else if (pct <= 75) {
+                statusLabel = 'MODERATE';
+                statusColor = '#f59e0b';
+            } else {
+                statusLabel = 'HIGH';
+                statusColor = '#ef4444';
+            }
+
+            bigCount.style.color = statusColor;
+
+            const pill = document.getElementById('status-pill');
+            pill.textContent = statusLabel;
+            pill.style.color = statusColor;
+            pill.style.borderColor = statusColor;
+            pill.style.background = statusColor + '20';
+
+            // Banner border
+            document.getElementById('card-banner').style.borderBottom = '3px solid ' + statusColor;
+
+            // Stats
+            document.getElementById('stat-confidence').textContent =
+                confidence > 0 ? (confidence * 100).toFixed(1) + '%' : '--';
+            document.getElementById('stat-capacity').textContent = pct + '%';
+
+            // Capacity bar
+            const barFill = document.getElementById('cap-bar-fill');
+            barFill.style.width = pct + '%';
+            barFill.style.background = statusColor;
+            document.getElementById('cap-pct-label').textContent = pct + '% capacity';
+            document.getElementById('cap-count-label').textContent = count + ' / ' + capacity;
+
+            // Timestamp
+            const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('last-updated').textContent = now;
+
+            // Flow bar highlight
+            renderFlowBar(zoneKey);
+        }
+
+        function switchDept(zoneKey) {
+            currentDept = zoneKey;
+            try { localStorage.setItem('pp_selected_dept', zoneKey); } catch(e) {}
+            fetchOccupancy();
+        }
+
+        deptSelect.addEventListener('change', function (e) {
+            switchDept(e.target.value);
         });
 
-        function updateUI(count, timeStr, zoneName) {
-            countEl.textContent = count;
-            timestampEl.textContent = `${timeStr} (Zone: ${zoneName})`;
+        // Listen for storage changes from video page
+        window.addEventListener('storage', function (e) {
+            if (e.key === 'pp_selected_dept' && e.newValue) {
+                const dept = getDeptInfo(e.newValue);
+                if (dept) {
+                    currentDept = e.newValue;
+                    deptSelect.value = e.newValue;
+                    fetchOccupancy();
+                }
+            }
+        });
 
-            // Status Logic
-            badgeEl.className = 'pulse-animation';
-            if (count < 8) { // Adjusted thresholds for smaller capacity zones
-                badgeEl.textContent = "NORMAL STATUS";
-                badgeEl.style.color = "var(--accent-color)";
-                badgeEl.style.borderColor = "var(--accent-color)";
-                badgeEl.style.background = "rgba(16, 185, 129, 0.2)";
-            } else if (count < 15) {
-                badgeEl.textContent = "BUSY STATUS";
-                badgeEl.style.color = "var(--warning-color)";
-                badgeEl.style.borderColor = "var(--warning-color)";
-                badgeEl.style.background = "rgba(245, 158, 11, 0.2)";
-            } else {
-                badgeEl.textContent = "CRITICAL LIMIT";
-                badgeEl.style.color = "var(--danger-color)";
-                badgeEl.style.borderColor = "var(--danger-color)";
-                badgeEl.style.background = "rgba(239, 68, 68, 0.2)";
+        // WebSocket updates
+        document.addEventListener('occupancy-update', (e) => {
+            if (e.detail && e.detail.zone === currentDept) {
+                fetchOccupancy();
+            }
+        });
+
+        async function fetchOccupancy() {
+            try {
+                const res = await fetch('http://localhost:8000/detection/latest');
+                if (res.ok) {
+                    const data = await res.json();
+                    updateDisplay(currentDept, data.zones || {});
+                }
+            } catch (e) {
+                console.warn('Could not fetch detection data:', e);
             }
         }
+
+        // Initialize - sync with video page selection
+        try {
+            const saved = localStorage.getItem('pp_selected_dept');
+            if (saved && getDeptInfo(saved)) {
+                currentDept = saved;
+                deptSelect.value = saved;
+            }
+        } catch(e) {}
+
+        renderFlowBar(currentDept);
+        fetchOccupancy();
+        setInterval(fetchOccupancy, 5000);
     </script>
 
 </body>

@@ -36,7 +36,7 @@ class Alert(Base):
     __tablename__ = "alerts"
     
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    timestamp = Column(DateTime, default=datetime.now, nullable=False, index=True)
     alert_type = Column(Enum(AlertType), nullable=False, index=True)
     severity = Column(Enum(AlertSeverity), default=AlertSeverity.INFO, nullable=False)
     message = Column(Text, nullable=False)

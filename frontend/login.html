@@ -18,6 +18,7 @@
         };
     </script>
     <link rel="stylesheet" href="css/style.css?v=4.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
             display: flex;
@@ -97,6 +98,66 @@
         .btn-login:hover {
             opacity: 0.9;
         }
+
+        /* Password wrapper for eye toggle */
+        .pw-wrapper {
+            position: relative;
+        }
+
+        .pw-wrapper input {
+            padding-right: 2.75rem;
+        }
+
+        .pw-toggle {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0;
+            font-size: 1rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .pw-toggle:hover {
+            color: var(--primary-color);
+        }
+
+        /* Password requirements */
+        .pw-requirements {
+            margin-top: 0.6rem;
+            padding: 0;
+            list-style: none;
+        }
+
+        .pw-req-item {
+            font-size: 0.78rem;
+            padding: 0.15rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--text-muted);
+            transition: color 0.2s;
+        }
+
+        .pw-req-item i {
+            font-size: 0.7rem;
+            width: 14px;
+            text-align: center;
+        }
+
+        .pw-req-item.met {
+            color: #10b981;
+        }
+
+        .pw-req-item.unmet {
+            color: #ef4444;
+        }
     </style>
 </head>
 
@@ -120,14 +181,27 @@
                 <option value="vision_lab">Vision Lab</option>
                 <option value="dilation_hall">Dilation Hall</option>
                 <option value="diagnostics">Diagnostics</option>
-                <option value="consultation">Consultation</option>
                 <option value="pharmacy">Pharmacy</option>
                 <option value="billing_insurance">Billing & Insurance</option>
             </select></div>
         <div class="form-group"><label id="id-label" for="user-id">Admin ID</label><input type="text" id="user-id"
                 placeholder="Enter ID"></div>
-        <div class="form-group"><label for="password">Password</label><input type="password" id="password"
-                placeholder="Enter Password"></div>
+        <div class="form-group" id="password-group">
+            <label for="password">Password</label>
+            <div class="pw-wrapper">
+                <input type="password" id="password" placeholder="Enter Password" oninput="validatePasswordLive()">
+                <button type="button" class="pw-toggle" onclick="togglePassword()" title="Show/Hide password">
+                    <i class="fas fa-eye" id="pw-eye-icon"></i>
+                </button>
+            </div>
+            <ul class="pw-requirements" id="pw-requirements">
+                <li class="pw-req-item" id="req-length"><i class="fas fa-circle"></i> Minimum 8 characters</li>
+                <li class="pw-req-item" id="req-upper"><i class="fas fa-circle"></i> At least one uppercase letter (A-Z)</li>
+                <li class="pw-req-item" id="req-lower"><i class="fas fa-circle"></i> At least one lowercase letter (a-z)</li>
+                <li class="pw-req-item" id="req-number"><i class="fas fa-circle"></i> At least one number (0-9)</li>
+                <li class="pw-req-item" id="req-symbol"><i class="fas fa-circle"></i> At least one symbol (!@#$%&*)</li>
+            </ul>
+        </div>
         <button class="btn-login" onclick="handleLogin()">Login</button>
         <p id="error-msg" style="color: #ef4444; font-size: 0.9rem; margin-top: 1rem; display: none;"></p>
         <div style="margin-top: 1.5rem; font-size: 0.9rem; color: var(--text-muted);">New User? <a href="signup.html"
@@ -135,12 +209,66 @@
     </div>
 
     <script>
+        function togglePassword() {
+            const pwInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('pw-eye-icon');
+            if (pwInput.type === 'password') {
+                pwInput.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                pwInput.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
+
+        function checkPasswordRules(password) {
+            return {
+                length: password.length >= 8,
+                upper: /[A-Z]/.test(password),
+                lower: /[a-z]/.test(password),
+                number: /[0-9]/.test(password),
+                symbol: /[^A-Za-z0-9]/.test(password)
+            };
+        }
+
+        function updateRequirementUI(rules, highlight) {
+            const map = {
+                length: 'req-length',
+                upper: 'req-upper',
+                lower: 'req-lower',
+                number: 'req-number',
+                symbol: 'req-symbol'
+            };
+            for (const [key, elId] of Object.entries(map)) {
+                const el = document.getElementById(elId);
+                const icon = el.querySelector('i');
+                el.classList.remove('met', 'unmet');
+                if (rules[key]) {
+                    el.classList.add('met');
+                    icon.className = 'fas fa-check-circle';
+                } else if (highlight) {
+                    el.classList.add('unmet');
+                    icon.className = 'fas fa-times-circle';
+                } else {
+                    icon.className = 'fas fa-circle';
+                }
+            }
+        }
+
+        function validatePasswordLive() {
+            const password = document.getElementById('password').value;
+            const rules = checkPasswordRules(password);
+            updateRequirementUI(rules, false);
+        }
+
         function updateLabels() {
             const role = document.getElementById('role-select').value;
             const label = document.getElementById('id-label');
             const placeholder = document.getElementById('user-id');
             const deptGroup = document.getElementById('dept-group');
-            const passwordGroup = document.getElementById('password').parentElement; // Get parent div of password
+            const passwordGroup = document.getElementById('password-group');
             const loginBtn = document.querySelector('.btn-login');
 
             const config = {
@@ -156,7 +284,7 @@
 
             // Show/Hide Logic
             if (role === 'patient') {
-                passwordGroup.style.display = 'none';
+                passwordGroup.style.display = 'block';
                 deptGroup.style.display = 'none';
             } else if (role === 'staff') {
                 passwordGroup.style.display = 'block';
@@ -164,6 +292,12 @@
             } else {
                 passwordGroup.style.display = 'block';
                 deptGroup.style.display = 'none';
+            }
+
+            // Reset requirement indicators when switching roles
+            const password = document.getElementById('password').value;
+            if (password) {
+                validatePasswordLive();
             }
         }
 
@@ -186,16 +320,45 @@
 
             // PATIENT FLOW
             if (role === 'patient') {
+                if (!password) {
+                    errorEl.textContent = "Please enter your password.";
+                    errorEl.style.display = 'block';
+                    return;
+                }
+
+                const users = JSON.parse(localStorage.getItem('ppa_users') || '{}');
+                const user = users[userId];
+
+                if (!user) {
+                    errorEl.textContent = "Patient ID not found. Please sign up first.";
+                    errorEl.style.display = 'block';
+                    return;
+                }
+
+                if (user.role !== 'patient') {
+                    errorEl.textContent = `ID exists but is not registered as patient. Try ${user.role}.`;
+                    errorEl.style.display = 'block';
+                    return;
+                }
+
+                if (user.password !== password) {
+                    errorEl.textContent = "Invalid password. Ensure your password meets the requirements below.";
+                    errorEl.style.display = 'block';
+                    // Highlight unmet requirements
+                    const rules = checkPasswordRules(password);
+                    updateRequirementUI(rules, true);
+                    return;
+                }
+
                 console.log("Redirecting to Patient Dashboard");
-                localStorage.setItem('currentUser', userId); // Keep for backward compatibility
-                localStorage.setItem('currentPatientId', userId); // New specific key
+                localStorage.setItem('currentUser', userId);
+                localStorage.setItem('currentPatientId', userId);
                 localStorage.setItem('currentRole', 'patient');
-                // Force fresh reload with timestamp
                 window.location.href = 'patient_dashboard.html?v=' + new Date().getTime();
                 return;
             }
 
-            // STAFF/ADMIN FLOW
+            // STAFF/ADMIN/DOCTOR FLOW
             if (!password) {
                 errorEl.textContent = "Please enter credentials.";
                 errorEl.style.display = 'block';
@@ -219,8 +382,11 @@
             }
 
             if (user.password !== password) {
-                errorEl.textContent = "Invalid password.";
+                errorEl.textContent = "Invalid password. Ensure your password meets the requirements below.";
                 errorEl.style.display = 'block';
+                // Highlight unmet requirements
+                const rules = checkPasswordRules(password);
+                updateRequirementUI(rules, true);
                 return;
             }
 

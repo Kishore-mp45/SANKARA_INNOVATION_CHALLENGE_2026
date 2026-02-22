@@ -70,6 +70,7 @@
             <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
             <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
             <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
             <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
         </ul>
     </div>
@@ -94,19 +95,28 @@
         </div>
     </div>
 
-    <script src="js/main.js"></script>
+    <script src="js/main.js?v=999"></script>
     <script src="js/websocket.js"></script>
     <script>
         const zones = [
-            "vision_lab", "dilation_hall", "diagnostics",
-            "billing_insurance", "registration", "consultation",
-            "pharmacy"
+            "registration", "vision_lab", "dilation_hall",
+            "diagnostics", "consultation",
+            "pharmacy", "billing_insurance"
         ];
         const container = document.getElementById('zone-container');
 
         // Helper to format zone keys to titles
         function formatZoneName(key) {
-            return key.split('_')
+            const nameMap = {
+                registration: 'Registration',
+                vision_lab: 'Vision Lab',
+                dilation_hall: 'Dilation Hall',
+                diagnostics: 'Diagnostics',
+                consultation: 'Doctor Consult',
+                pharmacy: 'Pharmacy',
+                billing_insurance: 'Billing & Insurance'
+            };
+            return nameMap[key] || key.split('_')
                 .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                 .join(' ');
         }
@@ -162,14 +172,60 @@
             ], { duration: 300 });
         }
 
+        // Store latest zone data (merged from HTTP + WebSocket)
+        let latestZoneData = {};
+
+        // Buffer WebSocket updates into latestZoneData
         document.addEventListener('occupancy-update', (e) => {
             const data = e.detail;
             if (zones.includes(data.zone)) {
-                createZoneCard(data.zone, data.count, data.timestamp);
+                latestZoneData[data.zone] = { count: data.count, timestamp: data.timestamp };
             }
         });
 
         renderInitialZones();
+
+        // Continuous sequential updater - walks through departments one-by-one
+        let currentIndex = 0;
+        let stepTimer = null;
+
+        function stepNext() {
+            const zone = zones[currentIndex];
+            if (latestZoneData[zone]) {
+                createZoneCard(zone, latestZoneData[zone].count, latestZoneData[zone].timestamp || 'Now');
+            }
+            // Move to next department, loop back to first after last
+            currentIndex = (currentIndex + 1) % zones.length;
+            stepTimer = setTimeout(stepNext, 2000);
+        }
+
+        // Fetch fresh data from backend and restart sequence from Registration
+        async function fetchAndRestart() {
+            try {
+                const res = await fetch('http://localhost:8000/detection/latest');
+                if (res.ok) {
+                    const data = await res.json();
+                    const fetchedZones = data.zones || {};
+                    // Merge fetched data into latestZoneData
+                    for (const zone in fetchedZones) {
+                        latestZoneData[zone] = fetchedZones[zone];
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not fetch detection data:', e);
+            }
+
+            // Restart sequence from Registration
+            currentIndex = 0;
+            if (stepTimer) clearTimeout(stepTimer);
+            stepNext();
+        }
+
+        // Initial fetch and start
+        fetchAndRestart();
+
+        // Re-fetch fresh data every 14 seconds and restart sequence from front
+        setInterval(fetchAndRestart, 14000);
     </script>
 </body>
 

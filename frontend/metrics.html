@@ -80,6 +80,7 @@
             <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
             <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
             <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
             <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
         </ul>
     </div>
@@ -137,16 +138,17 @@
 
                 <div class="metric-card">
                     <div class="metric-title">
-                        Utilization %
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <span id="peak-hours-title">Peak Hours Today</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b"
                             stroke-width="2">
-                            <path d="M21 12V7H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14" />
-                            <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
-                            <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
                         </svg>
                     </div>
-                    <div class="metric-value" id="val-util">68%</div>
-                    <div class="metric-trend trend-up">High Effiency</div>
+                    <div class="metric-value" id="val-peak" style="font-size: 1.8rem;">
+                        <span style="color: var(--text-muted); font-size: 1.2rem;">Loading...</span>
+                    </div>
+                    <div class="metric-trend" id="peak-trend" style="color: #f59e0b;">AI Predicted</div>
                 </div>
             </div>
 
@@ -157,32 +159,144 @@
         </div>
     </div>
 
-    <script src="js/main.js"></script>
+    <script src="js/main.js?v=999"></script>
     <script src="js/websocket.js"></script>
     <script>
-        document.addEventListener('occupancy-update', (e) => {
-            const data = e.detail;
+        const API_BASE_URL = 'http://localhost:8000';
 
-            // Simulate derived metrics from the real-time count
-            // In a real backend, these would come as separate metric application events
-            const count = data.count;
+        // 1. Fetch Real-Time Prediction
+        async function fetchDwellTimePrediction() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/prediction/average-wait`);
+                if (response.ok) {
+                    const data = await response.json();
 
-            // Dynamic Dwell Time based on count (inverse relationship simulation)
-            const dwellM = 30 - Math.floor(count / 2);
-            document.getElementById('val-dwell').innerText = `${Math.max(5, dwellM)}m 30s`;
+                    // Update Value
+                    const valEl = document.getElementById('val-dwell');
+                    if (valEl) valEl.innerText = data.formatted;
 
-            // Entry Rate roughly proportional
-            const entry = Math.floor(count * 1.5);
-            document.getElementById('val-entry').innerText = `${entry} /hr`;
+                    // Update Trend (needs ID in HTML, adding dynamically if needed or finding parent)
+                    // Finding the trend element relative to value
+                    if (valEl) {
+                        const trendEl = valEl.nextElementSibling;
+                        if (trendEl && trendEl.classList.contains('metric-trend')) {
+                            trendEl.innerHTML = `
+                                <span class="${data.trend === 'down' ? 'trend-up' : 'trend-down'}">
+                                    ${data.trend === 'down' ? '↓' : '↑'} ${data.trend_value}
+                                </span> vs last hour (AI Predicted)
+                            `;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Prediction Fetch Error:", error);
+            }
+        }
 
-            // Exit Rate
-            const exit = Math.floor(count * 1.2);
-            document.getElementById('val-exit').innerText = `${exit} /hr`;
+        // 2. Fetch Real-Time Arrival Prediction
+        async function fetchArrivalRatePrediction() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/prediction/arrival-rate`);
+                if (response.ok) {
+                    const data = await response.json();
 
-            // Utilization
-            const util = Math.min(100, Math.floor((count / 20) * 100)); // assuming max cap ~20 for a zone
-            document.getElementById('val-util').innerText = `${util}%`;
-        });
+                    // Update Value
+                    const valEl = document.getElementById('val-entry');
+                    if (valEl) valEl.innerText = `${data.predicted_arrival_rate} /hr`;
+
+                    // Update Trend
+                    if (valEl) {
+                        const trendEl = valEl.nextElementSibling;
+                        if (trendEl && trendEl.classList.contains('metric-trend')) {
+                            const isUp = data.trend === 'up';
+                            const arrow = isUp ? '↑' : (data.trend === 'down' ? '↓' : '-');
+                            const colorClass = isUp ? 'trend-up' : (data.trend === 'down' ? 'trend-down' : 'trend-neutral');
+
+                            trendEl.innerHTML = `
+                                <span class="${colorClass}">
+                                    ${arrow} ${data.trend}
+                                </span> vs last hour (AI Predicted)
+                            `;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Arrival Prediction Fetch Error:", error);
+            }
+        }
+
+        // Initial Fetch and Poll
+        fetchDwellTimePrediction();
+        fetchArrivalRatePrediction();
+        fetchExitRatePrediction();
+        setInterval(fetchDwellTimePrediction, 30000); // Update every 30s
+        setInterval(fetchArrivalRatePrediction, 30000); // Update every 30s
+        setInterval(fetchExitRatePrediction, 30000); // Update every 30s
+
+        // 3. Fetch Real-Time Exit Rate Prediction
+        async function fetchExitRatePrediction() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/prediction/exit-rate`);
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // Update Value
+                    const valEl = document.getElementById('val-exit');
+                    if (valEl) valEl.innerText = `${data.predicted_exit_rate} /hr`;
+
+                    // Update Trend
+                    if (valEl) {
+                        const trendEl = valEl.nextElementSibling;
+                        if (trendEl && trendEl.classList.contains('metric-trend')) {
+                            const isUp = data.trend === 'up';
+                            const arrow = isUp ? '↑' : (data.trend === 'down' ? '↓' : '-');
+                            const colorClass = isUp ? 'trend-up' : (data.trend === 'down' ? 'trend-down' : 'trend-neutral');
+
+                            trendEl.innerHTML = `
+                                <span class="${colorClass}">
+                                    ${arrow} ${data.trend}
+                                </span> vs last hour (AI Predicted)
+                            `;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Exit Rate Prediction Fetch Error:", error);
+            }
+        }
+
+        // 4. Fetch Peak Hours Prediction
+        async function fetchPeakHours() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/prediction/peak-hours/today`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const valEl = document.getElementById('val-peak');
+                    const titleEl = document.getElementById('peak-hours-title');
+                    const trendEl = document.getElementById('peak-trend');
+
+                    // Show date in title
+                    if (data.date) {
+                        titleEl.textContent = `Peak Hours Today (${data.date})`;
+                    }
+
+                    if (data.start_time && data.start_time !== 'N/A') {
+                        valEl.textContent = `${data.start_time} - ${data.end_time}`;
+                        trendEl.textContent = 'AI Predicted';
+                    } else {
+                        valEl.textContent = 'No peak detected';
+                        valEl.style.fontSize = '1.5rem';
+                        trendEl.textContent = 'AI Predicted';
+                    }
+                }
+            } catch (e) {
+                console.error('Peak hours fetch error:', e);
+                document.getElementById('val-peak').innerHTML = '<span style="color: var(--text-muted); font-size: 1.2rem;">Unavailable</span>';
+            }
+        }
+
+        fetchPeakHours();
+        setInterval(fetchPeakHours, 60000); // Update every 60s
     </script>
 
 </body>

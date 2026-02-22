@@ -129,7 +129,7 @@ async def get_metric_history(
     
     # Set default time range
     if not end_time:
-        end_time = datetime.utcnow()
+        end_time = datetime.now()
     if not start_time:
         start_time = end_time - timedelta(hours=hours)
     

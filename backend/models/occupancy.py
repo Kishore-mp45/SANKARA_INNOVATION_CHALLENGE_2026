@@ -18,7 +18,7 @@ class OccupancyLog(Base):
     __tablename__ = "occupancy_logs"
     
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    timestamp = Column(DateTime, default=datetime.now, nullable=False, index=True)
     people_count = Column(Integer, nullable=False)
     previous_count = Column(Integer, nullable=True)
     zone_name = Column(String(50), ForeignKey("zones.zone_name"), nullable=False, index=True)
@@ -26,7 +26,6 @@ class OccupancyLog(Base):
     exit_count = Column(Integer, default=0)
     confidence_score = Column(Float, nullable=True)
     source = Column(String(50), default="cv_detection")  # cv_detection, manual, api
-    unique_ids = Column(String, nullable=True)  # JSON string of unique IDs
 
     @property
     def delta(self):
@@ -48,6 +47,5 @@ class OccupancyLog(Base):
             "entry_count": self.entry_count,
             "exit_count": self.exit_count,
             "confidence_score": self.confidence_score,
-            "source": self.source,
-            "unique_ids": self.unique_ids
+            "source": self.source
         }

@@ -6,6 +6,335 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PatientPath AI - Home</title>
     <link rel="stylesheet" href="css/style.css?v=100">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ── Landing Page Scoped Styles ── */
+
+        /* Section Heading */
+        .section-heading {
+            text-align: center;
+            margin-bottom: 0.75rem;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .section-subheading {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 2.5rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: 1fr;
+            margin-top: 0;
+        }
+
+        @media (min-width: 768px) {
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .features-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            .features-grid.three-col {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 1.75rem;
+            border-radius: 1rem;
+            transition: all 0.3s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+            border-color: var(--primary-color);
+        }
+
+        .feature-icon {
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            color: #fff;
+        }
+
+        .feature-icon.blue {
+            background: rgba(14, 165, 233, 0.15);
+            color: var(--primary-color);
+        }
+
+        .feature-icon.green {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-color);
+        }
+
+        .feature-icon.amber {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning-color);
+        }
+
+        .feature-icon.purple {
+            background: rgba(139, 92, 246, 0.15);
+            color: #8b5cf6;
+        }
+
+        .feature-icon.rose {
+            background: rgba(244, 63, 94, 0.15);
+            color: #f43f5e;
+        }
+
+        .feature-icon.cyan {
+            background: rgba(6, 182, 212, 0.15);
+            color: #06b6d4;
+        }
+
+        .feature-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .feature-desc {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* How It Works Cards */
+        .hiw-grid {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: 1fr;
+        }
+
+        @media (min-width: 768px) {
+            .hiw-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .hiw-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .hiw-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 1.75rem;
+            border-radius: 1rem;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .hiw-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+            border-color: var(--primary-color);
+        }
+
+        .hiw-step-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .hiw-title {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .hiw-desc {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* Impact Cards */
+        .impact-grid {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: 1fr;
+        }
+
+        @media (min-width: 768px) {
+            .impact-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .impact-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .impact-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 1.75rem;
+            border-radius: 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .impact-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+            border-color: var(--accent-color);
+        }
+
+        .impact-icon {
+            font-size: 1.6rem;
+            margin-bottom: 0.75rem;
+            color: var(--accent-color);
+        }
+
+        .impact-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+            background: linear-gradient(135deg, #10b981, #06b6d4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .impact-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .impact-desc {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-top: 0.5rem;
+            opacity: 0.8;
+        }
+
+        /* Hero Button Glow */
+        .btn-hero {
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            border-radius: 2rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .btn-hero:hover {
+            box-shadow: 0 0 30px rgba(14, 165, 233, 0.5), 0 0 60px rgba(14, 165, 233, 0.2);
+            transform: translateY(-3px);
+        }
+
+        .btn-hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .btn-hero:hover::after {
+            opacity: 1;
+        }
+
+        /* Section Divider */
+        .landing-section {
+            margin-top: 4rem;
+        }
+
+        /* Fade-in animation for cards */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 0.6s ease forwards;
+        }
+
+        @keyframes fadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-up:nth-child(1) { animation-delay: 0.05s; }
+        .fade-up:nth-child(2) { animation-delay: 0.1s; }
+        .fade-up:nth-child(3) { animation-delay: 0.15s; }
+        .fade-up:nth-child(4) { animation-delay: 0.2s; }
+        .fade-up:nth-child(5) { animation-delay: 0.25s; }
+        .fade-up:nth-child(6) { animation-delay: 0.3s; }
+
+        /* Tag / Badge */
+        .hero-tag {
+            display: inline-block;
+            padding: 0.35rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            background: rgba(14, 165, 233, 0.12);
+            color: var(--primary-color);
+            border: 1px solid rgba(14, 165, 233, 0.25);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Divider line between sections */
+        .section-divider {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 4rem auto 0;
+            max-width: 200px;
+            opacity: 0.5;
+        }
+    </style>
 </head>
 
 <body>
@@ -26,6 +355,7 @@
             <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
             <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
             <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
             <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
             <li><a href="patient_dashboard.html" class="nav-item"><span class="step-badge">3</span> My Dashboard</a>
             </li>
@@ -44,19 +374,23 @@
 
         <div class="page-container fade-in" style="max-width: 1200px; padding-bottom: 4rem;">
 
-            <!-- Hero Section -->
-            <div class="hero-section text-center" style="padding: 4rem 1rem; max-width: 800px; margin: 0 auto;">
+            <!-- ═══════════════════════════════════════ -->
+            <!-- HERO SECTION                            -->
+            <!-- ═══════════════════════════════════════ -->
+            <div class="hero-section text-center" style="padding: 4rem 1rem 2rem; max-width: 820px; margin: 0 auto;">
                 <h1
-                    style="font-size: 3rem; margin-bottom: 1.5rem; background: linear-gradient(135deg, #38bdf8 0%, #3b82f6 50%, #10b981 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.05em;">
+                    style="font-size: 3.5rem; margin-bottom: 1rem; background: linear-gradient(135deg, #38bdf8 0%, #3b82f6 50%, #10b981 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.05em; line-height: 1.15; font-weight: 800;">
                     PatientPath AI
                 </h1>
-                <p style="font-size: 1.25rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 2.5rem;">
-                    An advanced real-time orchestrator for hospital flow and resource optimization.
-                    Monitor occupancy, predict admission spikes, and manage department resources instantly with
-                    AI-driven insights.
+                <div class="hero-tag" style="margin-bottom: 1.5rem;">Digital Twin Platform</div>
+                <p style="font-size: 1.2rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.75rem; line-height: 1.4;">
+                    AI-Powered Digital Twin for Real-Time Hospital Operations
                 </p>
-                <a href="occupancy.html" class="btn btn-primary"
-                    style="padding: 1rem 2.5rem; font-size: 1.1rem; border-radius: 2rem;">
+                <p style="font-size: 1.1rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 2.5rem; max-width: 680px; margin-left: auto; margin-right: auto;">
+                    Combining computer vision, event-driven workflow automation, and predictive analytics to optimize
+                    patient flow and hospital resources — without additional hardware dependency.
+                </p>
+                <a href="occupancy.html" class="btn btn-primary btn-hero">
                     Get Started
                     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
                         style="margin-left: 0.5rem;">
@@ -65,206 +399,126 @@
                 </a>
             </div>
 
-            <!-- Core Functionalities -->
-            <div class="features-container">
-                <style>
-                    /* Scoped Styles for Landing Page */
-                    .features-grid {
-                        display: grid;
-                        gap: 1.5rem;
-                        grid-template-columns: 1fr;
-                        /* Mobile Default */
-                        margin-top: 2rem;
-                    }
+            <hr class="section-divider">
 
-                    /* Tablet */
-                    @media (min-width: 768px) {
-                        .features-grid {
-                            grid-template-columns: repeat(2, 1fr);
-                        }
-                    }
+            <!-- ═══════════════════════════════════════ -->
+            <!-- HOW IT WORKS                            -->
+            <!-- ═══════════════════════════════════════ -->
+            <div class="landing-section">
+                <h2 class="section-heading">How It Works</h2>
+                <p class="section-subheading">Four integrated layers that transform raw hospital data into actionable operational intelligence.</p>
 
-                    /* Desktop */
-                    @media (min-width: 1024px) {
-                        .features-grid {
-                            grid-template-columns: repeat(3, 1fr);
-                        }
-                    }
+                <div class="hiw-grid">
+                    <div class="hiw-card fade-up">
+                        <div class="hiw-step-num">1</div>
+                        <div class="hiw-title">Computer Vision Detection</div>
+                        <p class="hiw-desc">Existing CCTV feeds are processed by AI models to detect and count people across hospital zones in real time.</p>
+                    </div>
+                    <div class="hiw-card fade-up">
+                        <div class="hiw-step-num">2</div>
+                        <div class="hiw-title">Event-Driven Workflow Updates</div>
+                        <p class="hiw-desc">Patient stage transitions and department actions trigger automated workflow updates across the system instantly.</p>
+                    </div>
+                    <div class="hiw-card fade-up">
+                        <div class="hiw-step-num">3</div>
+                        <div class="hiw-title">Real-Time Dashboard Sync</div>
+                        <p class="hiw-desc">Occupancy data, alerts, and patient status synchronize across all role-based dashboards via live polling.</p>
+                    </div>
+                    <div class="hiw-card fade-up">
+                        <div class="hiw-step-num">4</div>
+                        <div class="hiw-title">Predictive Intelligence</div>
+                        <p class="hiw-desc">Machine learning models forecast admission spikes, wait times, and bottlenecks to enable proactive resource allocation.</p>
+                    </div>
+                </div>
+            </div>
 
-                    .feature-card {
-                        background: var(--card-bg);
-                        /* Use existing var */
-                        border: 1px solid var(--border-color);
-                        padding: 1.5rem;
-                        border-radius: 1rem;
-                        transition: all 0.3s ease;
-                        height: 100%;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: flex-start;
-                        position: relative;
-                        overflow: hidden;
-                    }
+            <hr class="section-divider">
 
-                    .feature-card:hover {
-                        transform: translateY(-5px);
-                        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
-                        border-color: var(--primary-color);
-                    }
+            <!-- ═══════════════════════════════════════ -->
+            <!-- CORE FUNCTIONALITIES                    -->
+            <!-- ═══════════════════════════════════════ -->
+            <div class="landing-section">
+                <h2 class="section-heading">Core Functionalities</h2>
+                <p class="section-subheading">Purpose-built modules designed to address critical operational challenges in hospital environments.</p>
 
-                    .feature-icon {
-                        font-size: 2rem;
-                        margin-bottom: 1rem;
-                        background: rgba(14, 165, 233, 0.1);
-                        width: 50px;
-                        height: 50px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        border-radius: 12px;
-                    }
-
-                    .feature-title {
-                        font-weight: 700;
-                        font-size: 1.1rem;
-                        margin-bottom: 0.5rem;
-                        color: var(--text-main);
-                    }
-
-                    .feature-desc {
-                        font-size: 0.9rem;
-                        color: var(--text-muted);
-                        line-height: 1.5;
-                    }
-
-                    /* How It Works Steps */
-                    .steps-container {
-                        display: flex;
-                        justify-content: center;
-                        gap: 2rem;
-                        flex-wrap: wrap;
-                        margin-top: 5rem;
-                        text-align: center;
-                        position: relative;
-                    }
-
-                    .step-item {
-                        flex: 1;
-                        min-width: 250px;
-                        max-width: 300px;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                    }
-
-                    .step-num {
-                        font-size: 1.5rem;
-                        font-weight: 800;
-                        color: var(--primary-color);
-                        margin-bottom: 1rem;
-                        position: relative;
-                        z-index: 1;
-                        background: var(--bg-color);
-                        padding: 0 1rem;
-                    }
-
-                    .step-line {
-                        position: absolute;
-                        top: 1.5rem;
-                        left: 20%;
-                        right: 20%;
-                        height: 2px;
-                        background: var(--border-color);
-                        z-index: 0;
-                        display: none;
-                        /* Hidden on mobile */
-                    }
-
-                    @media(min-width: 900px) {
-                        .step-line {
-                            display: block;
-                        }
-                    }
-                </style>
-
-                <h2 class="text-center" style="margin-bottom: 2rem; font-size: 1.8rem;">Core Functionalities</h2>
-
-                <div class="features-grid">
+                <div class="features-grid three-col">
                     <!-- Feature 1 -->
-                    <div class="feature-card">
-                        <div class="feature-icon">📊</div>
+                    <div class="feature-card fade-up">
+                        <div class="feature-icon blue"><i class="fas fa-chart-bar"></i></div>
                         <div class="feature-title">Live Occupancy Monitoring</div>
-                        <p class="feature-desc">Real-time person counting and density tracking across all hospital
-                            zones.</p>
+                        <p class="feature-desc">Track real-time person counts and density levels across every hospital department to prevent overcrowding and optimize patient distribution.</p>
                     </div>
                     <!-- Feature 2 -->
-                    <div class="feature-card">
-                        <div class="feature-icon">🌡️</div>
-                        <div class="feature-title">Department Heatmaps</div>
-                        <p class="feature-desc">Visual intensity maps to identify congestion hotspots instantly.</p>
+                    <div class="feature-card fade-up">
+                        <div class="feature-icon amber"><i class="fas fa-fire"></i></div>
+                        <div class="feature-title">Zone Heatmaps</div>
+                        <p class="feature-desc">Visualize congestion patterns through color-coded intensity maps, enabling staff to identify bottlenecks and redirect patient flow proactively.</p>
                     </div>
                     <!-- Feature 3 -->
-                    <div class="feature-card">
-                        <div class="feature-icon">🔮</div>
+                    <div class="feature-card fade-up">
+                        <div class="feature-icon purple"><i class="fas fa-brain"></i></div>
                         <div class="feature-title">Predictive Analytics</div>
-                        <p class="feature-desc">AI forecasts for peak hours and admission rates using historical data.
-                        </p>
+                        <p class="feature-desc">AI-driven forecasts for peak hours, admission surges, and wait times using trained models on historical operational data.</p>
                     </div>
                     <!-- Feature 4 -->
-                    <div class="feature-card">
-                        <div class="feature-icon">🛏️</div>
-                        <div class="feature-title">Bed & Resource Tracking</div>
-                        <p class="feature-desc">Monitor available beds and critical resources to reduce wait times.</p>
+                    <div class="feature-card fade-up">
+                        <div class="feature-icon green"><i class="fas fa-bed"></i></div>
+                        <div class="feature-title">Resource Allocation</div>
+                        <p class="feature-desc">Monitor bed availability, staffing levels, and departmental capacity to make data-driven resource decisions that reduce patient wait times.</p>
                     </div>
                     <!-- Feature 5 -->
-                    <div class="feature-card">
-                        <div class="feature-icon">🔐</div>
+                    <div class="feature-card fade-up">
+                        <div class="feature-icon rose"><i class="fas fa-shield-alt"></i></div>
                         <div class="feature-title">Role-Based Access Control</div>
-                        <p class="feature-desc">Secure, tailored views for Admins, Doctors, Staff, and Patients.</p>
+                        <p class="feature-desc">Secure, purpose-built views for Administrators, Doctors, Staff, and Patients — each seeing only what is relevant to their role.</p>
                     </div>
                     <!-- Feature 6 -->
-                    <div class="feature-card">
-                        <div class="feature-icon">🎥</div>
-                        <div class="feature-title">Live Camera Monitoring</div>
-                        <p class="feature-desc">Direct low-latency video feeds from multiple hospital departments.</p>
+                    <div class="feature-card fade-up">
+                        <div class="feature-icon cyan"><i class="fas fa-video"></i></div>
+                        <div class="feature-title">Live Camera Feeds</div>
+                        <p class="feature-desc">Low-latency video streams from hospital departments provide direct visual oversight for real-time situational awareness.</p>
                     </div>
                 </div>
-                <!-- Feature 7 -->
-                <div class="feature-card" onclick="window.location.href='staff_panel.html'" style="cursor: pointer;">
-                    <div class="feature-icon">📋</div>
-                    <div class="feature-title">Staff Operations</div>
-                    <p class="feature-desc">Manage patient flow, update stages, and track department activity.</p>
-                </div>
             </div>
-        </div>
 
-        <!-- How It Works (Minimal) -->
-        <div class="steps-container">
-            <div class="step-line"></div>
-            <div class="step-item">
-                <div class="step-num">01</div>
-                <div style="font-weight: 600;">Connect Cameras</div>
-                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
-                    System ingests standard CCTV feeds via secure RTSP/WebSocket.
-                </div>
-            </div>
-            <div class="step-item">
-                <div class="step-num">02</div>
-                <div style="font-weight: 600;">AI Processing</div>
-                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
-                    Computer vision models detect people and usage in real-time.
-                </div>
-            </div>
-            <div class="step-item">
-                <div class="step-num">03</div>
-                <div style="font-weight: 600;">Actionable Insights</div>
-                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
-                    Staff receive alerts and allocate resources efficiently.
-                </div>
-            </div>
-        </div>
+            <hr class="section-divider">
 
-    </div>
+            <!-- ═══════════════════════════════════════ -->
+            <!-- IMPACT & BENEFITS                       -->
+            <!-- ═══════════════════════════════════════ -->
+            <div class="landing-section">
+                <h2 class="section-heading">Impact & Benefits</h2>
+                <p class="section-subheading">Measurable outcomes that demonstrate the value of an AI-powered hospital operations platform.</p>
+
+                <div class="impact-grid">
+                    <div class="impact-card fade-up">
+                        <div class="impact-icon"><i class="fas fa-clock"></i></div>
+                        <div class="impact-value">Reduced</div>
+                        <div class="impact-label">Patient Waiting Time</div>
+                        <p class="impact-desc">Automated workflow tracking and predictive routing minimize idle time between departments.</p>
+                    </div>
+                    <div class="impact-card fade-up">
+                        <div class="impact-icon"><i class="fas fa-cubes"></i></div>
+                        <div class="impact-value">Optimized</div>
+                        <div class="impact-label">Resource Utilization</div>
+                        <p class="impact-desc">Data-driven allocation of beds, staff, and equipment based on real-time demand signals.</p>
+                    </div>
+                    <div class="impact-card fade-up">
+                        <div class="impact-icon"><i class="fas fa-eye"></i></div>
+                        <div class="impact-value">Complete</div>
+                        <div class="impact-label">Operational Transparency</div>
+                        <p class="impact-desc">End-to-end visibility across every department, patient journey, and resource metric in one platform.</p>
+                    </div>
+                    <div class="impact-card fade-up">
+                        <div class="impact-icon"><i class="fas fa-bolt"></i></div>
+                        <div class="impact-value">Faster</div>
+                        <div class="impact-label">Decision-Making</div>
+                        <p class="impact-desc">Real-time alerts and predictive insights empower administrators to act before problems escalate.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
 
     <script>
@@ -272,7 +526,7 @@
         localStorage.removeItem('theme');
         document.documentElement.removeAttribute('data-theme');
     </script>
-    <script src="js/main.js?v=100"></script>
+    <script src="js/main.js?v=999"></script>
 </body>
 
 </html>

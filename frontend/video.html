@@ -3,41 +3,82 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>PatientPath AI - Video</title>
+    <title>PatientPath AI - Live Video</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
         .video-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-width: 640px;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .control-row label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .dept-select {
+            flex: 1;
+            max-width: 240px;
+            padding: 0.45rem 0.65rem;
+            border-radius: 6px;
+            background: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        .video-frame {
             position: relative;
-            background: black;
+            background: #000;
             border-radius: 8px;
             overflow: hidden;
             border: 2px solid var(--border-color);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            /* Fixed top left (relative to this page content) as requested, 
-               but "Fixed rectangle video panel top-left corner" usually means absolute/fixed positioning.
-               User said: "Fixed rectangle video panel top-left corner... Size 320x200px... Not movable" 
-               I will place it in the top-left of the content area. */
-            width: 320px;
-            height: 200px;
-            margin-bottom: 2rem;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            aspect-ratio: 16 / 9;
         }
 
-        video {
+        .video-frame video {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
+            display: block;
         }
 
-        .video-overlay {
+        .video-label {
             position: absolute;
-            top: 5px;
-            left: 5px;
+            top: 8px;
+            left: 10px;
             background: rgba(0, 0, 0, 0.6);
-            padding: 2px 6px;
+            color: #10b981;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.2rem 0.6rem;
             border-radius: 4px;
-            font-size: 0.7rem;
-            color: red;
-            font-weight: bold;
+        }
+
+        .video-note {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.6rem 0.8rem;
+            line-height: 1.4;
+        }
+
+        .video-note strong {
+            color: var(--accent-color);
         }
     </style>
 </head>
@@ -58,56 +99,51 @@
             <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
             <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
             <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
-            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
-            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
+            <li><a href="video.html" class="nav-item active"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">10</span> Staff Panel</a></li>
         </ul>
     </div>
 
     <div class="main-content">
         <header>
             <div class="header-title-container">
-                <h1>Live Surveillance</h1>
-                <p class="header-subtitle">Real-time video feed</p>
+                <h1>Hospital Department Video</h1>
+                <p class="header-subtitle">Demo camera feeds from hospital departments</p>
             </div>
         </header>
 
         <div class="page-container fade-in">
-            <div class="video-control-panel" style="margin-bottom: 1rem; max-width: 320px;">
-                <label for="dept-select"
-                    style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Select
-                    Department Camera</label>
-                <select id="dept-select" class="form-select"
-                    style="width: 100%; padding: 0.5rem; border-radius: 6px; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color);">
-                    <option value="vision">Vision Lab</option>
-                    <option value="dilation">Dilation Hall</option>
-                    <option value="diagnostics">Diagnostics</option>
-                    <option value="billing">Billing & Insurance</option>
-                    <option value="registration">Registration</option>
-                    <option value="consultation">Consultation</option>
-                    <option value="pharmacy">Pharmacy</option>
-                </select>
-            </div>
-
-            <p style="margin-bottom:1rem; color: var(--text-muted);">
-                Monitoring Feed: <strong id="current-feed-name">Vision Lab</strong>
-            </p>
-
             <div class="video-container">
-                <div class="video-overlay">LIVE</div>
-                <!-- Video Element -->
-                <video id="live-video" autoplay muted loop playsinline>
-                    <source src="assets/videos/vision.mp4" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-            </div>
 
-            <div class="card" style="max-width: 600px;">
-                <h3>Feed Status</h3>
-                <p style="color: var(--accent-color); font-weight: 500;">Signal Strength: Strong</p>
-                <p style="color: var(--text-muted); font-size: 0.9rem;">
-                    AI detection overlay is processed server-side. This is the raw low-latency feed for operator
-                    verification.
-                </p>
+                <!-- Controls -->
+                <div class="control-row">
+                    <label for="dept-select">Department:</label>
+                    <select id="dept-select" class="dept-select">
+                        <option value="registration">1. Registration</option>
+                        <option value="vision_lab">2. Vision Lab</option>
+                        <option value="dilation_hall">3. Dilation Hall</option>
+                        <option value="diagnostics">4. Diagnostics</option>
+                        <option value="consultation">5. Doctor Consult</option>
+                        <option value="pharmacy">6. Pharmacy</option>
+                        <option value="billing_insurance">7. Billing & Insurance</option>
+                    </select>
+                </div>
+
+                <!-- Video Frame -->
+                <div class="video-frame">
+                    <video id="dept-video" autoplay loop muted playsinline>
+                        <source id="video-source" src="assets/videos/registration.mp4" type="video/mp4">
+                    </video>
+                    <div class="video-label" id="video-label">Registration</div>
+                </div>
+
+                <!-- Info Note -->
+                <div class="video-note">
+                    This is a demo hospital video feed. For <strong>live YOLOv8 detection with bounding boxes</strong>,
+                    run the standalone tracker: <code>python detect.py</code>
+                </div>
+
             </div>
 
             <div class="nav-buttons">
@@ -117,33 +153,47 @@
         </div>
     </div>
 
-    <script src="js/main.js"></script>
+    <script src="js/main.js?v=999"></script>
     <script>
-        const videoPlayer = document.getElementById('live-video');
         const deptSelect = document.getElementById('dept-select');
-        const feedName = document.getElementById('current-feed-name');
-        const videoContainer = document.querySelector('.video-container');
+        const videoEl = document.getElementById('dept-video');
+        const videoSource = document.getElementById('video-source');
+        const videoLabel = document.getElementById('video-label');
 
-        deptSelect.addEventListener('change', (e) => {
-            const dept = e.target.value;
-            const deptText = e.target.options[e.target.selectedIndex].text;
+        const DEPT_MAP = {
+            registration:      { video: 'registration.mp4', name: 'Registration' },
+            vision_lab:        { video: 'vision.mp4',       name: 'Vision Lab' },
+            dilation_hall:     { video: 'dilation.mp4',     name: 'Dilation Hall' },
+            diagnostics:       { video: 'diagnostics.mp4',  name: 'Diagnostics' },
+            consultation:      { video: 'consultation.mp4', name: 'Doctor Consult' },
+            pharmacy:          { video: 'pharmacy.mp4',     name: 'Pharmacy' },
+            billing_insurance: { video: 'billing.mp4',      name: 'Billing & Insurance' },
+        };
 
-            // Fade out
-            videoContainer.style.opacity = '0.5';
-            videoContainer.style.transition = 'opacity 0.3s ease';
+        function switchVideo(zone) {
+            const dept = DEPT_MAP[zone];
+            if (!dept) return;
+            videoSource.src = 'assets/videos/' + dept.video;
+            videoLabel.textContent = dept.name;
+            videoEl.load();
+            videoEl.play();
 
-            setTimeout(() => {
-                // Update Source
-                videoPlayer.src = `assets/videos/${dept}.mp4`;
-                videoPlayer.play();
+            // Store selected department so occupancy page can read it
+            try { localStorage.setItem('pp_selected_dept', zone); } catch(e) {}
+        }
 
-                // Update Text
-                feedName.textContent = deptText;
-
-                // Fade in
-                videoContainer.style.opacity = '1';
-            }, 300);
+        deptSelect.addEventListener('change', function (e) {
+            switchVideo(e.target.value);
         });
+
+        // On load, check if a department was previously selected
+        try {
+            const saved = localStorage.getItem('pp_selected_dept');
+            if (saved && DEPT_MAP[saved]) {
+                deptSelect.value = saved;
+                switchVideo(saved);
+            }
+        } catch(e) {}
     </script>
 </body>
 

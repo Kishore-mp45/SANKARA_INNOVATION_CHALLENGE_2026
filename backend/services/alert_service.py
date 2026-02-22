@@ -35,7 +35,7 @@ class AlertService:
             message=data.message,
             zone_name=data.zone_name,
             patient_id=data.patient_id,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now()
         )
         self.db.add(alert)
         self.db.commit()
@@ -47,7 +47,7 @@ class AlertService:
         if not alert:
             return None
         alert.acknowledged = True
-        alert.acknowledged_at = datetime.utcnow()
+        alert.acknowledged_at = datetime.now()
         alert.acknowledged_by = acknowledged_by
         self.db.commit()
         self.db.refresh(alert)
@@ -58,7 +58,7 @@ class AlertService:
         if not alert:
             return None
         alert.is_active = False
-        alert.resolved_at = datetime.utcnow()
+        alert.resolved_at = datetime.now()
         self.db.commit()
         self.db.refresh(alert)
         return alert
@@ -82,6 +82,8 @@ class AlertService:
             return
 
         current = zone.current_occupancy or 0
+        capacity = zone.capacity_limit or 1  # avoid division by zero
+        occupancy_ratio = current / capacity
         warning = zone.warning_threshold
         critical = zone.critical_threshold
         
@@ -99,7 +101,7 @@ class AlertService:
             Alert.severity == AlertSeverity.CRITICAL
         ).first()
 
-        if critical and current >= critical:
+        if critical and occupancy_ratio >= critical:
             if not existing_critical:
                 self.create(AlertCreate(
                     alert_type=AlertType.CAPACITY_CRITICAL,
@@ -107,7 +109,7 @@ class AlertService:
                     message=f"Critical overcrowding in {zone.zone_name}: {current}/{zone.capacity_limit}",
                     zone_name=zone.zone_name
                 ))
-        elif warning and current >= warning:
+        elif warning and occupancy_ratio >= warning:
             if not existing_warning:
                 # If critical exists, we don't need warning? Or keeping both?
                 # Usually keep higher severity.

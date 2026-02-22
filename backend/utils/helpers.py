@@ -43,7 +43,7 @@ def calculate_dwell_time_minutes(entry_time: datetime, exit_time: datetime = Non
         Dwell time in minutes
     """
     if exit_time is None:
-        exit_time = datetime.utcnow()
+        exit_time = datetime.now()
     
     delta = exit_time - entry_time
     return round(delta.total_seconds() / 60, 2)

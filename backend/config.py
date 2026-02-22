@@ -21,8 +21,17 @@ class Settings:
     HOST: str = os.getenv("HOST", "0.0.0.0")
     PORT: int = int(os.getenv("PORT", "8000"))
     
-    # Database Configuration
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./patientpath.db")
+    # MySQL Database Configuration
+    DB_HOST: str = os.getenv("DB_HOST", "127.0.0.1")
+    DB_PORT: int = int(os.getenv("DB_PORT", "3306"))
+    DB_USER: str = os.getenv("DB_USER", "root")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "root")
+    DB_NAME: str = os.getenv("DB_NAME", "hospital")
+    
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        f"mysql+pymysql://{os.getenv('DB_USER', 'root')}:{os.getenv('DB_PASSWORD', 'root')}@{os.getenv('DB_HOST', 'localhost')}:{os.getenv('DB_PORT', '3306')}/{os.getenv('DB_NAME', 'hospital')}?charset=utf8mb4"
+    )
     DATABASE_ECHO: bool = DEBUG
     
     # CORS Configuration
@@ -44,7 +53,7 @@ class Settings:
     CACHE_METRICS_TTL: int = 60   # 1 minute for real-time metrics
     
     # Rate Limiting
-    RATE_LIMIT_REQUESTS: int = 100
+    RATE_LIMIT_REQUESTS: int = 500
     RATE_LIMIT_WINDOW: int = 60  # seconds
     
     # WebSocket Configuration

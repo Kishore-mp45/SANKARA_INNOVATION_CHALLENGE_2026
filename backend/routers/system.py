@@ -67,7 +67,7 @@ async def health_check(db: Session = Depends(get_db)):
         status=status,
         message=f"{settings.APP_NAME} Backend is running",
         version=settings.APP_VERSION,
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(),
         database_connected=db_connected,
         uptime_seconds=round(uptime, 2)
     )
@@ -82,7 +82,7 @@ async def root():
     """
     Root endpoint - redirects to the frontend.
     """
-    return RedirectResponse(url="/frontend/index.html")
+    return RedirectResponse(url="/index.html")
 
 
 @router.get(
@@ -99,7 +99,7 @@ async def cache_stats():
     """
     return {
         "cache_stats": cache.stats,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now().isoformat()
     }
 
 
@@ -118,5 +118,5 @@ async def clear_cache():
     cache.clear()
     return {
         "message": "Cache cleared successfully",
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now().isoformat()
     }

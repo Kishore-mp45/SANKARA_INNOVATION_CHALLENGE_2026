@@ -18,7 +18,7 @@ class Metric(Base):
     __tablename__ = "metrics"
     
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    timestamp = Column(DateTime, default=datetime.now, nullable=False, index=True)
     period_start = Column(DateTime, nullable=True)
     period_end = Column(DateTime, nullable=True)
     metric_type = Column(String(50), default="hourly", index=True)  # hourly, daily, realtime
