@@ -14,11 +14,19 @@ import logging
 from datetime import datetime
 from typing import Dict, Optional
 
-import cv2
-import numpy as np
-from ultralytics import YOLO
-
 logger = logging.getLogger(__name__)
+
+try:
+    import cv2
+    import numpy as np
+    from ultralytics import YOLO
+    CV_AVAILABLE = True
+except ImportError:
+    CV_AVAILABLE = False
+    cv2 = None
+    np = None
+    YOLO = None
+    logger.warning("OpenCV/Ultralytics not installed - CV detection disabled")
 
 # Zone name -> video filename mapping
 ZONE_VIDEO_MAP = {
@@ -52,6 +60,8 @@ class CVDetectionService:
     """
 
     def __init__(self, model_path: str, video_dir: str, event_loop: asyncio.AbstractEventLoop):
+        if not CV_AVAILABLE:
+            raise ImportError("OpenCV and Ultralytics are required for CV detection but not installed")
         self.model_path = model_path
         self.video_dir = video_dir
         self.event_loop = event_loop

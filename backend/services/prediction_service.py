@@ -11,18 +11,20 @@ from models.zone import Zone
 from models.patient import Patient, PatientStatus
 from services.staff_allocation_service import StaffAllocationService
 
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 class PredictionService:
     _model = None
-    _model_path = r"C:\PATIENTPATH-AI\ml_models\waiting_model.pkl"
+    _model_path = os.path.join(_PROJECT_ROOT, "ml_models", "waiting_model.pkl")
     
     _arrival_model = None
-    _arrival_model_path = r"C:\PATIENTPATH-AI\ml_models\arrival_model.pkl"
+    _arrival_model_path = os.path.join(_PROJECT_ROOT, "ml_models", "arrival_model.pkl")
 
     _exit_rate_model = None
-    _exit_rate_model_path = r"C:\PATIENTPATH-AI\ml_models\exit_rate_model.pkl"
+    _exit_rate_model_path = os.path.join(_PROJECT_ROOT, "ml_models", "exit_rate_model.pkl")
 
     _bottleneck_model = None
-    _bottleneck_model_path = r"C:\PATIENTPATH-AI\ml_models\bottleneck_classification_model.pkl"
+    _bottleneck_model_path = os.path.join(_PROJECT_ROOT, "ml_models", "bottleneck_classification_model.pkl")
 
     @classmethod
     def _load_model(cls):

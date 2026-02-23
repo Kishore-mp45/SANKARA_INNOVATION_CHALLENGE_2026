@@ -7,7 +7,7 @@
  */
 
 // Set this to your Render backend URL after deploying (e.g., "https://patientpath-ai.onrender.com")
-const PRODUCTION_API_URL = "https://patientpath-ai-production-e176.up.railway.app";
+const PRODUCTION_API_URL = "https://patientpath-ai-production-9207.up.railway.app";
 
 // Auto-detect: use production URL if set, otherwise relative paths (local dev)
 const API_BASE = PRODUCTION_API_URL || "";

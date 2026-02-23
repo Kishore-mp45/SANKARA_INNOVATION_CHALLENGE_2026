@@ -11,9 +11,11 @@ from models.zone import Zone
 from models.patient import Patient, PatientStatus
 
 
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 class StaffAllocationService:
     _model = None
-    _model_path = r"C:\PATIENTPATH-AI\ml_models\staff_allocation_model.pkl"
+    _model_path = os.path.join(_PROJECT_ROOT, "ml_models", "staff_allocation_model.pkl")
 
     # Department code mapping (matching model training)
     DEPARTMENT_MAP = {
