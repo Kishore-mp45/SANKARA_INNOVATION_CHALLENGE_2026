@@ -21,6 +21,10 @@ COPY ml_models/ ./ml_models/
 # Copy frontend (for static file serving)
 COPY frontend/ ./frontend/
 
+# Copy startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 # Set working directory to backend
 WORKDIR /app/backend
 
@@ -30,5 +34,8 @@ ENV DEBUG=false
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
 
-# Start the server - Python reads PORT from env via config.py
-CMD ["python", "main.py"]
+# Expose port
+EXPOSE ${PORT}
+
+# Start using the shell script (guaranteed to expand $PORT)
+ENTRYPOINT ["/bin/bash", "/app/start.sh"]
