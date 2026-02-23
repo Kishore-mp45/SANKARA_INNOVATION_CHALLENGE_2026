@@ -30,5 +30,5 @@ ENV DEBUG=false
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
 
-# Start the server - Railway sets PORT automatically
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port $PORT"]
+# Start the server - Python reads PORT from env via config.py
+CMD ["python", "main.py"]
