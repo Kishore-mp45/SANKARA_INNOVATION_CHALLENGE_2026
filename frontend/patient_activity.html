@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Activity History</title>
+    <link rel="stylesheet" href="css/style.css?v=200">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        .timeline-section {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-left: 2px solid var(--border-color);
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 0;
+            width: 10px;
+            height: 10px;
+            background: var(--sidebar-bg);
+            border: 2px solid var(--primary-color);
+            border-radius: 50%;
+        }
+
+        .timeline-item:last-child {
+            border-left: none;
+        }
+
+        .timeline-time {
+            min-width: 80px;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-on-track {
+            background: #d1fae5;
+            color: #047857;
+        }
+
+        .status-waiting {
+            background: #fef3c7;
+            color: #b45309;
+        }
+
+        .status-delayed {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: var(--card-bg);
+            padding: 1.25rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .summary-card h3 {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.4rem;
+        }
+
+        .summary-card .value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
+            <li><a href="patient_dashboard.html" class="nav-item"><span class="step-badge">3</span> My Dashboard</a></li>
+            <li><a href="patient_activity.html" class="nav-item active"><span class="step-badge">3</span> Activity History</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Activity History</h1>
+                <p class="header-subtitle" id="patient-id-display">Initializing...</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <!-- Connection Status -->
+            <div style="text-align: right; margin-bottom: 1rem;">
+                <span class="status-badge status-on-track" id="connection-status">
+                    <span style="font-size: 1.2em; vertical-align: bottom;">&#8226;</span>
+                    <span id="conn-text">Connecting...</span>
+                </span>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h3>Patient Name</h3>
+                    <div class="value" id="sum-name">--</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Current Stage</h3>
+                    <div class="value" id="sum-stage" style="color: var(--primary-color);">--</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Total Time</h3>
+                    <div class="value" id="sum-duration">--</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Actions Recorded</h3>
+                    <div class="value" id="sum-actions">0</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Status</h3>
+                    <div class="value" id="sum-status">--</div>
+                </div>
+            </div>
+
+            <!-- Activity Timeline -->
+            <div class="timeline-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3 style="color: var(--text-main); font-size: 1.1rem;">
+                        <i class="fas fa-history" style="color: var(--primary-color); margin-right: 0.5rem;"></i>
+                        Activity Timeline
+                    </h3>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <button id="export-pdf-btn" onclick="exportActivityPDF()"
+                            style="display:none; background:#3b82f6; color:white; border:none; padding:0.4rem 0.85rem; border-radius:8px; cursor:pointer; font-size:0.8rem; font-weight:600;">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
+                        <button id="clear-history-btn" onclick="clearActivityHistory()"
+                            style="display:none; background:#ef4444; color:white; border:none; padding:0.4rem 0.85rem; border-radius:8px; cursor:pointer; font-size:0.8rem; font-weight:600;">
+                            <i class="fas fa-trash-alt"></i> Clear Activity History
+                        </button>
+                        <button onclick="fetchPatientData()"
+                            style="background:none; border:none; color:var(--primary-color); cursor:pointer;">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div id="timeline-list" style="min-height: 50px;">
+                    <!-- Timeline items injected by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"
+        style="position: fixed; bottom: 2rem; right: 2rem; z-index: 1000;"></div>
+
+    <!-- Core JS -->
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
+    <script src="js/main.js?v=999"></script>
+
+    <script>
+        var API_BASE_URL = API_BASE;
+        var currentPatientId = localStorage.getItem('currentPatientId') || localStorage.getItem('currentUser');
+        var pollInterval = null;
+
+        window.addEventListener('load', function () {
+            if (!currentPatientId) {
+                window.location.href = 'login.html';
+                return;
+            }
+            document.getElementById('patient-id-display').innerText = 'Tracking ID: ' + currentPatientId;
+            fetchPatientData();
+            pollInterval = setInterval(fetchPatientData, 5000);
+        });
+
+        async function fetchPatientData() {
+            if (!currentPatientId) return;
+            try {
+                var response = await fetch(API_BASE_URL + '/patient/tracking/' + currentPatientId + '?_=' + new Date().getTime());
+                if (response.ok) {
+                    var data = await response.json();
+                    updateSummary(data);
+                    renderTimeline(data);
+                    document.getElementById('conn-text').innerText = 'Live Updates Active';
+                    document.getElementById('connection-status').className = 'status-badge status-on-track';
+                } else if (response.status === 404) {
+                    document.getElementById('conn-text').innerText = 'Waiting for Registration...';
+                    document.getElementById('connection-status').className = 'status-badge status-waiting';
+                    document.getElementById('timeline-list').innerHTML = '<div style="color: var(--text-muted); padding: 1rem; text-align:center;">Your tracking ID has not been registered yet. Please visit the Registration desk.</div>';
+                }
+            } catch (err) {
+                console.error('Polling error', err);
+                document.getElementById('conn-text').innerText = 'Offline / Retrying...';
+                document.getElementById('connection-status').className = 'status-badge status-delayed';
+            }
+        }
+
+        function updateSummary(data) {
+            var isCompleted = data.status === 'exited' || data.current_zone === 'exit';
+
+            document.getElementById('sum-name').innerText = data.name || 'N/A';
+
+            var stageEl = document.getElementById('sum-stage');
+            stageEl.innerText = isCompleted ? 'Journey Completed' : (formatZone(data.current_zone) || 'Waiting');
+            stageEl.style.color = isCompleted ? '#10b981' : 'var(--primary-color)';
+
+            if (data.dwell_time_minutes !== null && data.dwell_time_minutes !== undefined) {
+                var mins = Math.round(data.dwell_time_minutes);
+                if (mins < 60) {
+                    document.getElementById('sum-duration').innerText = mins + ' min' + (mins !== 1 ? 's' : '');
+                } else {
+                    document.getElementById('sum-duration').innerText = Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm';
+                }
+            }
+
+            var actionCount = (data.action_history ? data.action_history.length : 0) +
+                              (data.consultation_history ? data.consultation_history.length : 0);
+            document.getElementById('sum-actions').innerText = actionCount;
+
+            var statusEl = document.getElementById('sum-status');
+            if (isCompleted) {
+                statusEl.innerText = 'Completed';
+                statusEl.style.color = '#10b981';
+            } else {
+                statusEl.innerText = data.last_action || 'In Progress';
+                statusEl.style.color = '#f59e0b';
+            }
+        }
+
+        function renderTimeline(data) {
+            var list = document.getElementById('timeline-list');
+            var clearBtn = document.getElementById('clear-history-btn');
+            var exportBtn = document.getElementById('export-pdf-btn');
+            list.innerHTML = '';
+
+            var historyCleared = localStorage.getItem('historyCleared_' + currentPatientId);
+            var isCompleted = data.status === 'exited' || data.current_zone === 'exit';
+
+            if (clearBtn) clearBtn.style.display = (isCompleted && !historyCleared) ? 'inline-block' : 'none';
+            if (exportBtn) exportBtn.style.display = (isCompleted && !historyCleared) ? 'inline-block' : 'none';
+
+            if (isCompleted && historyCleared) {
+                list.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">' +
+                    '<i class="fas fa-check-circle" style="font-size: 3rem; color: #10b981; margin-bottom: 1rem; display: block;"></i>' +
+                    '<p style="font-weight: 600; color: var(--text-main); margin-bottom: 0.5rem;">Journey Completed</p>' +
+                    '<p>Your activity history has been cleared.</p>' +
+                    '<p style="margin-top: 1rem; font-size: 0.9rem;">Thank you for visiting PatientPath Hospital!</p></div>';
+                return;
+            }
+
+            if (isCompleted) {
+                var banner = document.createElement('div');
+                banner.style.cssText = 'text-align:center; padding:1rem 1.5rem; margin-bottom:1.25rem; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:10px;';
+                banner.innerHTML = '<i class="fas fa-check-circle" style="color:#10b981; font-size:1.3rem; margin-right:0.5rem;"></i>' +
+                    '<span style="font-weight:700; color:#10b981;">Journey Completed</span>' +
+                    '<span style="color:var(--text-muted); font-size:0.85rem; margin-left:0.5rem;">Your visit is now finished.</span>';
+                list.appendChild(banner);
+            }
+
+            var timelineItems = [];
+
+            if (data.action_history && data.action_history.length > 0) {
+                data.action_history.forEach(function (entry) {
+                    timelineItems.push({ time: entry.timestamp, action: entry.action, zone: entry.zone });
+                });
+            }
+
+            if (data.consultation_history && data.consultation_history.length > 0) {
+                data.consultation_history.forEach(function (log) {
+                    if (log.start_time) {
+                        var exists = timelineItems.some(function (t) {
+                            return t.action.includes("Consultation Started") && Math.abs(new Date(t.time).getTime() - new Date(log.start_time).getTime()) < 2000;
+                        });
+                        if (!exists) timelineItems.push({ time: log.start_time, action: "Doctor Consultation Started", zone: "consultation" });
+                    }
+                    if (log.end_time) {
+                        var exists2 = timelineItems.some(function (t) {
+                            return (t.action.includes("Consultation Ended") || t.action.includes("Consultation Completed")) && Math.abs(new Date(t.time).getTime() - new Date(log.end_time).getTime()) < 2000;
+                        });
+                        if (!exists2) timelineItems.push({ time: log.end_time, action: "Doctor Consultation Ended", zone: "consultation" });
+                    }
+                });
+            }
+
+            timelineItems.sort(function (a, b) { return new Date(b.time).getTime() - new Date(a.time).getTime(); });
+
+            timelineItems.forEach(function (item, index) {
+                var isLatest = index === 0;
+                var statusHtml = '';
+                var actionLower = item.action.toLowerCase();
+
+                if (actionLower.includes('completed') || actionLower.includes('done') || actionLower.includes('finished') || actionLower.includes('ended') || actionLower.includes('dispensed') || actionLower.includes('received') || actionLower.includes('verified') || actionLower.includes('generated')) {
+                    statusHtml = '<div class="status-badge" style="background:#d1fae5; color:#047857; margin-top:5px; font-size:0.75rem;">Completed</div>';
+                } else if (actionLower.includes('started') || actionLower.includes('check-in') || actionLower.includes('registration') || actionLower.includes('administered')) {
+                    statusHtml = '<div class="status-badge" style="background:#dbeafe; color:#1d4ed8; margin-top:5px; font-size:0.75rem;">Started</div>';
+                } else if (isLatest && !isCompleted) {
+                    statusHtml = '<div class="status-badge status-waiting" style="margin-top:5px; font-size:0.75rem;">In Progress</div>';
+                } else {
+                    statusHtml = '<div style="color:#6b7280; font-size:0.8rem; margin-top:2px;">Recorded</div>';
+                }
+
+                addTimelineItem(list, item.time, item.action, item.zone, statusHtml);
+            });
+
+            if (data.entry_time) {
+                var entryExists = timelineItems.some(function (h) { return Math.abs(new Date(h.time).getTime() - new Date(data.entry_time).getTime()) < 1000; });
+                if (!entryExists) {
+                    addTimelineItem(list, data.entry_time, "Checked In / Registration", "registration", '<div style="color:#10b981; font-size:0.8rem; margin-top:2px;">Completed</div>');
+                }
+            }
+
+            if (timelineItems.length === 0 && !data.entry_time) {
+                list.innerHTML += '<div style="color: var(--text-muted); padding: 1rem; text-align:center;">No activity recorded yet.</div>';
+            }
+        }
+
+        function addTimelineItem(container, timeStr, text, zone, statusHtml) {
+            var div = document.createElement('div');
+            div.className = 'timeline-item';
+            var time = new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            var date = new Date(timeStr).toLocaleDateString([], { month: 'short', day: 'numeric' });
+            var deptLabel = formatZone(zone);
+
+            div.innerHTML =
+                '<div class="timeline-time">' + date + '<br>' + time + '</div>' +
+                '<div>' +
+                    '<div style="font-weight: 600; color: var(--text-main);">' + text + '</div>' +
+                    '<div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;"><i class="fas fa-map-marker-alt" style="margin-right:4px;"></i>' + deptLabel + '</div>' +
+                    statusHtml +
+                '</div>';
+            container.appendChild(div);
+        }
+
+        function formatZone(zoneKey) {
+            if (!zoneKey) return '';
+            return zoneKey.split('_').map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' ');
+        }
+
+        function clearActivityHistory() {
+            localStorage.setItem('historyCleared_' + currentPatientId, 'true');
+            var clearBtn = document.getElementById('clear-history-btn');
+            if (clearBtn) clearBtn.style.display = 'none';
+            var exportBtn = document.getElementById('export-pdf-btn');
+            if (exportBtn) exportBtn.style.display = 'none';
+
+            var list = document.getElementById('timeline-list');
+            list.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">' +
+                '<i class="fas fa-check-circle" style="font-size: 3rem; color: #10b981; margin-bottom: 1rem; display: block;"></i>' +
+                '<p style="font-weight: 600; color: var(--text-main); margin-bottom: 0.5rem;">Journey Completed</p>' +
+                '<p>Your activity history has been cleared.</p>' +
+                '<p style="margin-top: 1rem; font-size: 0.9rem;">Thank you for visiting PatientPath Hospital!</p></div>';
+        }
+
+        async function exportActivityPDF() {
+            if (!currentPatientId) return;
+
+            var btn = document.getElementById('export-pdf-btn');
+            var originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+            try {
+                var response = await fetch(API_BASE_URL + '/patient/tracking/' + currentPatientId + '?_=' + new Date().getTime());
+                if (!response.ok) throw new Error('Failed to fetch patient data');
+                var data = await response.json();
+
+                var timelineItems = [];
+
+                if (data.action_history && data.action_history.length > 0) {
+                    data.action_history.forEach(function (entry) {
+                        timelineItems.push({ time: entry.timestamp, action: entry.action, zone: entry.zone });
+                    });
+                }
+
+                if (data.consultation_history && data.consultation_history.length > 0) {
+                    data.consultation_history.forEach(function (log) {
+                        if (log.start_time) {
+                            var exists = timelineItems.some(function (t) {
+                                return t.action.includes("Consultation Started") && Math.abs(new Date(t.time).getTime() - new Date(log.start_time).getTime()) < 2000;
+                            });
+                            if (!exists) timelineItems.push({ time: log.start_time, action: "Doctor Consultation Started", zone: "consultation" });
+                        }
+                        if (log.end_time) {
+                            var exists2 = timelineItems.some(function (t) {
+                                return (t.action.includes("Consultation Ended") || t.action.includes("Consultation Completed")) && Math.abs(new Date(t.time).getTime() - new Date(log.end_time).getTime()) < 2000;
+                            });
+                            if (!exists2) timelineItems.push({ time: log.end_time, action: "Doctor Consultation Ended", zone: "consultation" });
+                        }
+                    });
+                }
+
+                if (data.entry_time) {
+                    var entryExists = timelineItems.some(function (h) { return Math.abs(new Date(h.time).getTime() - new Date(data.entry_time).getTime()) < 1000; });
+                    if (!entryExists) {
+                        timelineItems.push({ time: data.entry_time, action: "Checked In / Registration", zone: "registration" });
+                    }
+                }
+
+                timelineItems.sort(function (a, b) { return new Date(a.time).getTime() - new Date(b.time).getTime(); });
+
+                function getActionStatus(actionText) {
+                    var lower = actionText.toLowerCase();
+                    if (lower.includes('completed') || lower.includes('done') || lower.includes('finished') || lower.includes('ended') || lower.includes('dispensed') || lower.includes('received') || lower.includes('verified') || lower.includes('generated')) return 'Completed';
+                    if (lower.includes('started') || lower.includes('check-in') || lower.includes('registration') || lower.includes('administered')) return 'Started';
+                    return 'Recorded';
+                }
+
+                var totalDuration = '--';
+                if (data.entry_time) {
+                    var entryDate = new Date(data.entry_time);
+                    var exitDate = data.exit_time ? new Date(data.exit_time) : new Date();
+                    var diffMs = exitDate - entryDate;
+                    var diffMins = Math.round(diffMs / 60000);
+                    if (diffMins < 60) {
+                        totalDuration = diffMins + ' minutes';
+                    } else {
+                        totalDuration = Math.floor(diffMins / 60) + 'h ' + (diffMins % 60) + 'm';
+                    }
+                }
+
+                var jsPDFClass = window.jspdf.jsPDF;
+                var doc = new jsPDFClass('p', 'mm', 'a4');
+                var pageWidth = doc.internal.pageSize.getWidth();
+                var margin = 18;
+                var contentWidth = pageWidth - margin * 2;
+                var y = 20;
+
+                doc.setFillColor(14, 165, 233);
+                doc.rect(0, 0, pageWidth, 38, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(20);
+                doc.setFont('helvetica', 'bold');
+                doc.text('PatientPath AI', margin, 16);
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.text('Patient Activity History Report', margin, 24);
+                doc.text('Generated: ' + new Date().toLocaleString(), margin, 31);
+                y = 48;
+
+                doc.setFillColor(245, 247, 250);
+                doc.roundedRect(margin, y, contentWidth, 32, 3, 3, 'F');
+                doc.setTextColor(30, 41, 59);
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Patient Information', margin + 5, y + 8);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(9.5);
+                doc.setTextColor(71, 85, 105);
+                doc.text('Name: ' + (data.name || 'N/A'), margin + 5, y + 16);
+                doc.text('Tracking ID: ' + (data.tracking_id || currentPatientId), margin + 80, y + 16);
+                doc.text('Entry Time: ' + (data.entry_time ? new Date(data.entry_time).toLocaleString() : 'N/A'), margin + 5, y + 23);
+                doc.text('Exit Time: ' + (data.exit_time ? new Date(data.exit_time).toLocaleString() : 'N/A'), margin + 80, y + 23);
+                y += 38;
+
+                doc.setFillColor(236, 253, 245);
+                doc.roundedRect(margin, y, contentWidth, 18, 3, 3, 'F');
+                doc.setDrawColor(16, 185, 129);
+                doc.roundedRect(margin, y, contentWidth, 18, 3, 3, 'S');
+                doc.setTextColor(4, 120, 87);
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Journey ' + (data.status === 'exited' ? 'Completed' : 'In Progress'), margin + 5, y + 7);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(9);
+                doc.text('Total Visit Duration: ' + totalDuration, margin + 5, y + 13);
+                doc.text('Total Actions Recorded: ' + timelineItems.length, margin + 80, y + 13);
+                doc.text('Status: ' + (data.status === 'exited' ? 'Completed' : data.status || 'N/A'), margin + 140, y + 13);
+                y += 26;
+
+                doc.setTextColor(30, 41, 59);
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Activity Timeline', margin, y);
+                y += 7;
+
+                var colTime = margin;
+                var colDept = margin + 32;
+                var colAction = margin + 78;
+                var colStatus = margin + 140;
+                var rowHeight = 8;
+
+                function drawTableHeader() {
+                    doc.setFillColor(14, 165, 233);
+                    doc.rect(margin, y, contentWidth, rowHeight, 'F');
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(8.5);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('TIME', colTime + 2, y + 5.5);
+                    doc.text('DEPARTMENT', colDept + 2, y + 5.5);
+                    doc.text('ACTION', colAction + 2, y + 5.5);
+                    doc.text('STATUS', colStatus + 2, y + 5.5);
+                    y += rowHeight;
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8);
+                }
+
+                drawTableHeader();
+
+                timelineItems.forEach(function (item, index) {
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                        drawTableHeader();
+                    }
+
+                    if (index % 2 === 0) {
+                        doc.setFillColor(248, 250, 252);
+                        doc.rect(margin, y, contentWidth, rowHeight, 'F');
+                    }
+
+                    doc.setTextColor(51, 65, 85);
+                    var tStr = new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                    var dStr = new Date(item.time).toLocaleDateString([], { month: 'short', day: 'numeric' });
+                    doc.text(dStr + ' ' + tStr, colTime + 2, y + 5.5);
+                    doc.text(formatZone(item.zone || '--'), colDept + 2, y + 5.5);
+
+                    var actionText = item.action.length > 38 ? item.action.substring(0, 35) + '...' : item.action;
+                    doc.text(actionText, colAction + 2, y + 5.5);
+
+                    var status = getActionStatus(item.action);
+                    if (status === 'Completed') doc.setTextColor(4, 120, 87);
+                    else if (status === 'Started') doc.setTextColor(29, 78, 216);
+                    else doc.setTextColor(107, 114, 128);
+                    doc.text(status, colStatus + 2, y + 5.5);
+                    doc.setTextColor(51, 65, 85);
+                    y += rowHeight;
+                });
+
+                doc.setDrawColor(203, 213, 225);
+                doc.line(margin, y, margin + contentWidth, y);
+                y += 8;
+
+                if (y > 250) { doc.addPage(); y = 20; }
+                doc.setTextColor(30, 41, 59);
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Department-wise Summary', margin, y);
+                y += 7;
+
+                var deptSummary = {};
+                timelineItems.forEach(function (item) {
+                    var dept = formatZone(item.zone || 'Unknown');
+                    if (!deptSummary[dept]) deptSummary[dept] = { actions: [], firstTime: item.time, lastTime: item.time };
+                    deptSummary[dept].actions.push(item.action);
+                    if (new Date(item.time) < new Date(deptSummary[dept].firstTime)) deptSummary[dept].firstTime = item.time;
+                    if (new Date(item.time) > new Date(deptSummary[dept].lastTime)) deptSummary[dept].lastTime = item.time;
+                });
+
+                doc.setFillColor(99, 102, 241);
+                doc.rect(margin, y, contentWidth, rowHeight, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(8.5);
+                doc.setFont('helvetica', 'bold');
+                doc.text('DEPARTMENT', colTime + 2, y + 5.5);
+                doc.text('ACTIONS PERFORMED', margin + 55, y + 5.5);
+                doc.text('TIME SPENT', colStatus + 2, y + 5.5);
+                y += rowHeight;
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8);
+                var deptIdx = 0;
+                for (var dept in deptSummary) {
+                    if (y > 270) { doc.addPage(); y = 20; }
+                    var info = deptSummary[dept];
+                    var dMs = new Date(info.lastTime) - new Date(info.firstTime);
+                    var dMins = Math.round(dMs / 60000);
+                    var timeSpent = dMins <= 0 ? '< 1 min' : (dMins < 60 ? dMins + ' min' : Math.floor(dMins / 60) + 'h ' + (dMins % 60) + 'm');
+
+                    if (deptIdx % 2 === 0) {
+                        doc.setFillColor(248, 250, 252);
+                        doc.rect(margin, y, contentWidth, rowHeight, 'F');
+                    }
+
+                    doc.setTextColor(51, 65, 85);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(dept, colTime + 2, y + 5.5);
+                    doc.setFont('helvetica', 'normal');
+                    var actionsStr = info.actions.join(', ');
+                    doc.text(actionsStr.length > 52 ? actionsStr.substring(0, 49) + '...' : actionsStr, margin + 55, y + 5.5);
+                    doc.text(timeSpent, colStatus + 2, y + 5.5);
+                    y += rowHeight;
+                    deptIdx++;
+                }
+
+                doc.setDrawColor(203, 213, 225);
+                doc.line(margin, y + 2, margin + contentWidth, y + 2);
+                y += 10;
+                if (y > 275) { doc.addPage(); y = 20; }
+                doc.setTextColor(148, 163, 184);
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'italic');
+                doc.text('This report was generated by PatientPath AI. Thank you for visiting!', margin, y);
+                doc.text('Report Date: ' + new Date().toLocaleString(), margin, y + 5);
+
+                var fileName = 'PatientPath_Report_' + (data.tracking_id || currentPatientId) + '_' + new Date().toISOString().slice(0, 10) + '.pdf';
+                doc.save(fileName);
+
+            } catch (err) {
+                console.error('PDF export error:', err);
+                alert('Failed to generate PDF. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Recent Activity</title>
+    <link rel="stylesheet" href="css/style.css?v=200">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .activity-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .activity-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .activity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .activity-header h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .btn-clear {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.85rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-clear:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .activity-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem 0.5rem;
+            border-bottom: 1px solid var(--glass-border);
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            transition: background 0.15s;
+        }
+
+        .activity-item:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-time {
+            width: 80px;
+            font-weight: 600;
+            color: var(--primary-color);
+            flex-shrink: 0;
+        }
+
+        .activity-desc {
+            flex: 1;
+            color: var(--text-main);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+            display: block;
+            opacity: 0.5;
+        }
+
+        .summary-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .summary-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            text-align: center;
+        }
+
+        .summary-item .s-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.3rem;
+        }
+
+        .summary-item .s-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">3</span> Staff Panel</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Recent Activity</h1>
+                <p class="header-subtitle">History of staff actions and patient updates</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <div class="activity-container">
+
+                <!-- Summary -->
+                <div class="summary-row">
+                    <div class="summary-item">
+                        <div class="s-label">Total Actions</div>
+                        <div class="s-value" id="total-actions">0</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="s-label">Last Action</div>
+                        <div class="s-value" id="last-action-time">--</div>
+                    </div>
+                </div>
+
+                <!-- Activity list card -->
+                <div class="activity-card">
+                    <div class="activity-header">
+                        <h3><i class="fas fa-history" style="color: var(--primary-color);"></i> Activity Log</h3>
+                    </div>
+                    <ul class="activity-list" id="activity-list">
+                        <!-- JS generated -->
+                    </ul>
+                    <div class="empty-state" id="empty-state" style="display:none;">
+                        <i class="fas fa-clipboard-list"></i>
+                        No activity recorded yet. Actions from the Staff Panel will appear here.
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div style="display:flex;gap:1rem;justify-content:center;margin-top:1.5rem;">
+                    <a href="staff_panel.html" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.2rem;background:var(--card-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);text-decoration:none;font-size:0.9rem;transition:all 0.2s;">
+                        <i class="fas fa-arrow-left"></i> Back to Staff Panel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
+    <script src="js/main.js?v=999"></script>
+
+    <script>
+        var currentUserId = localStorage.getItem('currentUser') || 'unknown';
+        var ACTION_COUNT_KEY = 'staffActionCount_' + currentUserId;
+        var ACTION_LOG_KEY = 'staffActivityLogs_' + currentUserId;
+
+        function loadActivityLog() {
+            var list = document.getElementById('activity-list');
+            var emptyState = document.getElementById('empty-state');
+            list.innerHTML = '';
+
+            var logs = JSON.parse(localStorage.getItem(ACTION_LOG_KEY) || '[]');
+
+            if (logs.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            }
+            emptyState.style.display = 'none';
+
+            logs.forEach(function (log) {
+                var li = document.createElement('li');
+                li.className = 'activity-item';
+                var timeStr = new Date(log.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                var dateStr = new Date(log.time).toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+                var desc = '<strong>' + log.id + '</strong>: ' + log.action;
+                if (log.next) desc += ' <i class="fas fa-arrow-right" style="font-size:0.8em; margin:0 5px;"></i> ' + log.next;
+
+                li.innerHTML =
+                    '<div class="activity-time">' + timeStr + '</div>' +
+                    '<div class="activity-desc">' + desc + '</div>' +
+                    '<div style="font-size:0.75rem;color:var(--text-muted);flex-shrink:0;">' + dateStr + '</div>';
+                list.appendChild(li);
+            });
+
+            // Update summary
+            document.getElementById('total-actions').textContent = parseInt(localStorage.getItem(ACTION_COUNT_KEY) || '0');
+            if (logs.length > 0) {
+                var lastTime = new Date(logs[0].time);
+                document.getElementById('last-action-time').textContent = lastTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            }
+        }
+
+        loadActivityLog();
+    </script>
+</body>
+
+</html>

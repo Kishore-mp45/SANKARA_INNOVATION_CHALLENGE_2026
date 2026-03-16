@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Department Performance</title>
+    <link rel="stylesheet" href="css/style.css?v=200">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .dp-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header card */
+        .dp-header-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .dp-header-card .icon-wrap {
+            width: 48px;
+            height: 48px;
+            background: rgba(99, 102, 241, 0.12);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .dp-header-card .icon-wrap i {
+            color: #6366f1;
+            font-size: 1.3rem;
+        }
+
+        .dp-header-card .info-text .title {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+
+        .dp-header-card .info-text .dept-label {
+            font-size: 1rem;
+            color: var(--text-main);
+            font-weight: 700;
+            margin-top: 0.15rem;
+        }
+
+        /* Refresh bar */
+        .refresh-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding: 0.65rem 1.25rem;
+            background: var(--card-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .refresh-bar .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        }
+
+        /* Workload indicator */
+        .workload-strip {
+            border-radius: 10px;
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .workload-strip.wl-normal {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid #10b981;
+            color: #10b981;
+        }
+
+        .workload-strip.wl-moderate {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid #f59e0b;
+            color: #f59e0b;
+        }
+
+        .workload-strip.wl-high {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
+
+        .workload-strip i { font-size: 1rem; }
+
+        /* Metrics grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.15rem 1.25rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.85rem;
+            transition: border-color 0.2s;
+        }
+
+        .metric-card:hover {
+            border-color: #6366f1;
+        }
+
+        .metric-card .mc-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1rem;
+        }
+
+        .mc-icon.bg-indigo { background: rgba(99, 102, 241, 0.12); color: #6366f1; }
+        .mc-icon.bg-emerald { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+        .mc-icon.bg-amber { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+        .mc-icon.bg-rose { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+        .mc-icon.bg-sky { background: rgba(14, 165, 233, 0.12); color: #0ea5e9; }
+
+        .metric-card .mc-body .mc-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .metric-card .mc-body .mc-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .metric-card .mc-body .mc-unit {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+
+        /* Skeleton */
+        .skeleton-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .skeleton-line {
+            height: 14px;
+            background: linear-gradient(90deg, var(--border-color) 25%, transparent 50%, var(--border-color) 75%);
+            background-size: 200% 100%;
+            border-radius: 6px;
+            animation: shimmer 1.5s infinite;
+            margin-bottom: 0.75rem;
+        }
+
+        .skeleton-line.short { width: 40%; }
+        .skeleton-line.medium { width: 65%; }
+        .skeleton-line.long { width: 90%; }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Error banner */
+        .error-banner {
+            display: none;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            color: var(--text-main);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .error-banner i { color: #ef4444; }
+
+        @media (max-width: 700px) {
+            .metrics-grid { grid-template-columns: 1fr; }
+            .dp-container { padding: 1rem; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">3</span> Staff Panel</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Department Performance</h1>
+                <p class="header-subtitle">Real-time performance metrics and analytics for your department</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <div class="dp-container">
+
+                <!-- Header info -->
+                <div class="dp-header-card">
+                    <div class="icon-wrap"><i class="fas fa-chart-line"></i></div>
+                    <div class="info-text">
+                        <div class="title">Department Performance Panel</div>
+                        <div class="dept-label" id="dept-display">Loading department...</div>
+                    </div>
+                </div>
+
+                <!-- Refresh bar -->
+                <div class="refresh-bar">
+                    <div style="display:flex;align-items:center;gap:0.6rem;">
+                        <span class="live-dot" id="live-dot"></span>
+                        <span style="font-size:0.85rem;color:var(--text-muted);" id="refresh-text">Fetching data...</span>
+                    </div>
+                    <span style="font-size:0.8rem;color:var(--text-muted);">Auto-refresh: 25s</span>
+                </div>
+
+                <!-- Error banner -->
+                <div class="error-banner" id="error-banner">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="error-msg">Unable to fetch performance data.</span>
+                </div>
+
+                <!-- Main content area (metric cards) -->
+                <div id="perf-content">
+                    <div class="skeleton-card">
+                        <div class="skeleton-line medium"></div>
+                        <div class="skeleton-line long"></div>
+                        <div class="skeleton-line short"></div>
+                        <div class="skeleton-line long"></div>
+                    </div>
+                </div>
+
+                <!-- Back link -->
+                <div style="display:flex;gap:1rem;justify-content:center;margin-top:1.5rem;">
+                    <a href="staff_panel.html" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.2rem;background:var(--card-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);text-decoration:none;font-size:0.9rem;transition:all 0.2s;">
+                        <i class="fas fa-arrow-left"></i> Back to Staff Panel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
+    <script src="js/main.js?v=999"></script>
+
+    <script>
+        var API_BASE_URL = API_BASE;
+        var REFRESH_INTERVAL = 25000;
+        var pollTimer = null;
+
+        var DEPT_NAMES = {
+            registration: 'Registration',
+            consultation: 'Consultation',
+            diagnostics: 'Diagnostics',
+            vision_lab: 'Vision Lab',
+            dilation_hall: 'Dilation Hall',
+            pharmacy: 'Pharmacy',
+            billing_insurance: 'Billing & Insurance'
+        };
+
+        /* ═══════════════════ Init ═══════════════════ */
+        window.addEventListener('load', function () {
+            fetchPerformance();
+            pollTimer = setInterval(function () {
+                fetchPerformance();
+            }, REFRESH_INTERVAL);
+        });
+
+        function getStaffInfo() {
+            return {
+                staffId: localStorage.getItem('currentUser') || 'unknown',
+                department: localStorage.getItem('currentDept') || ''
+            };
+        }
+
+        /* ═══════════════════ Metric Cards Fetch ═══════════════════ */
+        async function fetchPerformance() {
+            var info = getStaffInfo();
+            var deptDisplay = document.getElementById('dept-display');
+            var errorBanner = document.getElementById('error-banner');
+            var errorMsg = document.getElementById('error-msg');
+            var content = document.getElementById('perf-content');
+
+            if (!info.department) {
+                deptDisplay.textContent = 'No department assigned';
+                errorBanner.style.display = 'flex';
+                errorMsg.textContent = 'No department found. Please log out and select your department when logging in.';
+                content.innerHTML = '';
+                return;
+            }
+
+            deptDisplay.textContent = DEPT_NAMES[info.department] || info.department;
+
+            try {
+                var url = API_BASE_URL + '/staff/department-performance/' +
+                    encodeURIComponent(info.staffId) +
+                    '?department=' + encodeURIComponent(info.department) +
+                    '&_=' + Date.now();
+
+                var res = await fetch(url);
+                if (!res.ok) throw new Error('Status ' + res.status);
+
+                var data = await res.json();
+                errorBanner.style.display = 'none';
+                renderPerformance(data);
+
+                document.getElementById('refresh-text').textContent =
+                    'Live \u2014 Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                document.getElementById('live-dot').style.background = '#10b981';
+
+            } catch (e) {
+                console.error('Performance fetch error:', e);
+                document.getElementById('live-dot').style.background = '#ef4444';
+                document.getElementById('refresh-text').textContent = 'Connection error. Retrying...';
+            }
+        }
+
+        function renderPerformance(data) {
+            var content = document.getElementById('perf-content');
+            var wl = data.workload || 'normal';
+            var html = '';
+
+            // Workload strip
+            var wlClass, wlIcon, wlLabel;
+            if (wl === 'high') {
+                wlClass = 'wl-high';
+                wlIcon = '<i class="fas fa-exclamation-triangle"></i>';
+                wlLabel = 'High Workload';
+            } else if (wl === 'moderate') {
+                wlClass = 'wl-moderate';
+                wlIcon = '<i class="fas fa-exclamation-circle"></i>';
+                wlLabel = 'Moderate Workload';
+            } else {
+                wlClass = 'wl-normal';
+                wlIcon = '<i class="fas fa-check-circle"></i>';
+                wlLabel = 'Normal Workload';
+            }
+
+            html += '<div class="workload-strip ' + wlClass + '">' +
+                wlIcon + ' ' + wlLabel +
+                '</div>';
+
+            // Metrics grid
+            html += '<div class="metrics-grid">';
+
+            html += metricCard('bg-indigo', 'fa-users', 'Patients Processed Today',
+                data.patients_processed_today, '');
+
+            html += metricCard('bg-emerald', 'fa-stopwatch', 'Average Service Time',
+                data.average_service_time, 'minutes');
+
+            var queueIconBg = 'bg-amber';
+            if (data.current_queue_size > 10) queueIconBg = 'bg-rose';
+            else if (data.current_queue_size < 5) queueIconBg = 'bg-emerald';
+            html += metricCard(queueIconBg, 'fa-layer-group', 'Current Queue Size',
+                data.current_queue_size, '');
+
+            html += metricCard('bg-rose', 'fa-hourglass-half', 'Predicted Waiting Time',
+                data.predicted_waiting_time, 'minutes');
+
+            html += metricCard('bg-sky', 'fa-arrow-trend-up', 'Arrival Rate',
+                data.arrival_rate, 'patients / hour');
+
+            html += '</div>';
+
+            content.innerHTML = html;
+        }
+
+        function metricCard(iconBg, iconClass, label, value, unit) {
+            var valDisplay = (value !== null && value !== undefined) ? value : '--';
+            var unitHtml = unit ? ' <span class="mc-unit">' + unit + '</span>' : '';
+            return '<div class="metric-card">' +
+                '<div class="mc-icon ' + iconBg + '"><i class="fas ' + iconClass + '"></i></div>' +
+                '<div class="mc-body">' +
+                '<div class="mc-label">' + label + '</div>' +
+                '<div class="mc-value">' + valDisplay + unitHtml + '</div>' +
+                '</div>' +
+                '</div>';
+        }
+    </script>
+</body>
+
+</html>

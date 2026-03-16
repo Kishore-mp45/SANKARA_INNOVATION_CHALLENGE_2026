@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Live Notification Center</title>
+    <link rel="stylesheet" href="css/style.css?v=200">
+    <link rel="stylesheet" href="css/admin.css?v=200">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        .notification-page-container {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .notification-page-container .feed-panel {
+            height: auto;
+            min-height: 500px;
+        }
+
+        .notification-page-container .activity-list {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        /* Filter bar */
+        .notification-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            background: var(--sidebar-bg);
+            color: var(--text-muted);
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .filter-chip:hover,
+        .filter-chip.active {
+            background: var(--primary-color);
+            color: #fff;
+            border-color: var(--primary-color);
+        }
+
+        .panel-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* Staff Activity Logs */
+        .staff-logs-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.82rem;
+        }
+
+        .staff-logs-table thead th {
+            background: rgba(148,163,184,0.08);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            padding: 0.65rem 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .staff-logs-table tbody td {
+            padding: 0.6rem 0.75rem;
+            border-bottom: 1px solid rgba(148,163,184,0.06);
+            color: var(--text-main);
+        }
+
+        .staff-logs-table tbody tr:hover {
+            background: rgba(59,130,246,0.04);
+        }
+
+        .staff-logs-table .role-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .role-doctor { background: rgba(139,92,246,0.15); color: #8b5cf6; }
+        .role-nurse { background: rgba(16,185,129,0.15); color: #10b981; }
+        .role-admin { background: rgba(59,130,246,0.15); color: #3b82f6; }
+
+        .staff-filter-row {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .staff-filter-row select {
+            background: var(--sidebar-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.35rem 0.6rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
+            <li><a href="admin_dashboard.html" class="nav-item"><span class="step-badge">9</span> Admin Center</a></li>
+            <li><a href="notification_center.html" class="nav-item active"><span class="step-badge">10</span> Notifications</a></li>
+            <li><a href="escalation_reports.html" class="nav-item"><span class="step-badge">11</span> Escalations</a></li>
+            <li><a href="resource_allocation.html" class="nav-item"><span class="step-badge">12</span> Resources</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <div>
+                    <h1 style="font-size: 1.5rem; color: var(--admin-primary);">
+                        <i class="fas fa-stream" style="margin-right: 0.5rem;"></i>Live Notification Center
+                    </h1>
+                    <p class="header-subtitle">Real-time Patient Activity Stream</p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <span class="status-badge"
+                        style="background:#d1fae5; color:#047857; display:flex; align-items:center; gap:0.5rem;">
+                        <span class="status-dot dot-green"></span> Live
+                    </span>
+                    <button onclick="fetchActivity()" class="btn-sm"><i class="fas fa-sync-alt"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <div class="notification-page-container fade-in">
+            <!-- Notification Feed Panel -->
+            <div class="feed-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i class="fas fa-stream" style="color:var(--admin-accent)"></i>
+                        Activity Feed
+                    </div>
+                    <div class="panel-actions">
+                        <div class="notification-filter-bar">
+                            <span class="filter-chip active" onclick="setFilter('all', this)">All</span>
+                            <span class="filter-chip" onclick="setFilter('registration', this)">Registration</span>
+                            <span class="filter-chip" onclick="setFilter('consultation', this)">Consultation</span>
+                            <span class="filter-chip" onclick="setFilter('pharmacy', this)">Pharmacy</span>
+                            <span class="filter-chip" onclick="setFilter('billing', this)">Billing</span>
+                        </div>
+                        <input type="text" id="log-search" placeholder="Search activity..." class="form-control"
+                            style="font-size:0.85rem; padding:0.4rem; width:180px;">
+                        <button onclick="exportLogs()" class="btn-sm btn-primary">
+                            <i class="fas fa-download"></i> Export CSV
+                        </button>
+                    </div>
+                </div>
+                <div class="activity-list" id="activity-list">
+                    <!-- Items injected by JS -->
+                    <div style="padding:2rem; text-align:center; color:#94a3b8;">Loading activity stream...</div>
+                </div>
+            </div>
+
+            <!-- Staff Activity Logs Panel -->
+            <div class="feed-panel" style="margin-top: 1.5rem; height: auto;">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i class="fas fa-user-clock" style="color: var(--admin-accent)"></i>
+                        Staff Activity Logs
+                    </div>
+                    <div class="panel-actions">
+                        <div class="staff-filter-row">
+                            <select id="staff-dept-filter" onchange="fetchStaffLogs()">
+                                <option value="">All Departments</option>
+                                <option value="registration">Registration</option>
+                                <option value="vision_lab">Vision Lab</option>
+                                <option value="dilation_hall">Dilation Hall</option>
+                                <option value="diagnostics">Diagnostics</option>
+                                <option value="consultation">Consultation</option>
+                                <option value="pharmacy">Pharmacy</option>
+                                <option value="billing_insurance">Billing & Insurance</option>
+                            </select>
+                            <select id="staff-role-filter" onchange="fetchStaffLogs()">
+                                <option value="">All Roles</option>
+                                <option value="Doctor">Doctor</option>
+                                <option value="Nurse">Nurse</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                        </div>
+                        <button onclick="fetchStaffLogs()" class="btn-sm"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                </div>
+                <div style="max-height: 50vh; overflow-y: auto;">
+                    <table class="staff-logs-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Staff ID</th>
+                                <th>Action</th>
+                                <th>Department</th>
+                                <th>Patient</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staff-logs-body">
+                            <tr><td colspan="5" style="text-align:center; padding:1.5rem; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading staff logs...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
+    <script src="js/main.js?v=999"></script>
+    <script>
+        const API_BASE_URL = API_BASE;
+        let currentFilter = 'all';
+        let cachedLogs = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("Notification Center Initialized");
+            fetchActivity();
+
+            // Poll every 2 seconds
+            setInterval(fetchActivity, 2000);
+
+            // Filter listeners
+            document.getElementById('log-search').addEventListener('input', renderFiltered);
+        });
+
+        function setFilter(filter, chipEl) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            chipEl.classList.add('active');
+            renderFiltered();
+        }
+
+        async function fetchActivity() {
+            let url = `${API_BASE_URL}/admin/activity?limit=100`;
+
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    cachedLogs = data.logs || [];
+                    updateStats(cachedLogs);
+                    renderFiltered();
+                }
+            } catch (error) {
+                console.error("Activity Fetch Error:", error);
+            }
+        }
+
+        function updateStats(logs) {
+            // Stats cards removed — no-op
+        }
+
+        function renderFiltered() {
+            const search = document.getElementById('log-search').value.toLowerCase();
+
+            let filteredLogs = cachedLogs.filter(log =>
+                log.action.toLowerCase().includes(search) ||
+                log.details.toLowerCase().includes(search) ||
+                log.role.toLowerCase().includes(search)
+            );
+
+            // Apply category filter
+            if (currentFilter !== 'all') {
+                filteredLogs = filteredLogs.filter(log => {
+                    const a = log.action.toLowerCase();
+                    switch (currentFilter) {
+                        case 'registration': return a.includes('registration') || a.includes('check-in');
+                        case 'consultation': return a.includes('consultation') || a.includes('doctor');
+                        case 'pharmacy': return a.includes('medicine') || a.includes('dispensed') || a.includes('pharmacy');
+                        case 'billing': return a.includes('payment') || a.includes('billing') || a.includes('insurance');
+                        case 'discharge': return a.includes('discharged') || a.includes('exit');
+                        default: return true;
+                    }
+                });
+            }
+
+            renderActivityList(filteredLogs);
+        }
+
+        function renderActivityList(logs) {
+            const container = document.getElementById('activity-list');
+
+            if (logs.length === 0) {
+                container.innerHTML = '<div style="padding:2rem; text-align:center; color:#94a3b8;"><i class="fas fa-stream" style="font-size:1.5rem; margin-bottom:0.5rem; display:block; opacity:0.4;"></i>No patient activity records found.</div>';
+                return;
+            }
+
+            let html = '';
+            logs.forEach(log => {
+                let iconClass = 'icon-success';
+                let iconContent = '<i class="fas fa-check"></i>';
+
+                // Map actions to specific icons
+                const a = log.action.toLowerCase();
+                if (a.includes('registration') || a.includes('check-in')) {
+                    iconContent = '<i class="fas fa-clipboard-list"></i>';
+                    iconClass = 'icon-info';
+                } else if (a.includes('vision') || a.includes('screening')) {
+                    iconContent = '<i class="fas fa-eye"></i>';
+                } else if (a.includes('dilation')) {
+                    iconContent = '<i class="fas fa-clock"></i>';
+                } else if (a.includes('diagnostic') || a.includes('test')) {
+                    iconContent = '<i class="fas fa-x-ray"></i>';
+                } else if (a.includes('consultation') || a.includes('doctor')) {
+                    iconContent = '<i class="fas fa-stethoscope"></i>';
+                } else if (a.includes('medicine') || a.includes('dispensed') || a.includes('pharmacy')) {
+                    iconContent = '<i class="fas fa-pills"></i>';
+                } else if (a.includes('payment') || a.includes('billing') || a.includes('insurance')) {
+                    iconContent = '<i class="fas fa-file-invoice-dollar"></i>';
+                } else if (a.includes('discharged') || a.includes('exit')) {
+                    iconContent = '<i class="fas fa-sign-out-alt"></i>';
+                    iconClass = 'icon-warning';
+                } else if (a.includes('assign') || a.includes('id card')) {
+                    iconContent = '<i class="fas fa-id-card"></i>';
+                } else if (a.includes('treatment') || a.includes('started')) {
+                    iconContent = '<i class="fas fa-user-md"></i>';
+                } else if (a.includes('movement')) {
+                    iconContent = '<i class="fas fa-walking"></i>';
+                    iconClass = 'icon-info';
+                }
+
+                // Format date + time
+                const date = new Date(log.timestamp.replace('Z', ''));
+                const now = new Date();
+                const isToday = date.toDateString() === now.toDateString();
+                const timeStr = isToday
+                    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                    : date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                html += `
+                    <div class="activity-item">
+                        <div class="activity-icon ${iconClass}">
+                            ${iconContent}
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-header">
+                                <div class="activity-title">
+                                    ${log.action}
+                                </div>
+                                <div class="activity-time">${timeStr}</div>
+                            </div>
+                            <div class="activity-desc">${log.details}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function exportLogs() {
+            window.location.href = `${API_BASE_URL}/admin/export`;
+        }
+
+        // ---- Staff Activity Logs ----
+        async function fetchStaffLogs() {
+            const dept = document.getElementById('staff-dept-filter').value;
+            const role = document.getElementById('staff-role-filter').value;
+            let url = `${API_BASE_URL}/admin/staff-activity-logs?limit=100`;
+            if (dept) url += `&department=${dept}`;
+            if (role) url += `&role=${role}`;
+
+            try {
+                const res = await fetch(url);
+                if (!res.ok) return;
+                const data = await res.json();
+                renderStaffLogs(data.logs || []);
+            } catch (e) {
+                console.error('Staff logs fetch error:', e);
+            }
+        }
+
+        function renderStaffLogs(logs) {
+            const tbody = document.getElementById('staff-logs-body');
+            if (!logs.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No staff activity logs found.</td></tr>';
+                return;
+            }
+
+            let html = '';
+            logs.forEach(log => {
+                const date = new Date(log.timestamp.replace('Z', ''));
+                const now = new Date();
+                const isToday = date.toDateString() === now.toDateString();
+                const timeStr = isToday
+                    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                    : date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                html += `<tr>
+                    <td style="white-space:nowrap; color:var(--text-muted); font-size:0.78rem;">${timeStr}</td>
+                    <td style="font-weight:600;">${log.staff_id}</td>
+                    <td>${log.action}</td>
+                    <td style="color:var(--text-muted);">${log.department}</td>
+                    <td style="font-size:0.78rem; color:var(--text-muted);">${log.patient}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        // Initial fetch + poll
+        fetchStaffLogs();
+        setInterval(fetchStaffLogs, 5000);
+    </script>
+</body>
+
+</html>

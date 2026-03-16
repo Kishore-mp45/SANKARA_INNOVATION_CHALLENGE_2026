@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - AI Staff Allocation</title>
+    <link rel="stylesheet" href="css/style.css?v=200">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .alloc-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .alloc-header-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .alloc-header-card .icon-wrap {
+            width: 48px;
+            height: 48px;
+            background: rgba(139, 92, 246, 0.12);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .alloc-header-card .icon-wrap i {
+            color: #8b5cf6;
+            font-size: 1.3rem;
+        }
+
+        .alloc-header-card .info-text .title {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+
+        .alloc-header-card .info-text .subtitle {
+            font-size: 0.85rem;
+            color: var(--text-main);
+            margin-top: 0.15rem;
+        }
+
+        .refresh-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding: 0.65rem 1.25rem;
+            background: var(--card-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .refresh-bar .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        }
+
+        .dept-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .dept-row {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .dept-row:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .dept-row .dept-info {
+            flex: 1;
+        }
+
+        .dept-row .dept-name {
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 0.95rem;
+        }
+
+        .dept-row .dept-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .dept-row .dept-meta strong {
+            color: var(--text-main);
+        }
+
+        .dept-row .dept-meta .optimal {
+            color: #8b5cf6;
+        }
+
+        .dept-row .dept-status {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            margin-top: 0.4rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .btn-checkin {
+            padding: 0.5rem 1rem;
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn-checkin:hover {
+            background: #7c3aed;
+        }
+
+        .btn-checkin:active {
+            transform: scale(0.97);
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .summary-stat {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .summary-stat .ss-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.3rem;
+        }
+
+        .summary-stat .ss-value {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 1000;
+        }
+
+        .toast {
+            background: var(--sidebar-bg);
+            border-left: 4px solid var(--primary-color);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            animation: slideIn 0.3s ease-out;
+            min-width: 300px;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">3</span> Staff Panel</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>AI Staff Allocation</h1>
+                <p class="header-subtitle">ML-powered optimal staff recommendations per department</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <div class="alloc-container">
+
+                <!-- Header info -->
+                <div class="alloc-header-card">
+                    <div class="icon-wrap"><i class="fas fa-user-nurse"></i></div>
+                    <div class="info-text">
+                        <div class="title">AI-Powered Staff Recommendation</div>
+                    </div>
+                </div>
+
+                <!-- Refresh bar -->
+                <div class="refresh-bar">
+                    <div style="display:flex;align-items:center;gap:0.6rem;">
+                        <span class="live-dot" id="live-dot"></span>
+                        <span style="font-size:0.85rem;color:var(--text-muted);" id="refresh-text">Fetching data...</span>
+                    </div>
+                    <span style="font-size:0.8rem;color:var(--text-muted);">Auto-refresh: 15s</span>
+                </div>
+
+                <!-- Summary stats -->
+                <div class="summary-stats">
+                    <div class="summary-stat">
+                        <div class="ss-label">Total Departments</div>
+                        <div class="ss-value" id="total-depts">7</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="ss-label">Bottlenecks</div>
+                        <div class="ss-value" id="bottleneck-count" style="color:#ef4444;">--</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="ss-label">Staff Needed</div>
+                        <div class="ss-value" id="total-deficit" style="color:#f59e0b;">--</div>
+                    </div>
+                </div>
+
+                <!-- Department allocation grid -->
+                <div class="dept-grid" id="dept-grid">
+                    <div style="text-align:center;padding:2rem;color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading recommendations...</div>
+                </div>
+
+                <!-- Navigation -->
+                <div style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;">
+                    <a href="staff_panel.html" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.2rem;background:var(--card-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);text-decoration:none;font-size:0.9rem;transition:all 0.2s;">
+                        <i class="fas fa-arrow-left"></i> Back to Staff Panel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
+    <script src="js/main.js?v=999"></script>
+
+    <script>
+        var API_BASE_URL = API_BASE;
+        var REFRESH_INTERVAL = 15000;
+        var pollTimer = null;
+
+        window.addEventListener('load', function () {
+            fetchStaffAllocation();
+            pollTimer = setInterval(fetchStaffAllocation, REFRESH_INTERVAL);
+        });
+
+        async function fetchStaffAllocation() {
+            try {
+                var res = await fetch(API_BASE_URL + '/prediction/staff-recommendation?_=' + Date.now());
+                if (!res.ok) throw new Error('Status ' + res.status);
+
+                var data = await res.json();
+                var grid = document.getElementById('dept-grid');
+
+                if (!data.departments || data.departments.length === 0) {
+                    grid.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted);">No data available.</div>';
+                    return;
+                }
+
+                var bottleneckCount = 0;
+                var totalDeficit = 0;
+                var html = '';
+
+                data.departments.forEach(function (dept) {
+                    var borderColor = dept.is_bottleneck ? '#ef4444' : '#10b981';
+                    var statusColor = dept.is_bottleneck ? '#ef4444' : '#10b981';
+                    var statusText = dept.is_bottleneck ? dept.deficit + ' Needed' : 'Sufficient';
+                    var statusIcon = dept.is_bottleneck ? 'fa-exclamation-triangle' : 'fa-check-circle';
+                    var zoneName = dept.zone_name || '';
+
+                    if (dept.is_bottleneck) {
+                        bottleneckCount++;
+                        totalDeficit += (dept.deficit || 0);
+                    }
+
+                    html +=
+                        '<div class="dept-row" style="border: 1px solid ' + borderColor + ';">' +
+                            '<div class="dept-info">' +
+                                '<div class="dept-name">' + dept.department + '</div>' +
+                                '<div class="dept-meta">' +
+                                    'Patients: <strong>' + dept.active_patients + '</strong> &nbsp;|&nbsp; ' +
+                                    'Staff: <strong>' + dept.current_staff + '</strong> / <strong class="optimal">' + dept.optimal_staff + '</strong>' +
+                                '</div>' +
+                                '<div class="dept-status">' +
+                                    '<i class="fas ' + statusIcon + '" style="color:' + statusColor + ';"></i> ' +
+                                    '<span style="color:' + statusColor + ';">' + statusText + '</span>' +
+                                '</div>' +
+                            '</div>' +
+                            (dept.is_bottleneck
+                                ? '<button class="btn-checkin" onclick="staffCheckin(\'' + zoneName + '\')"><i class="fas fa-sign-in-alt"></i> Check in</button>'
+                                : '') +
+                        '</div>';
+                });
+
+                grid.innerHTML = html;
+
+                document.getElementById('bottleneck-count').textContent = bottleneckCount;
+                document.getElementById('total-deficit').textContent = '+' + totalDeficit;
+
+                // Update refresh text
+                document.getElementById('refresh-text').textContent =
+                    'Live \u2014 Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                document.getElementById('live-dot').style.background = '#10b981';
+
+            } catch (e) {
+                console.error('Staff allocation fetch error:', e);
+                document.getElementById('live-dot').style.background = '#ef4444';
+                document.getElementById('refresh-text').textContent = 'Connection error. Retrying...';
+            }
+        }
+
+        async function staffCheckin(zoneName) {
+            try {
+                var res = await fetch(API_BASE_URL + '/prediction/staff-checkin/' + zoneName, { method: 'POST' });
+                if (res.ok) {
+                    var data = await res.json();
+                    showToast(data.message || 'Checked in successfully', 'success');
+                    fetchStaffAllocation();
+                } else {
+                    showToast('Check-in failed', 'error');
+                }
+            } catch (e) {
+                console.error('Staff check-in error:', e);
+                showToast('Network error during check-in', 'error');
+            }
+        }
+
+        function showToast(message, type) {
+            var container = document.getElementById('toast-container');
+            var toast = document.createElement('div');
+            toast.className = 'toast';
+            if (type === 'error') toast.style.borderLeftColor = '#ef4444';
+            toast.innerHTML =
+                '<i class="fas ' + (type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle') + '"></i>' +
+                '<span>' + message + '</span>';
+            container.appendChild(toast);
+            setTimeout(function () {
+                toast.style.animation = 'slideIn 0.3s ease-in reverse forwards';
+                setTimeout(function () { toast.remove(); }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>

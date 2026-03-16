@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Hospital Load Status</title>
+    <link rel="stylesheet" href="css/style.css?v=200">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        .load-status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .dept-card {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dept-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .dept-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+        }
+
+        .dept-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .load-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.85rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .load-badge.low {
+            background: rgba(16, 185, 129, 0.12);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .load-badge.medium {
+            background: rgba(245, 158, 11, 0.12);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .load-badge.high {
+            background: rgba(239, 68, 68, 0.12);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .dept-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.85rem;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 0.85rem 0.75rem;
+            text-align: center;
+            border: 1px solid var(--glass-border);
+        }
+
+        .stat-box .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.35rem;
+        }
+
+        .stat-box .stat-value {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .dept-card .load-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .dept-card .load-bar.low { background: #10b981; }
+        .dept-card .load-bar.medium { background: #f59e0b; }
+        .dept-card .load-bar.high { background: #ef4444; }
+
+        .refresh-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--card-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .refresh-info .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        }
+
+        .legend {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .error-banner {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            color: #ef4444;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, var(--border-color) 25%, var(--card-bg) 50%, var(--border-color) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar (Standard Full Sidebar - filtered by main.js) -->
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
+            <li><a href="patient_dashboard.html" class="nav-item"><span class="step-badge">3</span> My Dashboard</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Hospital Load Status</h1>
+                <p class="header-subtitle">Real-time department load and congestion overview</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <!-- Error banner (hidden by default) -->
+            <div class="error-banner" id="error-banner">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span id="error-text">Unable to fetch load data. Retrying...</span>
+            </div>
+
+            <!-- Refresh info bar -->
+            <div class="refresh-info">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <span class="live-dot" id="live-dot"></span>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);" id="refresh-text">Fetching data...</span>
+                </div>
+                <div class="legend">
+                    <div class="legend-item"><span class="legend-dot" style="background:#10b981;"></span> Low Load</div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span> Medium Load</div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span> High Load</div>
+                </div>
+            </div>
+
+            <!-- Department cards container -->
+            <div class="load-status-grid" id="load-grid">
+                <!-- Skeleton placeholders while loading -->
+                <div class="dept-card"><div class="skeleton" style="height:120px;"></div></div>
+                <div class="dept-card"><div class="skeleton" style="height:120px;"></div></div>
+                <div class="dept-card"><div class="skeleton" style="height:120px;"></div></div>
+                <div class="dept-card"><div class="skeleton" style="height:120px;"></div></div>
+                <div class="dept-card"><div class="skeleton" style="height:120px;"></div></div>
+                <div class="dept-card"><div class="skeleton" style="height:120px;"></div></div>
+                <div class="dept-card"><div class="skeleton" style="height:120px;"></div></div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="nav-buttons" style="display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;">
+                <a href="patient_dashboard.html" class="nav-item" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.2rem;background:var(--card-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);text-decoration:none;font-size:0.9rem;transition:all 0.2s;">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
+    <script src="js/main.js?v=999"></script>
+
+    <script>
+        var REFRESH_INTERVAL = 25000; // 25 seconds
+        var pollTimer = null;
+        var lastFetchTime = null;
+
+        // Department icons (FontAwesome)
+        var DEPT_ICONS = {
+            'Registration': 'fa-clipboard-list',
+            'Vision Lab': 'fa-eye',
+            'Dilation': 'fa-flask',
+            'Consultation': 'fa-stethoscope',
+            'Diagnostics': 'fa-microscope',
+            'Billing': 'fa-file-invoice-dollar',
+            'Pharmacy': 'fa-pills'
+        };
+
+        window.addEventListener('load', function () {
+            fetchLoadStatus();
+            pollTimer = setInterval(fetchLoadStatus, REFRESH_INTERVAL);
+        });
+
+        async function fetchLoadStatus() {
+            try {
+                var response = await fetch(API_BASE + '/hospital/load-status?_=' + new Date().getTime());
+                if (!response.ok) throw new Error('Status ' + response.status);
+
+                var data = await response.json();
+                renderDepartments(data.departments);
+
+                lastFetchTime = new Date();
+                document.getElementById('refresh-text').textContent =
+                    'Live \u2014 Updated ' + lastFetchTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                document.getElementById('live-dot').style.background = '#10b981';
+                document.getElementById('error-banner').style.display = 'none';
+            } catch (err) {
+                console.error('Load status fetch error:', err);
+                document.getElementById('error-banner').style.display = 'block';
+                document.getElementById('error-text').textContent = 'Unable to fetch load data. Retrying in ' + (REFRESH_INTERVAL / 1000) + 's...';
+                document.getElementById('live-dot').style.background = '#ef4444';
+            }
+        }
+
+        function renderDepartments(departments) {
+            var grid = document.getElementById('load-grid');
+            grid.innerHTML = '';
+
+            departments.forEach(function (dept) {
+                var levelClass = dept.load_level.toLowerCase();
+                var icon = DEPT_ICONS[dept.name] || 'fa-building';
+
+                var card = document.createElement('div');
+                card.className = 'dept-card';
+                card.innerHTML =
+                    '<div class="dept-card-header">' +
+                        '<div style="display:flex;align-items:center;gap:0.6rem;">' +
+                            '<i class="fas ' + icon + '" style="font-size:1.2rem;color:var(--primary-color);"></i>' +
+                            '<span class="dept-name">' + dept.name + '</span>' +
+                        '</div>' +
+                        '<span class="load-badge ' + levelClass + '">' +
+                            dept.icon + ' ' + dept.label +
+                        '</span>' +
+                    '</div>' +
+                    '<div class="dept-stats">' +
+                        '<div class="stat-box">' +
+                            '<div class="stat-label">Waiting Time</div>' +
+                            '<div class="stat-value">' + dept.waiting_time + ' min</div>' +
+                        '</div>' +
+                        '<div class="stat-box">' +
+                            '<div class="stat-label">Queue Size</div>' +
+                            '<div class="stat-value">' + dept.queue_size + ' patients</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="load-bar ' + levelClass + '"></div>';
+
+                grid.appendChild(card);
+            });
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Escalate Issue</title>
+    <link rel="stylesheet" href="css/style.css?v=200">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .ei-container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header card */
+        .ei-header-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .ei-header-card .icon-wrap {
+            width: 48px;
+            height: 48px;
+            background: rgba(245, 158, 11, 0.12);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .ei-header-card .icon-wrap i {
+            color: #f59e0b;
+            font-size: 1.3rem;
+        }
+
+        .ei-header-card .info-text .title {
+            font-size: 1rem;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .ei-header-card .info-text .subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.15rem;
+        }
+
+        /* Form card */
+        .form-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 0.7rem 1rem;
+            border-radius: 10px;
+            border: 1.5px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-main);
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            border-color: #f59e0b;
+        }
+
+        .form-input:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            padding-right: 2.5rem;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* Submit button */
+        .btn-escalate {
+            width: 100%;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 10px;
+            background: #f59e0b;
+            color: #1a1a2e;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: background 0.2s;
+            margin-top: 1.25rem;
+        }
+
+        .btn-escalate:hover {
+            background: #d97706;
+        }
+
+        .btn-escalate:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Result banners */
+        .result-banner {
+            display: none;
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            align-items: center;
+            gap: 0.7rem;
+        }
+
+        .result-banner.success {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid #10b981;
+            color: var(--text-main);
+        }
+
+        .result-banner.success i {
+            color: #10b981;
+        }
+
+        .result-banner.error {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid #ef4444;
+            color: var(--text-main);
+        }
+
+        .result-banner.error i {
+            color: #ef4444;
+        }
+
+        /* Recent escalations */
+        .recent-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.75rem;
+        }
+
+        .esc-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-left: 3px solid #f59e0b;
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            margin-bottom: 0.6rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .esc-item .esc-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .esc-item .esc-type {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .esc-item .esc-desc {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .esc-item .esc-time {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .esc-badge {
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.15rem 0.5rem;
+            border-radius: 50px;
+            background: #f59e0b;
+            color: #1a1a2e;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(26, 26, 46, 0.3);
+            border-top-color: #1a1a2e;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            .form-row { grid-template-columns: 1fr; }
+            .ei-container { padding: 1rem; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">3</span> Staff Panel</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Escalate Issue</h1>
+                <p class="header-subtitle">Report operational problems that need admin attention</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <div class="ei-container">
+
+                <!-- Header info -->
+                <div class="ei-header-card">
+                    <div class="icon-wrap"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="info-text">
+                        <div class="title">Smart Escalation</div>
+                        <div class="subtitle">Quickly report issues like equipment delays, system errors, or congestion to administration.</div>
+                    </div>
+                </div>
+
+                <!-- Result banners -->
+                <div class="result-banner success" id="success-banner">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Escalation submitted successfully. Admin has been notified.</span>
+                </div>
+                <div class="result-banner error" id="error-banner">
+                    <i class="fas fa-times-circle"></i>
+                    <span id="error-msg">Submission failed. Please try again.</span>
+                </div>
+
+                <!-- Escalation Form -->
+                <div class="form-card">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Staff ID</label>
+                            <input type="text" class="form-input" id="field-staff-id" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Staff Department</label>
+                            <input type="text" class="form-input" id="field-department" disabled>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Issue Type</label>
+                        <select class="form-select" id="field-issue-type">
+                            <option value="" disabled selected>Select issue type</option>
+                            <option value="Equipment Delay">Equipment Delay</option>
+                            <option value="System Error">System Error</option>
+                            <option value="Patient Congestion">Patient Congestion</option>
+                            <option value="Staff Shortage">Staff Shortage</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-textarea" id="field-description" placeholder="Describe the issue in detail..."></textarea>
+                    </div>
+
+                    <button class="btn-escalate" id="btn-submit" onclick="submitEscalation()">
+                        <i class="fas fa-paper-plane"></i> Escalate Issue
+                    </button>
+                </div>
+
+                <!-- Recent Escalations by this staff -->
+                <div class="recent-title">Your Recent Escalations</div>
+                <div id="recent-list">
+                    <div style="text-align:center; color:var(--text-muted); padding:1rem; font-size:0.85rem;">Loading...</div>
+                </div>
+
+                <!-- Navigation -->
+                <div style="display:flex;gap:1rem;justify-content:center;margin-top:1.5rem;">
+                    <a href="staff_panel.html" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.2rem;background:var(--card-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);text-decoration:none;font-size:0.9rem;transition:all 0.2s;">
+                        <i class="fas fa-arrow-left"></i> Back to Staff Panel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
+    <script src="js/main.js?v=999"></script>
+
+    <script>
+        var API_BASE_URL = API_BASE;
+
+        var DEPT_NAMES = {
+            registration: 'Registration',
+            consultation: 'Consultation',
+            diagnostics: 'Diagnostics',
+            vision_lab: 'Vision Lab',
+            dilation_hall: 'Dilation Hall',
+            pharmacy: 'Pharmacy',
+            billing_insurance: 'Billing & Insurance'
+        };
+
+        window.addEventListener('load', function () {
+            var staffId = localStorage.getItem('currentUser') || 'unknown';
+            var deptKey = localStorage.getItem('currentDept') || '';
+            document.getElementById('field-staff-id').value = staffId;
+            document.getElementById('field-department').value = DEPT_NAMES[deptKey] || deptKey || 'Not set';
+            loadRecentEscalations();
+        });
+
+        async function submitEscalation() {
+            var btn = document.getElementById('btn-submit');
+            var successBanner = document.getElementById('success-banner');
+            var errorBanner = document.getElementById('error-banner');
+            var errorMsg = document.getElementById('error-msg');
+
+            // Reset banners
+            successBanner.style.display = 'none';
+            errorBanner.style.display = 'none';
+
+            var issueType = document.getElementById('field-issue-type').value;
+            var description = document.getElementById('field-description').value.trim();
+
+            if (!issueType) {
+                errorMsg.textContent = 'Please select an issue type.';
+                errorBanner.style.display = 'flex';
+                return;
+            }
+            if (!description) {
+                errorMsg.textContent = 'Please provide a description of the issue.';
+                errorBanner.style.display = 'flex';
+                return;
+            }
+
+            var staffId = localStorage.getItem('currentUser') || 'unknown';
+            var deptKey = localStorage.getItem('currentDept') || '';
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Submitting...';
+
+            try {
+                var res = await fetch(API_BASE_URL + '/staff/escalate-issue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        staff_id: staffId,
+                        department: deptKey,
+                        issue_type: issueType,
+                        description: description,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                if (!res.ok) {
+                    var errData = await res.json().catch(function () { return {}; });
+                    throw new Error(errData.detail || 'Server error');
+                }
+
+                successBanner.style.display = 'flex';
+
+                // Reset form
+                document.getElementById('field-issue-type').value = '';
+                document.getElementById('field-description').value = '';
+
+                // Refresh recent list
+                loadRecentEscalations();
+
+            } catch (e) {
+                console.error('Escalation error:', e);
+                errorMsg.textContent = e.message || 'Submission failed. Please try again.';
+                errorBanner.style.display = 'flex';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Escalate Issue';
+            }
+        }
+
+        async function loadRecentEscalations() {
+            var container = document.getElementById('recent-list');
+            try {
+                var res = await fetch(API_BASE_URL + '/staff/escalations?limit=10&_=' + Date.now());
+                if (!res.ok) throw new Error('fetch error');
+                var data = await res.json();
+                var list = data.escalations || [];
+
+                // Filter to current staff only
+                var staffId = localStorage.getItem('currentUser') || '';
+                var myList = list.filter(function (e) { return e.staff_id === staffId; });
+
+                if (myList.length === 0) {
+                    container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:1rem; font-size:0.85rem;">No escalations submitted yet.</div>';
+                    return;
+                }
+
+                var html = '';
+                myList.forEach(function (esc) {
+                    var ts = esc.timestamp ? new Date(esc.timestamp) : null;
+                    var timeStr = ts ? ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '--';
+                    html += '<div class="esc-item">';
+                    html += '<div class="esc-info">';
+                    html += '<div class="esc-type">' + escapeHtml(esc.issue_type) + '</div>';
+                    html += '<div class="esc-desc">' + escapeHtml(esc.description) + '</div>';
+                    html += '</div>';
+                    html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.3rem;">';
+                    html += '<span class="esc-badge">' + escapeHtml(esc.status) + '</span>';
+                    html += '<span class="esc-time">' + timeStr + '</span>';
+                    html += '</div>';
+                    html += '</div>';
+                });
+                container.innerHTML = html;
+            } catch (e) {
+                console.error('Load escalations error:', e);
+                container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:1rem; font-size:0.85rem;">Unable to load escalations.</div>';
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            var div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+
+</html>

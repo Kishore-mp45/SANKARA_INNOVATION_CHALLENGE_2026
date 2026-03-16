@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Dept Insights</title>
+    <link rel="stylesheet" href="css/style.css?v=200">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        .insights-container {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .di-header-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.25);
+        }
+
+        .di-header-card .icon-wrap {
+            width: 48px;
+            height: 48px;
+            background: rgba(99, 102, 241, 0.12);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .di-header-card .icon-wrap i {
+            color: #6366f1;
+            font-size: 1.3rem;
+        }
+
+        .di-header-card .title {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+
+        .di-header-card .subtitle {
+            font-size: 1rem;
+            color: var(--text-main);
+            font-weight: 700;
+            margin-top: 0.15rem;
+        }
+
+        .refresh-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding: 0.65rem 1.25rem;
+            background: var(--card-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .refresh-bar .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.5rem;
+            transition: border-color 0.2s;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.25);
+        }
+
+        .chart-card:hover {
+            border-color: #6366f1;
+        }
+
+        .chart-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .chart-card-header .header-main {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .cc-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.95rem;
+            background: rgba(14, 165, 233, 0.12);
+            color: #0ea5e9;
+        }
+
+        .cc-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+
+        .cc-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-main);
+            font-weight: 700;
+            margin-top: 0.15rem;
+        }
+
+        .mini-stat {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.5rem 0.85rem;
+            border-radius: 9999px;
+            background: rgba(99, 102, 241, 0.12);
+            color: #6366f1;
+            font-size: 0.82rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .chart-wrap {
+            position: relative;
+            width: 100%;
+            height: 320px;
+        }
+
+        .empty-state {
+            display: none;
+            border: 1px dashed rgba(148, 163, 184, 0.35);
+            border-radius: 12px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            color: var(--text-muted);
+            background: rgba(148, 163, 184, 0.04);
+        }
+
+        .empty-state i {
+            font-size: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: #6366f1;
+            display: block;
+        }
+
+        .chart-note {
+            margin-top: 1rem;
+            padding: 0.85rem 1rem;
+            border-radius: 10px;
+            background: rgba(14, 165, 233, 0.08);
+            border: 1px solid rgba(14, 165, 233, 0.18);
+            color: var(--text-muted);
+            font-size: 0.84rem;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 700px) {
+            .insights-container {
+                padding: 1rem;
+            }
+
+            .refresh-bar,
+            .chart-card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .chart-wrap {
+                height: 280px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">3</span> Live Video</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">4</span> Alerts</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">5</span> Doctor Panel</a></li>
+            <li><a href="doctor_workload.html" class="nav-item"><span class="step-badge">6</span> Doctor Workload</a></li>
+            <li><a href="doctor_activity.html" class="nav-item"><span class="step-badge">7</span> Activity History</a></li>
+            <li><a href="doctor_dept_insights.html" class="nav-item active"><span class="step-badge">8</span> Dept Insights</a></li>
+            <li><a href="doctor_escalate.html" class="nav-item"><span class="step-badge">9</span> Escalate Issue</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Dept Insights</h1>
+                <p class="header-subtitle">Hourly consultation visibility for the logged-in doctor</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <div class="insights-container">
+                <div class="di-header-card">
+                    <div class="icon-wrap"><i class="fas fa-chart-column"></i></div>
+                    <div>
+                        <div class="title">Doctor Insights Panel</div>
+                        <div class="subtitle" id="doctor-label">Loading doctor profile...</div>
+                    </div>
+                </div>
+
+                <div class="refresh-bar">
+                    <div style="display:flex;align-items:center;gap:0.6rem;">
+                        <span class="live-dot"></span>
+                        <span style="font-size:0.85rem;color:var(--text-muted);" id="refresh-text">Fetching consultation trend...</span>
+                    </div>
+                    <span style="font-size:0.8rem;color:var(--text-muted);">Auto-refresh: 30s</span>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <div class="header-main">
+                            <div class="cc-icon"><i class="fas fa-user-doctor"></i></div>
+                            <div>
+                                <div class="cc-title">Doctor Consultation Trend</div>
+                                <div class="cc-subtitle">Consultations Today</div>
+                            </div>
+                        </div>
+                        <div class="mini-stat"><i class="fas fa-users"></i> <span id="total-consultations">0 consultations</span></div>
+                    </div>
+
+                    <div class="chart-wrap" id="chart-wrap">
+                        <canvas id="consultationTrendChart"></canvas>
+                    </div>
+
+                    <div class="empty-state" id="empty-state">
+                        <i class="fas fa-chart-simple"></i>
+                        <div style="font-weight:700;color:var(--text-main);margin-bottom:0.35rem;">No consultations recorded for today</div>
+                        <div>The chart will update automatically when consultation activity is logged.</div>
+                    </div>
+
+                    <div class="chart-note" id="chart-note">
+                        Hover over each bar to see hourly totals. Data refreshes automatically every 30 seconds.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
+    <script src="js/main.js?v=999"></script>
+    <script>
+        const API_BASE_URL = API_BASE;
+        let doctorId = 1;
+        let consultationTrendChart = null;
+        let refreshTimer = null;
+
+        const currentUser = localStorage.getItem('currentUser');
+        if (currentUser && !isNaN(currentUser)) {
+            doctorId = parseInt(currentUser, 10);
+        }
+
+        document.getElementById('doctor-label').textContent = `Doctor ID: D${doctorId}`;
+
+        function getChartTheme() {
+            const isLight = document.documentElement.classList.contains('light-theme');
+            return {
+                isLight,
+                gridColor: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)',
+                tickColor: isLight ? '#666' : '#999',
+                tooltipBg: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(30,30,40,0.95)',
+                tooltipTitle: isLight ? '#111827' : '#ffffff',
+                tooltipBody: isLight ? '#374151' : '#e5e7eb',
+                shadowColor: isLight ? 'rgba(14, 165, 233, 0.18)' : 'rgba(14, 165, 233, 0.25)'
+            };
+        }
+
+        function buildBarBackground(context) {
+            const chart = context.chart;
+            const area = chart.chartArea;
+            if (!area) {
+                return '#0ea5e9';
+            }
+
+            const gradient = chart.ctx.createLinearGradient(0, area.bottom, 0, area.top);
+            gradient.addColorStop(0, 'rgba(14, 165, 233, 0.55)');
+            gradient.addColorStop(1, 'rgba(99, 102, 241, 0.95)');
+            return gradient;
+        }
+
+        const softShadowPlugin = {
+            id: 'softShadowPlugin',
+            beforeDatasetsDraw(chart) {
+                const { ctx } = chart;
+                const theme = getChartTheme();
+                ctx.save();
+                ctx.shadowColor = theme.shadowColor;
+                ctx.shadowBlur = 14;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 8;
+            },
+            afterDatasetsDraw(chart) {
+                chart.ctx.restore();
+            }
+        };
+
+        Chart.register(softShadowPlugin);
+
+        function updateChart(hours, consultations) {
+            const theme = getChartTheme();
+            const chartWrap = document.getElementById('chart-wrap');
+            const emptyState = document.getElementById('empty-state');
+
+            if (!hours.length) {
+                chartWrap.style.display = 'none';
+                emptyState.style.display = 'block';
+                if (consultationTrendChart) {
+                    consultationTrendChart.destroy();
+                    consultationTrendChart = null;
+                }
+                return;
+            }
+
+            chartWrap.style.display = 'block';
+            emptyState.style.display = 'none';
+
+            const ctx = document.getElementById('consultationTrendChart').getContext('2d');
+            if (consultationTrendChart) {
+                consultationTrendChart.data.labels = hours;
+                consultationTrendChart.data.datasets[0].data = consultations;
+                consultationTrendChart.options.scales.x.ticks.color = theme.tickColor;
+                consultationTrendChart.options.scales.y.ticks.color = theme.tickColor;
+                consultationTrendChart.options.scales.x.grid.color = theme.gridColor;
+                consultationTrendChart.options.scales.y.grid.color = theme.gridColor;
+                consultationTrendChart.options.plugins.tooltip.backgroundColor = theme.tooltipBg;
+                consultationTrendChart.update();
+                return;
+            }
+
+            consultationTrendChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: 'Consultations',
+                        data: consultations,
+                        backgroundColor: buildBarBackground,
+                        hoverBackgroundColor: 'rgba(99, 102, 241, 0.95)',
+                        borderRadius: 10,
+                        borderSkipped: false,
+                        maxBarThickness: 54,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 900,
+                        easing: 'easeOutQuart'
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: theme.tooltipBg,
+                            titleColor: theme.tooltipTitle,
+                            bodyColor: theme.tooltipBody,
+                            titleFont: { size: 13, weight: '600' },
+                            bodyFont: { size: 12 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                                label: function (context) {
+                                    const count = context.parsed.y;
+                                    return `${count} consultation${count === 1 ? '' : 's'}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: theme.gridColor,
+                                drawBorder: false,
+                                display: false
+                            },
+                            ticks: {
+                                color: theme.tickColor,
+                                font: { size: 12, weight: '600' }
+                            },
+                            border: { display: false }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: theme.gridColor,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: theme.tickColor,
+                                font: { size: 11 },
+                                stepSize: 1,
+                                callback: function (value) {
+                                    return Number.isInteger(value) ? value : '';
+                                }
+                            },
+                            border: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function loadConsultationTrend() {
+            try {
+                document.getElementById('refresh-text').textContent = 'Fetching consultation trend...';
+                const response = await fetch(`${API_BASE_URL}/doctor/consultation-trend/${doctorId}?_=${Date.now()}`);
+                if (!response.ok) {
+                    throw new Error(`Request failed with status ${response.status}`);
+                }
+
+                const data = await response.json();
+                updateChart(data.hours || [], data.consultations || []);
+
+                const total = data.total_consultations || 0;
+                document.getElementById('total-consultations').textContent = `${total} consultation${total === 1 ? '' : 's'}`;
+                document.getElementById('refresh-text').textContent = `Updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            } catch (error) {
+                console.error('Consultation trend fetch error:', error);
+                document.getElementById('refresh-text').textContent = 'Unable to refresh chart data';
+            }
+        }
+
+        window.addEventListener('load', function () {
+            loadConsultationTrend();
+            refreshTimer = setInterval(loadConsultationTrend, 30000);
+        });
+    </script>
+</body>
+
+</html>

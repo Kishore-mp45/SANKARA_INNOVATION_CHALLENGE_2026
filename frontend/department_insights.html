@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Department Insights</title>
+    <link rel="stylesheet" href="css/style.css?v=200">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        .di-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header card */
+        .di-header-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .di-header-card .icon-wrap {
+            width: 48px;
+            height: 48px;
+            background: rgba(99, 102, 241, 0.12);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .di-header-card .icon-wrap i {
+            color: #6366f1;
+            font-size: 1.3rem;
+        }
+
+        .di-header-card .info-text .title {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+
+        .di-header-card .info-text .dept-label {
+            font-size: 1rem;
+            color: var(--text-main);
+            font-weight: 700;
+            margin-top: 0.15rem;
+        }
+
+        /* Refresh bar */
+        .refresh-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding: 0.65rem 1.25rem;
+            background: var(--card-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .refresh-bar .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        }
+
+        /* Chart cards */
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: border-color 0.2s;
+        }
+
+        .chart-card:hover {
+            border-color: #6366f1;
+        }
+
+        .chart-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .chart-card-header .cc-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.95rem;
+        }
+
+        .cc-icon.bg-indigo { background: rgba(99, 102, 241, 0.12); color: #6366f1; }
+        .cc-icon.bg-emerald { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+        .cc-icon.bg-amber { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+
+        .chart-card-header .cc-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+
+        .chart-card-header .cc-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-top: 0.1rem;
+        }
+
+        .chart-wrap {
+            position: relative;
+            width: 100%;
+        }
+
+        .chart-wrap.line-chart {
+            height: 260px;
+        }
+
+        .chart-wrap.bar-chart {
+            height: 280px;
+        }
+
+        .chart-wrap.area-chart {
+            height: 260px;
+        }
+
+        .chart-wrap.gauge-chart {
+            height: 220px;
+            max-width: 340px;
+            margin: 0 auto;
+        }
+
+        .cc-icon.bg-violet { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+        .cc-icon.bg-sky { background: rgba(14, 165, 233, 0.12); color: #0ea5e9; }
+        .cc-icon.bg-rose { background: rgba(244, 63, 94, 0.12); color: #f43f5e; }
+        .cc-icon.bg-teal { background: rgba(20, 184, 166, 0.12); color: #14b8a6; }
+
+        /* Trend message */
+        .trend-msg {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.75rem;
+            font-weight: 500;
+        }
+
+        .trend-msg.trend-up { color: #ef4444; }
+        .trend-msg.trend-down { color: #10b981; }
+        .trend-msg.trend-stable { color: #f59e0b; }
+
+        /* Insight message */
+        .insight-msg {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .insight-msg i {
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .insight-msg.insight-good {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            color: #10b981;
+        }
+
+        .insight-msg.insight-moderate {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            color: #f59e0b;
+        }
+
+        .insight-msg.insight-warning {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            color: #ef4444;
+        }
+
+        /* Gauge center label */
+        .gauge-center-label {
+            text-align: center;
+            margin-top: -30px;
+            margin-bottom: 0.5rem;
+        }
+
+        .gauge-center-label .gauge-pct {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        .gauge-center-label .gauge-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Sub-metrics row below gauge */
+        .gauge-metrics {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .gauge-metric-item {
+            text-align: center;
+        }
+
+        .gauge-metric-item .gm-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .gauge-metric-item .gm-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            margin-top: 0.1rem;
+        }
+
+        /* Section divider */
+        .section-divider {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            margin: 0.5rem 0 1.25rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        /* Error banner */
+        .error-banner {
+            display: none;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            color: var(--text-main);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .error-banner i { color: #ef4444; }
+
+        /* Skeleton */
+        .skeleton-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .skeleton-line {
+            height: 14px;
+            background: linear-gradient(90deg, var(--border-color) 25%, transparent 50%, var(--border-color) 75%);
+            background-size: 200% 100%;
+            border-radius: 6px;
+            animation: shimmer 1.5s infinite;
+            margin-bottom: 0.75rem;
+        }
+
+        .skeleton-line.short { width: 40%; }
+        .skeleton-line.medium { width: 65%; }
+        .skeleton-line.long { width: 90%; }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        @media (max-width: 600px) {
+            .di-container { padding: 1rem; }
+            .gauge-metrics { gap: 1rem; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">3</span> Staff Panel</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Department Insights</h1>
+                <p class="header-subtitle">Interactive visualizations for your department</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <div class="di-container">
+
+                <!-- Header info -->
+                <div class="di-header-card">
+                    <div class="icon-wrap"><i class="fas fa-chart-area"></i></div>
+                    <div class="info-text">
+                        <div class="title">Department Insights Panel</div>
+                        <div class="dept-label" id="dept-display">Loading department...</div>
+                    </div>
+                </div>
+
+                <!-- Refresh bar -->
+                <div class="refresh-bar">
+                    <div style="display:flex;align-items:center;gap:0.6rem;">
+                        <span class="live-dot" id="live-dot"></span>
+                        <span style="font-size:0.85rem;color:var(--text-muted);" id="refresh-text">Fetching data...</span>
+                    </div>
+                    <span style="font-size:0.8rem;color:var(--text-muted);">Auto-refresh: 25s</span>
+                </div>
+
+                <!-- Error banner -->
+                <div class="error-banner" id="error-banner">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="error-msg">Unable to fetch insights data.</span>
+                </div>
+
+                <!-- Main content area -->
+                <div id="insights-content">
+                    <div class="skeleton-card">
+                        <div class="skeleton-line medium"></div>
+                        <div class="skeleton-line long"></div>
+                        <div class="skeleton-line short"></div>
+                        <div class="skeleton-line long"></div>
+                    </div>
+                    <div class="skeleton-card">
+                        <div class="skeleton-line short"></div>
+                        <div class="skeleton-line medium"></div>
+                        <div class="skeleton-line long"></div>
+                    </div>
+                    <div class="skeleton-card">
+                        <div class="skeleton-line medium"></div>
+                        <div class="skeleton-line long"></div>
+                        <div class="skeleton-line short"></div>
+                    </div>
+                </div>
+
+                <!-- Back link -->
+                <div style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;">
+                    <a href="staff_panel.html" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.2rem;background:var(--card-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);text-decoration:none;font-size:0.9rem;transition:all 0.2s;">
+                        <i class="fas fa-arrow-left"></i> Back to Staff Panel
+                    </a>
+                    <a href="department_performance.html" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.2rem;background:var(--card-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);text-decoration:none;font-size:0.9rem;transition:all 0.2s;">
+                        <i class="fas fa-chart-line"></i> Dept. Performance
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
+    <script src="js/main.js?v=999"></script>
+
+    <script>
+        var API_BASE_URL = API_BASE;
+        var REFRESH_INTERVAL = 25000;
+        var pollTimer = null;
+        var svcChart = null;
+        var gaugeChart = null;
+        var waitDistChart = null;
+        var queuePredChart = null;
+        var queueMovementChart = null;
+        var processingRateChart = null;
+
+        var DEPT_NAMES = {
+            registration: 'Registration',
+            consultation: 'Consultation',
+            diagnostics: 'Diagnostics',
+            vision_lab: 'Vision Lab',
+            dilation_hall: 'Dilation Hall',
+            pharmacy: 'Pharmacy',
+            billing_insurance: 'Billing & Insurance'
+        };
+
+        window.addEventListener('load', function () {
+            fetchInsights();
+            fetchWaitingDistribution();
+            fetchQueueTrend();
+            fetchProcessingRate();
+            pollTimer = setInterval(function () {
+                fetchInsights();
+                fetchWaitingDistribution();
+                fetchQueueTrend();
+                fetchProcessingRate();
+            }, REFRESH_INTERVAL);
+        });
+
+        function getStaffInfo() {
+            return {
+                staffId: localStorage.getItem('currentUser') || 'unknown',
+                department: localStorage.getItem('currentDept') || ''
+            };
+        }
+
+        /* ═══════════════════ Charts + Gauge Fetch ═══════════════════ */
+        async function fetchInsights() {
+            var info = getStaffInfo();
+            var deptDisplay = document.getElementById('dept-display');
+            var errorBanner = document.getElementById('error-banner');
+            var errorMsg = document.getElementById('error-msg');
+
+            if (!info.department) {
+                deptDisplay.textContent = 'No department assigned';
+                errorBanner.style.display = 'flex';
+                errorMsg.textContent = 'No department found. Please log out and select your department when logging in.';
+                document.getElementById('insights-content').innerHTML = '';
+                return;
+            }
+
+            deptDisplay.textContent = DEPT_NAMES[info.department] || info.department;
+
+            try {
+                var url = API_BASE_URL + '/staff/department-charts/' +
+                    encodeURIComponent(info.staffId) +
+                    '?department=' + encodeURIComponent(info.department) +
+                    '&_=' + Date.now();
+
+                var res = await fetch(url);
+                if (!res.ok) throw new Error('Status ' + res.status);
+
+                var data = await res.json();
+                errorBanner.style.display = 'none';
+                renderInsights(data);
+
+                document.getElementById('refresh-text').textContent =
+                    'Live \u2014 Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                document.getElementById('live-dot').style.background = '#10b981';
+
+            } catch (e) {
+                console.error('Insights fetch error:', e);
+                document.getElementById('live-dot').style.background = '#ef4444';
+                document.getElementById('refresh-text').textContent = 'Connection error. Retrying...';
+            }
+        }
+
+        /* ═══════════════════ Waiting Distribution Fetch ═══════════════════ */
+        async function fetchWaitingDistribution() {
+            var info = getStaffInfo();
+            if (!info.department) return;
+
+            try {
+                var url = API_BASE_URL + '/staff/waiting-distribution/' +
+                    encodeURIComponent(info.staffId) +
+                    '?department=' + encodeURIComponent(info.department) +
+                    '&_=' + Date.now();
+
+                var res = await fetch(url);
+                if (!res.ok) throw new Error('WaitDist status ' + res.status);
+
+                var data = await res.json();
+                updateWaitDistChart(data.waiting_distribution);
+            } catch (e) {
+                console.error('Waiting distribution fetch error:', e);
+            }
+        }
+
+        /* ═══════════════════ Render skeleton → real content ═══════════════════ */
+        function renderInsights(data) {
+            var content = document.getElementById('insights-content');
+
+            // Only build the DOM skeleton once, then just update charts
+            if (!document.getElementById('gauge-chart-card')) {
+                var html = '';
+
+                // ── TOP SECTION: Department Load Gauge ──
+                html += '<div class="section-divider"><i class="fas fa-tachometer-alt" style="color:#10b981;"></i> Load Overview</div>';
+
+                html += '<div class="chart-card" id="gauge-chart-card">';
+                html += '  <div class="chart-card-header">';
+                html += '    <div class="cc-icon bg-emerald"><i class="fas fa-tachometer-alt"></i></div>';
+                html += '    <div>';
+                html += '      <div class="cc-title">Department Load Gauge</div>';
+                html += '      <div class="cc-subtitle">Current occupancy vs capacity</div>';
+                html += '    </div>';
+                html += '  </div>';
+                html += '  <div class="chart-wrap gauge-chart"><canvas id="gaugeChart"></canvas></div>';
+                html += '  <div class="gauge-center-label">';
+                html += '    <div class="gauge-pct" id="gauge-pct-label">--</div>';
+                html += '    <div class="gauge-sub" id="gauge-sub-label">Department Load</div>';
+                html += '  </div>';
+                html += '  <div class="gauge-metrics">';
+                html += '    <div class="gauge-metric-item"><div class="gm-value" id="gm-queue">--</div><div class="gm-label">Queue Size</div></div>';
+                html += '    <div class="gauge-metric-item"><div class="gm-value" id="gm-capacity">--</div><div class="gm-label">Capacity</div></div>';
+                html += '  </div>';
+                html += '</div>';
+
+                // ── MIDDLE SECTION: Average Service Time Trend ──
+                html += '<div class="section-divider"><i class="fas fa-stopwatch" style="color:#6366f1;"></i> Service Time Analysis</div>';
+
+                html += '<div class="chart-card" id="svc-chart-card">';
+                html += '  <div class="chart-card-header">';
+                html += '    <div class="cc-icon bg-indigo"><i class="fas fa-stopwatch"></i></div>';
+                html += '    <div>';
+                html += '      <div class="cc-title">Average Service Time Trend</div>';
+                html += '      <div class="cc-subtitle">Hourly average service time for your department</div>';
+                html += '    </div>';
+                html += '  </div>';
+                html += '  <div class="chart-wrap line-chart"><canvas id="svcTimeChart"></canvas></div>';
+                html += '  <div class="trend-msg" id="svc-trend-msg"></div>';
+                html += '</div>';
+
+                // ── BOTTOM SECTION: Patient Waiting Time Distribution ──
+                html += '<div class="section-divider"><i class="fas fa-hourglass-half" style="color:#f59e0b;"></i> Waiting Time Analysis</div>';
+
+                html += '<div class="chart-card" id="wait-dist-card">';
+                html += '  <div class="chart-card-header">';
+                html += '    <div class="cc-icon bg-amber"><i class="fas fa-hourglass-half"></i></div>';
+                html += '    <div>';
+                html += '      <div class="cc-title">Patient Waiting Time Distribution</div>';
+                html += '      <div class="cc-subtitle">How patient waiting times are distributed in your department</div>';
+                html += '    </div>';
+                html += '  </div>';
+                html += '  <div class="chart-wrap bar-chart"><canvas id="waitDistChart"></canvas></div>';
+                html += '  <div id="wait-insight-msg"></div>';
+                html += '</div>';
+
+                // ── Queue Prediction (Next 30 Minutes) ──
+                html += '<div class="section-divider"><i class="fas fa-wand-magic-sparkles" style="color:#8b5cf6;"></i> Queue Prediction</div>';
+
+                html += '<div class="chart-card" id="queue-pred-card">';
+                html += '  <div class="chart-card-header">';
+                html += '    <div class="cc-icon bg-violet"><i class="fas fa-wand-magic-sparkles"></i></div>';
+                html += '    <div>';
+                html += '      <div class="cc-title">Queue Prediction (Next 30 Minutes)</div>';
+                html += '      <div class="cc-subtitle">ML-predicted queue size for upcoming period</div>';
+                html += '    </div>';
+                html += '  </div>';
+                html += '  <div class="chart-wrap area-chart"><canvas id="queuePredChart"></canvas></div>';
+                html += '</div>';
+
+                // ── NEW SECTION: Queue Movement Trend ──
+                html += '<div class="section-divider"><i class="fas fa-wave-square" style="color:#f43f5e;"></i> Queue Movement</div>';
+
+                html += '<div class="chart-card" id="queue-movement-card">';
+                html += '  <div class="chart-card-header">';
+                html += '    <div class="cc-icon bg-rose"><i class="fas fa-wave-square"></i></div>';
+                html += '    <div>';
+                html += '      <div class="cc-title">Queue Movement Trend</div>';
+                html += '      <div class="cc-subtitle">How the patient queue changes over time in your department</div>';
+                html += '    </div>';
+                html += '  </div>';
+                html += '  <div class="chart-wrap line-chart"><canvas id="queueMovementChart"></canvas></div>';
+                html += '  <div id="queue-movement-insight"></div>';
+                html += '</div>';
+
+                // ── Patient Processing Rate ──
+                html += '<div class="section-divider"><i class="fas fa-chart-bar" style="color:#14b8a6;"></i> Productivity Analysis</div>';
+
+                html += '<div class="chart-card" id="processing-rate-card">';
+                html += '  <div class="chart-card-header">';
+                html += '    <div class="cc-icon bg-teal"><i class="fas fa-chart-bar"></i></div>';
+                html += '    <div>';
+                html += '      <div class="cc-title">Patient Processing Rate</div>';
+                html += '      <div class="cc-subtitle">Number of patients processed per hour in your department today</div>';
+                html += '    </div>';
+                html += '  </div>';
+                html += '  <div class="chart-wrap bar-chart"><canvas id="processingRateChart"></canvas></div>';
+                html += '  <div id="processing-rate-insight"></div>';
+                html += '</div>';
+
+                content.innerHTML = html;
+            }
+
+            // Update charts with data
+            updateGaugeChart(data.load_gauge);
+            updateServiceTimeChart(data.service_trend);
+            updateQueuePredChart(data.queue_prediction);
+        }
+
+        /* ═══════════════════ 1. Department Load Gauge ═══════════════════ */
+        function updateGaugeChart(gaugeData) {
+            var pct = gaugeData.pct || 0;
+            var queue = gaugeData.queue || 0;
+            var capacity = gaugeData.capacity || 15;
+
+            // Update text labels
+            document.getElementById('gauge-pct-label').textContent = pct + '%';
+            document.getElementById('gm-queue').textContent = queue;
+            document.getElementById('gm-capacity').textContent = capacity;
+
+            // Color based on load level
+            var gaugeColor;
+            var subLabel;
+            if (pct <= 40) {
+                gaugeColor = '#10b981';
+                subLabel = 'Normal Load';
+            } else if (pct <= 70) {
+                gaugeColor = '#f59e0b';
+                subLabel = 'Moderate Load';
+            } else {
+                gaugeColor = '#ef4444';
+                subLabel = 'High Load';
+            }
+            document.getElementById('gauge-sub-label').textContent = subLabel;
+
+            var isLight = document.documentElement.classList.contains('light-theme');
+            var emptyColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
+
+            var canvas = document.getElementById('gaugeChart');
+            var ctx = canvas.getContext('2d');
+
+            if (gaugeChart) {
+                gaugeChart.data.datasets[0].data = [pct, 100 - pct];
+                gaugeChart.data.datasets[0].backgroundColor = [gaugeColor, emptyColor];
+                gaugeChart.update('none');
+                return;
+            }
+
+            gaugeChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Load', 'Available'],
+                    datasets: [{
+                        data: [pct, 100 - pct],
+                        backgroundColor: [gaugeColor, emptyColor],
+                        borderWidth: 0,
+                        cutout: '78%'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    rotation: -90,
+                    circumference: 180,
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(30,30,40,0.95)',
+                            titleFont: { size: 13, weight: '600' },
+                            bodyFont: { size: 12 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                                label: function (ctx) {
+                                    if (ctx.dataIndex === 0) {
+                                        return 'Current Load: ' + ctx.parsed + '%';
+                                    }
+                                    return 'Available: ' + ctx.parsed + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        /* ═══════════════════ 2. Average Service Time Trend ═══════════════════ */
+        function updateServiceTimeChart(trendData) {
+            var labels = trendData.labels || [];
+            var values = trendData.data || [];
+            var canvas = document.getElementById('svcTimeChart');
+            var ctx = canvas.getContext('2d');
+
+            // Determine trend message
+            var trendMsgEl = document.getElementById('svc-trend-msg');
+            if (values.length >= 2) {
+                var last = values[values.length - 1];
+                var prev = values[values.length - 2];
+                var diff = last - prev;
+                if (diff > 1) {
+                    trendMsgEl.textContent = 'Service time is increasing (+' + diff.toFixed(1) + ' min)';
+                    trendMsgEl.className = 'trend-msg trend-up';
+                } else if (diff < -1) {
+                    trendMsgEl.textContent = 'Service time is decreasing (' + diff.toFixed(1) + ' min)';
+                    trendMsgEl.className = 'trend-msg trend-down';
+                } else {
+                    trendMsgEl.textContent = 'Service time is stable';
+                    trendMsgEl.className = 'trend-msg trend-stable';
+                }
+            } else {
+                trendMsgEl.textContent = 'Not enough data for trend analysis';
+                trendMsgEl.className = 'trend-msg trend-stable';
+            }
+
+            // Determine theme colors
+            var isLight = document.documentElement.classList.contains('light-theme');
+            var gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+            var tickColor = isLight ? '#666' : '#999';
+
+            if (svcChart) {
+                svcChart.data.labels = labels;
+                svcChart.data.datasets[0].data = values;
+                svcChart.options.scales.x.ticks.color = tickColor;
+                svcChart.options.scales.y.ticks.color = tickColor;
+                svcChart.options.scales.x.grid.color = gridColor;
+                svcChart.options.scales.y.grid.color = gridColor;
+                svcChart.update('none');
+                return;
+            }
+
+            svcChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Avg Service Time (min)',
+                        data: values,
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        borderWidth: 2.5,
+                        pointBackgroundColor: '#6366f1',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 800,
+                        easing: 'easeInOutQuart'
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(30,30,40,0.95)',
+                            titleFont: { size: 13, weight: '600' },
+                            bodyFont: { size: 12 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                                label: function (ctx) {
+                                    return 'Service Time: ' + ctx.parsed.y + ' min';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: { color: tickColor, font: { size: 11 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: gridColor },
+                            ticks: {
+                                color: tickColor,
+                                font: { size: 11 },
+                                callback: function (v) { return v + ' min'; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        /* ═══════════════════ 3. Patient Waiting Time Distribution ═══════════════════ */
+        function updateWaitDistChart(distribution) {
+            if (!distribution) return;
+
+            // Ensure DOM is ready (skeleton replaced)
+            var canvas = document.getElementById('waitDistChart');
+            if (!canvas) return;
+
+            var ctx = canvas.getContext('2d');
+            var isLight = document.documentElement.classList.contains('light-theme');
+            var gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+            var tickColor = isLight ? '#666' : '#999';
+
+            var labels = ['0\u20135 min', '5\u201310 min', '10\u201320 min', '20+ min'];
+            var values = [
+                distribution['0-5'] || 0,
+                distribution['5-10'] || 0,
+                distribution['10-20'] || 0,
+                distribution['20+'] || 0
+            ];
+
+            // Gradient colors for each bar
+            var barColors = ['#10b981', '#f59e0b', '#f97316', '#ef4444'];
+            var hoverColors = ['#059669', '#d97706', '#ea580c', '#dc2626'];
+
+            if (waitDistChart) {
+                waitDistChart.data.datasets[0].data = values;
+                waitDistChart.options.scales.x.ticks.color = tickColor;
+                waitDistChart.options.scales.y.ticks.color = tickColor;
+                waitDistChart.options.scales.x.grid.color = gridColor;
+                waitDistChart.options.scales.y.grid.color = gridColor;
+                waitDistChart.update('none');
+                updateInsightMessage(distribution);
+                return;
+            }
+
+            waitDistChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Patients',
+                        data: values,
+                        backgroundColor: barColors,
+                        hoverBackgroundColor: hoverColors,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                        barThickness: 48,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(30,30,40,0.95)',
+                            titleFont: { size: 13, weight: '600' },
+                            bodyFont: { size: 12 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                title: function (items) {
+                                    return items[0].label;
+                                },
+                                label: function (ctx) {
+                                    var count = ctx.parsed.y;
+                                    return count + ' patient' + (count !== 1 ? 's' : '') + ' waiting';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor, display: false },
+                            ticks: { color: tickColor, font: { size: 12, weight: '600' } },
+                            border: { color: gridColor }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: gridColor },
+                            ticks: {
+                                color: tickColor,
+                                font: { size: 11 },
+                                stepSize: 1,
+                                callback: function (v) {
+                                    if (Number.isInteger(v)) return v;
+                                    return '';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Number of Patients',
+                                color: tickColor,
+                                font: { size: 11 }
+                            },
+                            border: { color: gridColor }
+                        }
+                    }
+                }
+            });
+
+            updateInsightMessage(distribution);
+        }
+
+        /* ═══════════════════ Dynamic Insight Message ═══════════════════ */
+        function updateInsightMessage(dist) {
+            var container = document.getElementById('wait-insight-msg');
+            if (!container) return;
+
+            var short = (dist['0-5'] || 0) + (dist['5-10'] || 0);
+            var moderate = dist['10-20'] || 0;
+            var long20 = dist['20+'] || 0;
+            var total = short + moderate + long20;
+
+            var msgClass, icon, text;
+
+            if (long20 > 0) {
+                msgClass = 'insight-warning';
+                icon = 'fa-triangle-exclamation';
+                text = 'Warning: Some patients experiencing long waiting times.';
+            } else if (total > 0 && moderate >= short) {
+                msgClass = 'insight-moderate';
+                icon = 'fa-circle-exclamation';
+                text = 'Moderate waiting times detected.';
+            } else {
+                msgClass = 'insight-good';
+                icon = 'fa-circle-check';
+                text = 'Department operating efficiently.';
+            }
+
+            container.innerHTML =
+                '<div class="insight-msg ' + msgClass + '">' +
+                '<i class="fas ' + icon + '"></i> ' + text +
+                '</div>';
+        }
+
+        /* ═══════════════════ 5. Queue Prediction ═══════════════════ */
+        function updateQueuePredChart(qp) {
+            if (!qp) return;
+            var canvas = document.getElementById('queuePredChart');
+            if (!canvas) return;
+            var ctx = canvas.getContext('2d');
+
+            var isLight = document.documentElement.classList.contains('light-theme');
+            var gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+            var tickColor = isLight ? '#666' : '#999';
+
+            if (queuePredChart) {
+                queuePredChart.data.labels = qp.labels;
+                queuePredChart.data.datasets[0].data = qp.data;
+                queuePredChart.options.scales.x.ticks.color = tickColor;
+                queuePredChart.options.scales.y.ticks.color = tickColor;
+                queuePredChart.options.scales.x.grid.color = gridColor;
+                queuePredChart.options.scales.y.grid.color = gridColor;
+                queuePredChart.update('none');
+                return;
+            }
+
+            queuePredChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: qp.labels,
+                    datasets: [{
+                        label: 'Predicted Queue',
+                        data: qp.data,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: 2.5,
+                        borderDash: [6, 3],
+                        pointRadius: 5,
+                        pointBackgroundColor: '#8b5cf6',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 800, easing: 'easeInOutQuart' },
+                    interaction: { intersect: false, mode: 'index' },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(30,30,40,0.95)',
+                            titleFont: { size: 13, weight: '600' },
+                            bodyFont: { size: 12 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                                label: function (ctx) { return 'Predicted: ~' + ctx.parsed.y + ' patients'; }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: { color: tickColor, font: { size: 11 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: gridColor },
+                            ticks: { color: tickColor, font: { size: 11 } },
+                            title: { display: true, text: 'Predicted Queue Size', color: tickColor, font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        /* ═══════════════════ 6. Queue Movement Trend ═══════════════════ */
+        async function fetchQueueTrend() {
+            var info = getStaffInfo();
+            if (!info.department) return;
+
+            // Wait for DOM skeleton to be built
+            if (!document.getElementById('queue-movement-card')) return;
+
+            try {
+                var url = API_BASE_URL + '/staff/queue-trend/' +
+                    encodeURIComponent(info.staffId) +
+                    '?department=' + encodeURIComponent(info.department) +
+                    '&_=' + Date.now();
+
+                var res = await fetch(url);
+                if (!res.ok) throw new Error('QueueTrend status ' + res.status);
+
+                var data = await res.json();
+                updateQueueMovementChart(data);
+            } catch (e) {
+                console.warn('Queue movement trend fetch error:', e);
+            }
+        }
+
+        function updateQueueMovementChart(data) {
+            if (!data || !data.queue_trend) return;
+            var canvas = document.getElementById('queueMovementChart');
+            if (!canvas) return;
+            var ctx = canvas.getContext('2d');
+
+            var labels = data.queue_trend.map(function (p) { return p.time; });
+            var values = data.queue_trend.map(function (p) { return p.queue_size; });
+
+            var isLight = document.documentElement.classList.contains('light-theme');
+            var gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+            var tickColor = isLight ? '#666' : '#999';
+
+            // Update insight message
+            updateQueueMovementInsight(data.trend, data.current_queue);
+
+            if (queueMovementChart) {
+                queueMovementChart.data.labels = labels;
+                queueMovementChart.data.datasets[0].data = values;
+                queueMovementChart.options.scales.x.ticks.color = tickColor;
+                queueMovementChart.options.scales.y.ticks.color = tickColor;
+                queueMovementChart.options.scales.x.grid.color = gridColor;
+                queueMovementChart.options.scales.y.grid.color = gridColor;
+                queueMovementChart.update('none');
+                return;
+            }
+
+            queueMovementChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Queue Size',
+                        data: values,
+                        borderColor: '#f43f5e',
+                        backgroundColor: 'rgba(244, 63, 94, 0.08)',
+                        borderWidth: 2.5,
+                        pointBackgroundColor: '#f43f5e',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointHoverBackgroundColor: '#f43f5e',
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(30,30,40,0.95)',
+                            titleFont: { size: 13, weight: '600' },
+                            bodyFont: { size: 12 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                                title: function (items) {
+                                    var raw = items[0].label;
+                                    var parts = raw.split(':');
+                                    var h = parseInt(parts[0], 10);
+                                    var m = parts[1] || '00';
+                                    var suffix = h >= 12 ? 'PM' : 'AM';
+                                    var h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+                                    return h12 + ':' + m + ' ' + suffix;
+                                },
+                                label: function (ctx) {
+                                    return 'Queue Size: ' + ctx.parsed.y + ' patients';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: { color: tickColor, font: { size: 11 }, maxRotation: 45 }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: gridColor },
+                            ticks: {
+                                color: tickColor,
+                                font: { size: 11 },
+                                stepSize: 1,
+                                callback: function (v) {
+                                    if (Number.isInteger(v)) return v;
+                                    return '';
+                                }
+                            },
+                            title: { display: true, text: 'Queue Size', color: tickColor, font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        /* ═══════════════════ Queue Movement Insight Message ═══════════════════ */
+        function updateQueueMovementInsight(trend, currentQueue) {
+            var container = document.getElementById('queue-movement-insight');
+            if (!container) return;
+
+            var msgClass, icon, text;
+
+            if (trend === 'increasing') {
+                msgClass = 'insight-warning';
+                icon = 'fa-arrow-trend-up';
+                text = 'Queue increasing. Possible congestion forming.';
+            } else if (trend === 'decreasing') {
+                msgClass = 'insight-good';
+                icon = 'fa-arrow-trend-down';
+                text = 'Queue clearing. Department processing is improving.';
+            } else {
+                msgClass = 'insight-moderate';
+                icon = 'fa-arrows-left-right';
+                text = 'Queue stable. Department workload balanced.';
+            }
+
+            container.innerHTML =
+                '<div class="insight-msg ' + msgClass + '">' +
+                '<i class="fas ' + icon + '"></i> ' + text +
+                '</div>';
+        }
+
+        /* ═══════════════════ 7. Patient Processing Rate ═══════════════════ */
+        async function fetchProcessingRate() {
+            var info = getStaffInfo();
+            if (!info.department) return;
+            if (!document.getElementById('processing-rate-card')) return;
+
+            try {
+                var url = API_BASE_URL + '/staff/patient-processing-rate/' +
+                    encodeURIComponent(info.staffId) +
+                    '?department=' + encodeURIComponent(info.department) +
+                    '&_=' + Date.now();
+
+                var res = await fetch(url);
+                if (!res.ok) throw new Error('ProcessingRate status ' + res.status);
+
+                var data = await res.json();
+                updateProcessingRateChart(data);
+            } catch (e) {
+                console.warn('Processing rate fetch error:', e);
+            }
+        }
+
+        function updateProcessingRateChart(data) {
+            if (!data || !data.processing_rate) return;
+            var canvas = document.getElementById('processingRateChart');
+            if (!canvas) return;
+            var ctx = canvas.getContext('2d');
+
+            var labels = data.processing_rate.map(function (p) {
+                var parts = p.hour.split(':');
+                var h = parseInt(parts[0], 10);
+                var m = parts[1] || '00';
+                var suffix = h >= 12 ? 'PM' : 'AM';
+                var h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+                return h12 + ':' + m + ' ' + suffix;
+            });
+            var values = data.processing_rate.map(function (p) { return p.patients_processed; });
+
+            var isLight = document.documentElement.classList.contains('light-theme');
+            var gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+            var tickColor = isLight ? '#666' : '#999';
+
+            updateProcessingRateInsight(data.trend);
+
+            if (processingRateChart) {
+                processingRateChart.data.labels = labels;
+                processingRateChart.data.datasets[0].data = values;
+                processingRateChart.options.scales.x.ticks.color = tickColor;
+                processingRateChart.options.scales.y.ticks.color = tickColor;
+                processingRateChart.options.scales.x.grid.color = gridColor;
+                processingRateChart.options.scales.y.grid.color = gridColor;
+                processingRateChart.update('none');
+                return;
+            }
+
+            var gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#14b8a6');
+            gradient.addColorStop(1, 'rgba(20, 184, 166, 0.3)');
+
+            var hoverGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            hoverGradient.addColorStop(0, '#0d9488');
+            hoverGradient.addColorStop(1, 'rgba(13, 148, 136, 0.5)');
+
+            processingRateChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Patients Processed',
+                        data: values,
+                        backgroundColor: gradient,
+                        hoverBackgroundColor: hoverGradient,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                        barThickness: 36,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 1000, easing: 'easeOutQuart' },
+                    interaction: { intersect: false, mode: 'index' },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(30,30,40,0.95)',
+                            titleFont: { size: 13, weight: '600' },
+                            bodyFont: { size: 12 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                                title: function (items) { return items[0].label; },
+                                label: function (ctx) {
+                                    var count = ctx.parsed.y;
+                                    return count + ' patient' + (count !== 1 ? 's' : '') + ' processed';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor, display: false },
+                            ticks: { color: tickColor, font: { size: 11, weight: '600' }, maxRotation: 45 },
+                            border: { color: gridColor }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: gridColor },
+                            ticks: {
+                                color: tickColor, font: { size: 11 }, stepSize: 1,
+                                callback: function (v) { if (Number.isInteger(v)) return v; return ''; }
+                            },
+                            title: { display: true, text: 'Patients Processed', color: tickColor, font: { size: 11 } },
+                            border: { color: gridColor }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateProcessingRateInsight(trend) {
+            var container = document.getElementById('processing-rate-insight');
+            if (!container) return;
+
+            var msgClass, icon, text;
+            if (trend === 'increasing') {
+                msgClass = 'insight-good'; icon = 'fa-arrow-trend-up';
+                text = 'Department productivity increasing.';
+            } else if (trend === 'decreasing') {
+                msgClass = 'insight-warning'; icon = 'fa-arrow-trend-down';
+                text = 'Processing rate decreasing. Workload may be slowing down.';
+            } else {
+                msgClass = 'insight-moderate'; icon = 'fa-equals';
+                text = 'Department processing stable.';
+            }
+
+            container.innerHTML =
+                '<div class="insight-msg ' + msgClass + '">' +
+                '<i class="fas ' + icon + '"></i> ' + text +
+                '</div>';
+        }
+    </script>
+</body>
+
+</html>

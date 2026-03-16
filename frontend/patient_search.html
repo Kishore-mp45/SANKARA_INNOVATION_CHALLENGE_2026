@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Patient Search</title>
+    <link rel="stylesheet" href="css/style.css?v=200">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .ps-container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header card */
+        .ps-header-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .ps-header-card .icon-wrap {
+            width: 48px;
+            height: 48px;
+            background: rgba(99, 102, 241, 0.12);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .ps-header-card .icon-wrap i {
+            color: #6366f1;
+            font-size: 1.3rem;
+        }
+
+        .ps-header-card .info-text .title {
+            font-size: 1rem;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .ps-header-card .info-text .subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.15rem;
+        }
+
+        /* Search bar */
+        .search-bar {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-bar input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            border: 1.5px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-main);
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-bar input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-bar input:focus {
+            border-color: #6366f1;
+        }
+
+        .search-bar button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            border: none;
+            background: #6366f1;
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .search-bar button:hover {
+            background: #4f46e5;
+        }
+
+        .search-bar button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Result card */
+        .result-card {
+            background: var(--card-bg);
+            border: 1.5px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.75rem;
+            margin-bottom: 1.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .result-card .rc-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .result-card .rc-title i {
+            color: #6366f1;
+            font-size: 1.2rem;
+        }
+
+        .result-card .rc-title span {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* Detail grid */
+        .rc-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .rc-detail-item {
+            background: rgba(99, 102, 241, 0.04);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+        }
+
+        .rc-detail-item .rcd-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .rc-detail-item .rcd-value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* Same-department notice */
+        .dept-notice {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid #10b981;
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+
+        .dept-notice i {
+            color: #10b981;
+            font-size: 1rem;
+        }
+
+        /* Error card */
+        .error-card {
+            background: rgba(239, 68, 68, 0.06);
+            border: 1.5px solid #ef4444;
+            border-radius: 14px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .error-card i {
+            color: #ef4444;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .error-card .err-text {
+            font-size: 0.95rem;
+            color: var(--text-main);
+        }
+
+        /* Exited / completed state */
+        .completed-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.2rem 0.65rem;
+            background: rgba(16, 185, 129, 0.12);
+            color: #10b981;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            opacity: 0.4;
+        }
+
+        .empty-state p {
+            font-size: 0.9rem;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            .rc-details { grid-template-columns: 1fr; }
+            .ps-container { padding: 1rem; }
+            .search-bar { flex-direction: column; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">3</span> Staff Panel</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Quick Patient Search</h1>
+                <p class="header-subtitle">Find any patient and view their workflow status</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <div class="ps-container">
+
+                <!-- Header info -->
+                <div class="ps-header-card">
+                    <div class="icon-wrap"><i class="fas fa-search"></i></div>
+                    <div class="info-text">
+                        <div class="title">Patient Search Tool</div>
+                        <div class="subtitle">Enter a Patient ID to view their current stage, next department, and estimated waiting time.</div>
+                    </div>
+                </div>
+
+                <!-- Search bar -->
+                <div class="search-bar">
+                    <input type="text" id="search-input" placeholder="Enter Patient ID" autocomplete="off">
+                    <button id="search-btn" onclick="doSearch()">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+
+                <!-- Results area -->
+                <div id="results-area">
+                    <div class="empty-state">
+                        <i class="fas fa-user-magnifying-glass"></i>
+                        <p>Search for a patient to view their workflow status.</p>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div style="display:flex;gap:1rem;justify-content:center;margin-top:1.5rem;">
+                    <a href="staff_panel.html" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.2rem;background:var(--card-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);text-decoration:none;font-size:0.9rem;transition:all 0.2s;">
+                        <i class="fas fa-arrow-left"></i> Back to Staff Panel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
+    <script src="js/main.js?v=999"></script>
+
+    <script>
+        var API_BASE_URL = API_BASE;
+
+        // Allow Enter key to trigger search
+        document.getElementById('search-input').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') doSearch();
+        });
+
+        async function doSearch() {
+            var input = document.getElementById('search-input');
+            var btn = document.getElementById('search-btn');
+            var results = document.getElementById('results-area');
+            var patientId = input.value.trim();
+
+            if (!patientId) {
+                input.focus();
+                return;
+            }
+
+            // Loading state
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Searching...';
+
+            var staffDept = localStorage.getItem('currentDept') || '';
+
+            try {
+                var url = API_BASE_URL + '/staff/patient-search/' +
+                    encodeURIComponent(patientId) +
+                    '?staff_department=' + encodeURIComponent(staffDept) +
+                    '&_=' + Date.now();
+
+                var res = await fetch(url);
+
+                if (res.status === 404) {
+                    results.innerHTML =
+                        '<div class="error-card">' +
+                        '<i class="fas fa-user-slash"></i>' +
+                        '<div class="err-text">Patient not found. Please check the Patient ID.</div>' +
+                        '</div>';
+                    return;
+                }
+
+                if (!res.ok) throw new Error('Status ' + res.status);
+
+                var data = await res.json();
+                renderResult(data);
+
+            } catch (e) {
+                console.error('Patient search error:', e);
+                results.innerHTML =
+                    '<div class="error-card">' +
+                    '<i class="fas fa-exclamation-circle"></i>' +
+                    '<div class="err-text">Unable to reach the server. Please try again.</div>' +
+                    '</div>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-search"></i> Search';
+            }
+        }
+
+        function renderResult(data) {
+            var results = document.getElementById('results-area');
+            var html = '<div class="result-card">';
+
+            // Title row
+            html += '<div class="rc-title">' +
+                '<i class="fas fa-user-circle"></i>' +
+                '<span>' + escapeHtml(data.patient_name || data.patient_id) + '</span>';
+            if (data.is_exited) {
+                html += ' <span class="completed-badge"><i class="fas fa-check"></i> Completed</span>';
+            }
+            html += '</div>';
+
+            // Detail grid
+            html += '<div class="rc-details">';
+
+            // Patient ID
+            html += '<div class="rc-detail-item">' +
+                '<div class="rcd-label">Patient ID</div>' +
+                '<div class="rcd-value">' + escapeHtml(data.patient_id) + '</div>' +
+                '</div>';
+
+            // Current Stage
+            html += '<div class="rc-detail-item">' +
+                '<div class="rcd-label">Current Stage</div>' +
+                '<div class="rcd-value">' + escapeHtml(data.current_stage) + '</div>' +
+                '</div>';
+
+            // Next Department
+            html += '<div class="rc-detail-item">' +
+                '<div class="rcd-label">Next Department</div>' +
+                '<div class="rcd-value">' + escapeHtml(data.next_department || '--') + '</div>' +
+                '</div>';
+
+            // Estimated Waiting Time
+            var etaText = '--';
+            if (data.predicted_eta_minutes !== null && data.predicted_eta_minutes !== undefined) {
+                etaText = data.predicted_eta_minutes + ' minutes';
+            }
+            html += '<div class="rc-detail-item">' +
+                '<div class="rcd-label">Estimated Waiting Time</div>' +
+                '<div class="rcd-value">' + etaText + '</div>' +
+                '</div>';
+
+            html += '</div>'; // end rc-details
+
+            // Same-department notice
+            if (data.in_staff_department) {
+                html += '<div class="dept-notice">' +
+                    '<i class="fas fa-map-marker-alt"></i>' +
+                    '<span>Patient currently in your department.</span>' +
+                    '</div>';
+            }
+
+            html += '</div>'; // end result-card
+            results.innerHTML = html;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            var div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - Waiting Time Trend</title>
+    <link rel="stylesheet" href="css/style.css?v=200">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        .trend-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 640px) {
+            .trend-summary {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .summary-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .summary-card .icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .icon-box.dept {
+            background: rgba(14, 165, 233, 0.12);
+            color: var(--primary-color);
+        }
+
+        .icon-box.time {
+            background: rgba(16, 185, 129, 0.12);
+            color: #10b981;
+        }
+
+        .summary-card .info-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.2rem;
+        }
+
+        .summary-card .info-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            max-height: 380px;
+        }
+
+        .trend-message-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .trend-message-card .trend-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .trend-icon.decreasing {
+            background: rgba(16, 185, 129, 0.12);
+            color: #10b981;
+        }
+
+        .trend-icon.increasing {
+            background: rgba(239, 68, 68, 0.12);
+            color: #ef4444;
+        }
+
+        .trend-icon.stable {
+            background: rgba(245, 158, 11, 0.12);
+            color: #f59e0b;
+        }
+
+        .trend-message-card .trend-text {
+            font-size: 0.95rem;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .refresh-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding: 0.65rem 1.25rem;
+            background: var(--card-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .refresh-bar .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        }
+
+        .no-data-msg {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
+            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">10</span> Staff Panel</a></li>
+            <li><a href="patient_dashboard.html" class="nav-item"><span class="step-badge">3</span> My Dashboard</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Waiting Time Trend</h1>
+                <p class="header-subtitle">Live predicted waiting time for your current department</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <!-- Refresh bar -->
+            <div class="refresh-bar">
+                <div style="display:flex;align-items:center;gap:0.6rem;">
+                    <span class="live-dot" id="live-dot"></span>
+                    <span style="font-size:0.85rem;color:var(--text-muted);" id="refresh-text">Fetching data...</span>
+                </div>
+                <span style="font-size:0.8rem;color:var(--text-muted);" id="data-points-text"></span>
+            </div>
+
+            <!-- Summary cards -->
+            <div class="trend-summary">
+                <div class="summary-card">
+                    <div class="icon-box dept"><i class="fas fa-hospital"></i></div>
+                    <div>
+                        <div class="info-label">Current Department</div>
+                        <div class="info-value" id="current-dept">--</div>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="icon-box time"><i class="fas fa-clock"></i></div>
+                    <div>
+                        <div class="info-label">Latest Predicted Waiting Time</div>
+                        <div class="info-value" id="latest-wait">-- minutes</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-line" style="margin-right:0.5rem;color:var(--primary-color);"></i>Waiting Time Over Time</h3>
+                <div class="chart-wrapper">
+                    <canvas id="trendChart"></canvas>
+                </div>
+                <div class="no-data-msg" id="no-data-msg" style="display:none;">
+                    <i class="fas fa-chart-area" style="font-size:2rem;margin-bottom:0.5rem;display:block;"></i>
+                    Collecting data points. The chart will appear after the first few refreshes.
+                </div>
+            </div>
+
+            <!-- Trend message -->
+            <div class="trend-message-card" id="trend-msg-card" style="display:none;">
+                <div class="trend-icon" id="trend-icon"><i class="fas fa-arrows-alt-h"></i></div>
+                <div class="trend-text" id="trend-text">Analyzing trend...</div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="nav-buttons" style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;">
+                <a href="patient_dashboard.html" class="nav-item"
+                   style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.2rem;background:var(--card-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);text-decoration:none;font-size:0.9rem;transition:all 0.2s;">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <a href="hospital_load_status.html" class="nav-item"
+                   style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.2rem;background:var(--card-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);text-decoration:none;font-size:0.9rem;transition:all 0.2s;">
+                    Hospital Load <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
+    <script src="js/main.js?v=999"></script>
+
+    <script>
+        var REFRESH_INTERVAL = 25000; // 25 seconds
+        var trendChart = null;
+        var pollTimer = null;
+
+        // Resolve patient ID from localStorage (same pattern as patient_dashboard)
+        function getPatientId() {
+            return localStorage.getItem('currentPatientId') || localStorage.getItem('currentUser') || null;
+        }
+
+        window.addEventListener('load', function () {
+            var pid = getPatientId();
+            if (!pid) {
+                document.getElementById('no-data-msg').style.display = 'block';
+                document.getElementById('no-data-msg').innerHTML =
+                    '<i class="fas fa-exclamation-triangle" style="font-size:2rem;margin-bottom:0.5rem;display:block;color:#f59e0b;"></i>' +
+                    'No patient ID found. Please log in from the <a href="login.html" style="color:var(--primary-color);">login page</a>.';
+                return;
+            }
+            initChart();
+            fetchTrend();
+            pollTimer = setInterval(fetchTrend, REFRESH_INTERVAL);
+        });
+
+        function initChart() {
+            var ctx = document.getElementById('trendChart').getContext('2d');
+
+            // Detect theme for chart colors
+            var textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#94a3b8';
+            var gridColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim() || '#334155';
+
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Predicted Waiting Time (min)',
+                        data: [],
+                        borderColor: '#0ea5e9',
+                        backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                        borderWidth: 2.5,
+                        pointBackgroundColor: '#0ea5e9',
+                        pointBorderColor: '#0ea5e9',
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.35
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: { color: textColor, font: { size: 12 } }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#f8fafc',
+                            bodyColor: '#f8fafc',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function (ctx) {
+                                    return ' ' + ctx.parsed.y + ' minutes';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Time', color: textColor, font: { size: 12 } },
+                            ticks: { color: textColor, font: { size: 11 }, maxRotation: 45 },
+                            grid: { color: gridColor, drawBorder: false }
+                        },
+                        y: {
+                            title: { display: true, text: 'Waiting Time (min)', color: textColor, font: { size: 12 } },
+                            ticks: { color: textColor, font: { size: 11 } },
+                            grid: { color: gridColor, drawBorder: false },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        async function fetchTrend() {
+            var pid = getPatientId();
+            if (!pid) return;
+
+            try {
+                var res = await fetch(API_BASE + '/patient/waiting-trend/' + encodeURIComponent(pid) + '?_=' + Date.now());
+                if (!res.ok) throw new Error('Status ' + res.status);
+                var data = await res.json();
+
+                // Update summary cards
+                document.getElementById('current-dept').textContent = data.department || '--';
+                var trend = data.trend || [];
+                var latest = trend.length > 0 ? trend[trend.length - 1].waiting_time : null;
+                document.getElementById('latest-wait').textContent = latest !== null ? latest + ' minutes' : '-- minutes';
+
+                // Update chart
+                if (trend.length > 0 && trendChart) {
+                    trendChart.data.labels = trend.map(function (pt) { return pt.time; });
+                    trendChart.data.datasets[0].data = trend.map(function (pt) { return pt.waiting_time; });
+                    trendChart.update('none');
+                    document.getElementById('trendChart').style.display = 'block';
+                    document.getElementById('no-data-msg').style.display = 'none';
+                } else {
+                    document.getElementById('trendChart').style.display = 'none';
+                    document.getElementById('no-data-msg').style.display = 'block';
+                }
+
+                // Update trend message
+                updateTrendMessage(trend);
+
+                // Update data points count
+                document.getElementById('data-points-text').textContent = trend.length + '/20 data points';
+
+                // Update refresh text
+                document.getElementById('refresh-text').textContent =
+                    'Live \u2014 Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                document.getElementById('live-dot').style.background = '#10b981';
+
+            } catch (err) {
+                console.error('Waiting trend fetch error:', err);
+                document.getElementById('live-dot').style.background = '#ef4444';
+                document.getElementById('refresh-text').textContent = 'Connection error. Retrying...';
+            }
+        }
+
+        function updateTrendMessage(trend) {
+            var card = document.getElementById('trend-msg-card');
+            var icon = document.getElementById('trend-icon');
+            var text = document.getElementById('trend-text');
+
+            if (trend.length < 2) {
+                card.style.display = 'none';
+                return;
+            }
+            card.style.display = 'flex';
+
+            // Compare last 3 points (or fewer) to determine direction
+            var recent = trend.slice(-3);
+            var first = recent[0].waiting_time;
+            var last = recent[recent.length - 1].waiting_time;
+            var diff = last - first;
+
+            if (diff < -1) {
+                // Decreasing
+                icon.className = 'trend-icon decreasing';
+                icon.innerHTML = '<i class="fas fa-arrow-down"></i>';
+                text.textContent = 'Queue is clearing. Your turn may come sooner.';
+            } else if (diff > 1) {
+                // Increasing
+                icon.className = 'trend-icon increasing';
+                icon.innerHTML = '<i class="fas fa-arrow-up"></i>';
+                text.textContent = 'Queue is growing. Slight delay expected.';
+            } else {
+                // Stable
+                icon.className = 'trend-icon stable';
+                icon.innerHTML = '<i class="fas fa-arrows-alt-h"></i>';
+                text.textContent = 'Queue is moving steadily.';
+            }
+        }
+    </script>
+</body>
+
+</html>

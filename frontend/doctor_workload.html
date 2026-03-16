@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>PatientPath AI - Doctor Workload</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .workload-container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Metric cards row */
+        .metric-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.5rem 1.25rem;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+        }
+
+        .metric-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .metric-icon.patients {
+            background: rgba(59, 130, 246, 0.12);
+            color: #3b82f6;
+        }
+
+        .metric-icon.time {
+            background: rgba(16, 185, 129, 0.12);
+            color: #10b981;
+        }
+
+        .metric-title {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 2.4rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .metric-value.patients {
+            color: #3b82f6;
+        }
+
+        .metric-value.time {
+            color: #10b981;
+        }
+
+        .metric-unit {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-top: 0.3rem;
+        }
+
+        /* Hourly breakdown card */
+        .hourly-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+            margin-bottom: 2rem;
+        }
+
+        .hourly-card h3 {
+            font-size: 0.95rem;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .hourly-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            height: 140px;
+            padding: 0.5rem 0;
+        }
+
+        .hour-bar-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            justify-content: flex-end;
+        }
+
+        .hour-bar {
+            width: 100%;
+            max-width: 28px;
+            min-height: 4px;
+            background: rgba(59, 130, 246, 0.7);
+            border-radius: 4px 4px 0 0;
+            transition: height 0.4s ease;
+            position: relative;
+        }
+
+        .hour-bar:hover {
+            background: #3b82f6;
+        }
+
+        .hour-bar .bar-tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 4px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            color: #fff;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .hour-bar:hover .bar-tooltip {
+            display: block;
+        }
+
+        .hour-label {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .no-data-msg {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            padding: 2rem 0;
+        }
+
+        /* Auto-refresh indicator */
+        .refresh-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 1.25rem;
+        }
+
+        .refresh-bar .live-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #10b981;
+            display: inline-block;
+            margin-right: 5px;
+            animation: pulse-blink 1.5s infinite;
+        }
+
+        @keyframes pulse-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Loading state */
+        .loading-spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+        }
+
+        .loading-spinner .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 500px) {
+            .metric-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">3</span> Live Video</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">4</span> Alerts</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">5</span> Doctor Panel</a></li>
+            <li><a href="doctor_workload.html" class="nav-item active"><span class="step-badge">6</span> Doctor Workload</a></li>
+            <li><a href="doctor_activity.html" class="nav-item"><span class="step-badge">7</span> Activity History</a></li>
+            <li><a href="doctor_dept_insights.html" class="nav-item"><span class="step-badge">8</span> Dept Insights</a></li>
+            <li><a href="doctor_escalate.html" class="nav-item"><span class="step-badge">9</span> Escalate Issue</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Doctor Workload</h1>
+                <p class="header-subtitle">Daily consultation metrics and efficiency overview</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <div class="workload-container">
+
+                <!-- Auto-refresh indicator -->
+                <div class="refresh-bar">
+                    <span><span class="live-dot"></span> Auto-refreshes every 30s</span>
+                    <span id="last-updated">--</span>
+                </div>
+
+                <!-- Main Loading State -->
+                <div id="loading-state" class="loading-spinner">
+                    <div class="spinner"></div>
+                </div>
+
+                <!-- Content (hidden until loaded) -->
+                <div id="workload-content" style="display:none;">
+
+                    <!-- Metric Cards -->
+                    <div class="metric-row">
+                        <div class="metric-card">
+                            <div class="metric-icon patients">
+                                <i class="fas fa-user-injured"></i>
+                            </div>
+                            <div class="metric-title">Patients Consulted Today</div>
+                            <div class="metric-value patients" id="patients-count">0</div>
+                            <div class="metric-unit">patients</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon time">
+                                <i class="fas fa-stopwatch"></i>
+                            </div>
+                            <div class="metric-title">Average Consultation Time</div>
+                            <div class="metric-value time" id="avg-time">0</div>
+                            <div class="metric-unit">minutes</div>
+                        </div>
+                    </div>
+
+                    <!-- Hourly Breakdown Chart -->
+                    <div class="hourly-card">
+                        <h3><i class="fas fa-chart-bar" style="margin-right:0.4rem;color:var(--text-muted);"></i> Hourly Consultation Breakdown</h3>
+                        <div id="hourly-chart-area">
+                            <div class="no-data-msg">No hourly data available yet</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
+    <script src="js/main.js?v=999"></script>
+    <script>
+        const API_BASE_URL = typeof API_BASE !== 'undefined' ? API_BASE : '';
+
+        // Doctor ID from localStorage (same pattern as doctor_dashboard.html)
+        let doctorId = 1;
+        const currentUser = localStorage.getItem('currentUser');
+        if (currentUser && !isNaN(currentUser)) {
+            doctorId = parseInt(currentUser);
+        }
+
+        const patientsCountEl = document.getElementById('patients-count');
+        const avgTimeEl = document.getElementById('avg-time');
+        const hourlyChartArea = document.getElementById('hourly-chart-area');
+        const loadingState = document.getElementById('loading-state');
+        const workloadContent = document.getElementById('workload-content');
+        const lastUpdatedEl = document.getElementById('last-updated');
+
+        async function fetchWorkload() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/doctor/workload/${doctorId}`);
+                if (!res.ok) throw new Error('API error');
+                const data = await res.json();
+
+                patientsCountEl.textContent = data.patients_consulted_today;
+                avgTimeEl.textContent = data.average_consultation_time;
+
+                renderHourlyChart(data.hourly_breakdown || {});
+
+                // Update timestamp
+                lastUpdatedEl.textContent = 'Updated: ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                // Show content, hide loader
+                loadingState.style.display = 'none';
+                workloadContent.style.display = 'block';
+            } catch (err) {
+                console.error('Workload fetch error:', err);
+                // Still show content with zeros on error
+                loadingState.style.display = 'none';
+                workloadContent.style.display = 'block';
+                lastUpdatedEl.textContent = 'Update failed';
+            }
+        }
+
+        function renderHourlyChart(hourlyData) {
+            const keys = Object.keys(hourlyData);
+            if (keys.length === 0) {
+                hourlyChartArea.innerHTML = '<div class="no-data-msg">No consultations recorded today yet</div>';
+                return;
+            }
+
+            // Build full hour range from min to max
+            const hours = keys.map(k => parseInt(k));
+            const minHour = Math.min(...hours);
+            const maxHour = Math.max(...hours);
+            const maxCount = Math.max(...Object.values(hourlyData));
+
+            let html = '<div class="hourly-chart">';
+            for (let h = minHour; h <= maxHour; h++) {
+                const key = `${String(h).padStart(2, '0')}:00`;
+                const count = hourlyData[key] || 0;
+                const heightPct = maxCount > 0 ? Math.max((count / maxCount) * 100, 4) : 4;
+
+                html += `<div class="hour-bar-wrapper">
+                    <div class="hour-bar" style="height:${heightPct}%;">
+                        <span class="bar-tooltip">${key} - ${count} patient${count !== 1 ? 's' : ''}</span>
+                    </div>
+                    <span class="hour-label">${h}h</span>
+                </div>`;
+            }
+            html += '</div>';
+            hourlyChartArea.innerHTML = html;
+        }
+
+        // Initial fetch
+        fetchWorkload();
+
+        // Auto-refresh every 30 seconds
+        setInterval(fetchWorkload, 30000);
+    </script>
+</body>
+
+</html>

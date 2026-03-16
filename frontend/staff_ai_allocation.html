@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - AI Staff Allocation</title>
+    <link rel="stylesheet" href="css/style.css?v=200">
+    <link rel="stylesheet" href="css/admin.css?v=200">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        .alloc-page-container {
+            padding: 2rem;
+        }
+
+        .alloc-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .alloc-stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .alloc-stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .alloc-stat-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .alloc-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            line-height: 1.1;
+        }
+
+        .alloc-stat-label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 0.15rem;
+        }
+
+        .alloc-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .alloc-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .alloc-panel-title {
+            font-size: 1.3rem;
+            color: var(--admin-primary, #60a5fa);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+        }
+
+        #staff-alloc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
+            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
+            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
+            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
+            <li><a href="admin_dashboard.html" class="nav-item"><span class="step-badge">9</span> Admin Center</a></li>
+            <li><a href="notification_center.html" class="nav-item"><span class="step-badge">10</span> Notifications</a></li>
+            <li><a href="escalation_reports.html" class="nav-item"><span class="step-badge">11</span> Escalations</a></li>
+            <li><a href="staff_ai_allocation.html" class="nav-item active"><span class="step-badge">12</span> AI Staffing</a></li>
+            <li><a href="resource_allocation.html" class="nav-item"><span class="step-badge">13</span> Resources</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <div>
+                    <h1 style="font-size: 1.5rem; color: var(--admin-primary);">
+                        <i class="fas fa-user-nurse" style="margin-right: 0.5rem;"></i>AI Staff Allocation Recommendation
+                    </h1>
+                    <p class="header-subtitle">XGBoost-powered optimal staffing analysis across departments</p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Powered by XGBoost Model</span>
+                    <button onclick="refreshStaffAllocation()" class="btn-sm" id="btn-refresh-staff">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="alloc-page-container fade-in">
+            <!-- Stats Row -->
+            <div class="alloc-stats-grid">
+                <div class="alloc-stat-card">
+                    <div class="alloc-stat-icon" style="background: rgba(59,130,246,0.12); color: #3b82f6;">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <div>
+                        <div class="alloc-stat-value" id="stat-departments">--</div>
+                        <div class="alloc-stat-label">Departments</div>
+                    </div>
+                </div>
+                <div class="alloc-stat-card">
+                    <div class="alloc-stat-icon" style="background: rgba(16,185,129,0.12); color: #10b981;">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div>
+                        <div class="alloc-stat-value" id="stat-optimal">--</div>
+                        <div class="alloc-stat-label">Optimal</div>
+                    </div>
+                </div>
+                <div class="alloc-stat-card">
+                    <div class="alloc-stat-icon" style="background: rgba(239,68,68,0.12); color: #ef4444;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div>
+                        <div class="alloc-stat-value" id="stat-understaffed">--</div>
+                        <div class="alloc-stat-label">Understaffed</div>
+                    </div>
+                </div>
+                <div class="alloc-stat-card">
+                    <div class="alloc-stat-icon" style="background: rgba(139,92,246,0.12); color: #8b5cf6;">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div>
+                        <div class="alloc-stat-value" id="stat-total-staff">--</div>
+                        <div class="alloc-stat-label">Total Staff</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Staff Allocation Grid -->
+            <div class="alloc-panel">
+                <div class="alloc-panel-header">
+                    <h2 class="alloc-panel-title">
+                        <i class="fas fa-user-nurse" style="font-size: 1.1rem;"></i>
+                        Department Staffing Overview
+                    </h2>
+                </div>
+                <div id="staff-alloc-grid">
+                    <div style="text-align: center; padding: 1.5rem; color: var(--text-muted, #94a3b8);">
+                        <i class="fas fa-spinner fa-spin"></i> Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
+    <script src="js/main.js?v=999"></script>
+    <script>
+        const RESOURCE_API_BASE = API_BASE;
+
+        const DEPT_ICONS = {
+            'Registration': 'fa-clipboard-list',
+            'Consultation': 'fa-stethoscope',
+            'Diagnostics': 'fa-x-ray',
+            'Vision Lab': 'fa-eye',
+            'Dilation Hall': 'fa-clock',
+            'Pharmacy': 'fa-pills',
+            'Billing & Insurance': 'fa-file-invoice-dollar'
+        };
+        const DEPT_COLORS = {
+            'Registration': '59,130,246',
+            'Consultation': '139,92,246',
+            'Diagnostics': '236,72,153',
+            'Vision Lab': '6,182,212',
+            'Dilation Hall': '245,158,11',
+            'Pharmacy': '16,185,129',
+            'Billing & Insurance': '99,102,241'
+        };
+
+        let cachedDepartments = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("AI Staff Allocation Page Initialized");
+            fetchStaffAllocation();
+            setInterval(fetchStaffAllocation, 15000);
+        });
+
+        async function fetchStaffAllocation() {
+            try {
+                const res = await fetch(RESOURCE_API_BASE + '/prediction/staff-recommendation');
+                if (!res.ok) return;
+                const data = await res.json();
+                cachedDepartments = data.departments || [];
+                updateAllocStats(cachedDepartments);
+                renderStaffGrid(cachedDepartments);
+            } catch (e) {
+                console.error('Staff allocation fetch error:', e);
+                const g = document.getElementById('staff-alloc-grid');
+                if (g) g.innerHTML = '<div style="padding:1.5rem;text-align:center;color:#94a3b8;"><i class="fas fa-exclamation-circle"></i> Could not load staff data. Retrying...</div>';
+            }
+        }
+
+        function updateAllocStats(depts) {
+            document.getElementById('stat-departments').textContent = depts.length;
+            const optimal = depts.filter(d => !d.is_bottleneck).length;
+            const understaffed = depts.filter(d => d.is_bottleneck).length;
+            const totalStaff = depts.reduce((sum, d) => sum + d.current_staff, 0);
+
+            document.getElementById('stat-optimal').textContent = optimal;
+            document.getElementById('stat-understaffed').textContent = understaffed;
+            document.getElementById('stat-total-staff').textContent = totalStaff;
+        }
+
+        function renderStaffGrid(departments) {
+            const grid = document.getElementById('staff-alloc-grid');
+            if (!departments || departments.length === 0) {
+                grid.innerHTML = '<div style="padding:1.5rem; text-align:center; color:#94a3b8;">No data available.</div>';
+                return;
+            }
+            let html = '';
+            departments.forEach(function(dept) {
+                const icon = DEPT_ICONS[dept.department] || 'fa-hospital';
+                const rgb = DEPT_COLORS[dept.department] || '139,92,246';
+                const accentColor = 'rgb(' + rgb + ')';
+                const accentBg = 'rgba(' + rgb + ',0.12)';
+                const isBn = dept.is_bottleneck;
+                const statusColor = isBn ? '#ef4444' : '#10b981';
+                const statusBg = isBn ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)';
+                const statusText = isBn ? 'Understaffed' : 'Optimal';
+                const statusIcon = isBn ? 'fa-exclamation-triangle' : 'fa-check-circle';
+                const barColor = isBn ? '#ef4444' : '#10b981';
+                const staffRatio = dept.optimal_staff > 0 ? Math.min(Math.round((dept.current_staff / dept.optimal_staff) * 100), 100) : 100;
+                const deficitColor = dept.deficit > 0 ? '#ef4444' : '#10b981';
+                const deficitText = dept.deficit > 0 ? '+' + dept.deficit : '0';
+                const pillExtra = dept.deficit > 0 ? ' &mdash; ' + dept.deficit + ' needed' : '';
+                const pLabel = dept.active_patients === 1 ? 'patient' : 'patients';
+
+                html += '<div class="staff-alloc-card" style="background:var(--card-bg,#1e293b);border:1px solid var(--border-color,#334155);border-radius:12px;overflow:hidden;position:relative;transition:transform 0.25s ease,box-shadow 0.25s ease,border-color 0.25s ease;cursor:default;" data-bar-color="' + barColor + '">';
+                html += '<div style="height:4px;background:' + barColor + ';"></div>';
+                html += '<div style="padding:1.25rem;">';
+
+                // Header: icon + name
+                html += '<div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">';
+                html += '<div style="width:44px;height:44px;border-radius:12px;background:' + accentBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;">';
+                html += '<i class="fas ' + icon + '" style="color:' + accentColor + ';font-size:1.1rem;"></i></div>';
+                html += '<div style="flex:1;min-width:0;">';
+                html += '<div style="font-weight:700;font-size:0.95rem;color:var(--text-main,#e2e8f0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + dept.department + '</div>';
+                html += '<div style="font-size:0.72rem;color:var(--text-muted,#94a3b8);">' + dept.active_patients + ' active ' + pLabel + '</div>';
+                html += '</div></div>';
+
+                // Metrics row: Current | Optimal | Deficit
+                html += '<div style="display:flex;justify-content:space-between;margin-bottom:0.6rem;">';
+                html += '<div style="text-align:center;flex:1;"><div style="font-size:1.5rem;font-weight:800;color:var(--text-main,#e2e8f0);line-height:1;font-variant-numeric:tabular-nums;">' + dept.current_staff + '</div><div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);margin-top:0.2rem;">Current</div></div>';
+                html += '<div style="width:1px;background:var(--border-color,#334155);margin:0 0.5rem;"></div>';
+                html += '<div style="text-align:center;flex:1;"><div style="font-size:1.5rem;font-weight:800;color:#8b5cf6;line-height:1;font-variant-numeric:tabular-nums;">' + dept.optimal_staff + '</div><div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);margin-top:0.2rem;">Optimal</div></div>';
+                html += '<div style="width:1px;background:var(--border-color,#334155);margin:0 0.5rem;"></div>';
+                html += '<div style="text-align:center;flex:1;"><div style="font-size:1.5rem;font-weight:800;color:' + deficitColor + ';line-height:1;font-variant-numeric:tabular-nums;">' + deficitText + '</div><div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);margin-top:0.2rem;">Deficit</div></div>';
+                html += '</div>';
+
+                // Progress bar
+                html += '<div style="background:rgba(148,163,184,0.1);border-radius:999px;height:6px;overflow:hidden;margin-bottom:0.75rem;">';
+                html += '<div style="height:100%;width:' + staffRatio + '%;background:' + barColor + ';border-radius:999px;transition:width 0.5s ease;"></div></div>';
+
+                // Status pill
+                html += '<div style="display:flex;align-items:center;justify-content:center;">';
+                html += '<span style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.25rem 0.75rem;border-radius:999px;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;background:' + statusBg + ';color:' + statusColor + ';">';
+                html += '<i class="fas ' + statusIcon + '" style="font-size:0.65rem;"></i> ' + statusText + pillExtra + '</span></div>';
+
+                html += '</div></div>';
+            });
+            grid.innerHTML = html;
+
+            // Attach hover effects
+            grid.querySelectorAll('.staff-alloc-card').forEach(function(card) {
+                var bc = card.getAttribute('data-bar-color');
+                card.addEventListener('mouseenter', function() {
+                    card.style.transform = 'translateY(-4px)';
+                    card.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
+                    card.style.borderColor = bc;
+                });
+                card.addEventListener('mouseleave', function() {
+                    card.style.transform = 'none';
+                    card.style.boxShadow = 'none';
+                    card.style.borderColor = '';
+                });
+            });
+        }
+
+        async function refreshStaffAllocation() {
+            const btn = document.getElementById('btn-refresh-staff');
+            btn.classList.add('spinning');
+            btn.disabled = true;
+            await fetchStaffAllocation();
+            setTimeout(() => { btn.classList.remove('spinning'); btn.disabled = false; }, 600);
+        }
+    </script>
+</body>
+
+</html>

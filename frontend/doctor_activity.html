@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>PatientPath AI - Activity History</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .activity-container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .refresh-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 1.25rem;
+        }
+
+        .refresh-bar .live-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: #10b981; display: inline-block;
+            margin-right: 5px; animation: pulse-blink 1.5s infinite;
+        }
+
+        @keyframes pulse-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .activity-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+        }
+
+        .activity-card h3 {
+            font-size: 0.95rem;
+            color: var(--text-main);
+            margin-bottom: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .activity-card h3 i {
+            color: var(--text-muted);
+        }
+
+        /* Timeline list */
+        .timeline {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 520px;
+            overflow-y: auto;
+        }
+
+        .timeline::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .timeline::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 0.75rem 0.5rem;
+            border-radius: 8px;
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .timeline-item:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .timeline-item:not(:last-child) {
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .timeline-item.newest {
+            background: rgba(59,130,246,0.06);
+            border-left: 3px solid #3b82f6;
+            padding-left: 0.75rem;
+        }
+
+        /* Time column */
+        .tl-time {
+            flex-shrink: 0;
+            width: 50px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #3b82f6;
+            padding-top: 2px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Dot connector */
+        .tl-dot {
+            flex-shrink: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border-color);
+            margin-top: 5px;
+            position: relative;
+        }
+
+        .timeline-item.newest .tl-dot {
+            background: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+        }
+
+        /* Action text */
+        .tl-action {
+            flex: 1;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            line-height: 1.4;
+        }
+
+        /* Date column */
+        .tl-date {
+            flex-shrink: 0;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            padding-top: 2px;
+            white-space: nowrap;
+        }
+
+        .no-activity {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            padding: 2.5rem 0;
+        }
+
+        .no-activity i {
+            font-size: 1.6rem;
+            display: block;
+            margin-bottom: 0.6rem;
+            opacity: 0.4;
+        }
+
+        /* Loading */
+        .loading-spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+        }
+
+        .loading-spinner .spinner {
+            width: 36px; height: 36px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- Metric Cards --- */
+        .metric-cards-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.1rem 1rem;
+            text-align: center;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.22);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.32);
+        }
+        .mc-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 1.05rem; margin-bottom: 0.6rem;
+        }
+        .mc-icon.clock   { background: rgba(99,102,241,0.12); color: #6366f1; }
+        .mc-icon.load    { background: rgba(245,158,11,0.12); color: #f59e0b; }
+        .mc-icon.update  { background: rgba(59,130,246,0.12); color: #3b82f6; }
+        .mc-icon.actions { background: rgba(16,185,129,0.12); color: #10b981; }
+        .mc-label {
+            font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;
+            font-weight: 600; letter-spacing: 0.04em; margin-bottom: 0.35rem;
+        }
+        .mc-value {
+            font-size: 1.3rem; font-weight: 800; color: var(--text-main); line-height: 1;
+        }
+        .mc-value .pill {
+            display: inline-block; padding: 0.2rem 0.65rem; border-radius: 9999px;
+            font-size: 0.78rem; font-weight: 700;
+        }
+        .pill-green  { background: rgba(16,185,129,0.15); color: #10b981; }
+        .pill-orange { background: rgba(245,158,11,0.15); color: #f59e0b; }
+        .pill-red    { background: rgba(239,68,68,0.15);  color: #ef4444; }
+        @media (max-width: 640px) {
+            .metric-cards-row { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">3</span> Live Video</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">4</span> Alerts</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">5</span> Doctor Panel</a></li>
+            <li><a href="doctor_workload.html" class="nav-item"><span class="step-badge">6</span> Doctor Workload</a></li>
+            <li><a href="doctor_activity.html" class="nav-item active"><span class="step-badge">7</span> Activity History</a></li>
+            <li><a href="doctor_dept_insights.html" class="nav-item"><span class="step-badge">8</span> Dept Insights</a></li>
+            <li><a href="doctor_escalate.html" class="nav-item"><span class="step-badge">9</span> Escalate Issue</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>Activity History</h1>
+                <p class="header-subtitle">Complete timeline of your consultations and actions</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <div class="activity-container">
+
+                <!-- Metric Cards -->
+                <div class="metric-cards-row">
+                    <div class="metric-card">
+                        <div class="mc-icon clock"><i class="fas fa-history"></i></div>
+                        <div class="mc-label">Last Activity</div>
+                        <div class="mc-value" id="mc-last-activity">--</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="mc-icon update"><i class="fas fa-clock"></i></div>
+                        <div class="mc-label">Last Update</div>
+                        <div class="mc-value" id="mc-last-update">--:--</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="mc-icon load"><i class="fas fa-tachometer-alt"></i></div>
+                        <div class="mc-label">Workload Status</div>
+                        <div class="mc-value" id="mc-workload-status">--</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="mc-icon actions"><i class="fas fa-bolt"></i></div>
+                        <div class="mc-label">My Actions</div>
+                        <div class="mc-value" id="mc-total-actions">0</div>
+                    </div>
+                </div>
+
+                <div class="refresh-bar">
+                    <span><span class="live-dot"></span> Auto-refreshes every 25s</span>
+                    <span id="last-updated">--</span>
+                </div>
+
+                <!-- Loading -->
+                <div id="loading-state" class="loading-spinner">
+                    <div class="spinner"></div>
+                </div>
+
+                <!-- Activity Log Card -->
+                <div id="activity-content" style="display:none;">
+                    <div class="activity-card">
+                        <h3><i class="fas fa-stream"></i> Activity Log</h3>
+                        <ul class="timeline" id="timeline-list">
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
+    <script src="js/main.js?v=999"></script>
+    <script>
+        const API_BASE_URL = typeof API_BASE !== 'undefined' ? API_BASE : '';
+
+        let doctorId = 1;
+        const currentUser = localStorage.getItem('currentUser');
+        if (currentUser && !isNaN(currentUser)) {
+            doctorId = parseInt(currentUser);
+        }
+
+        const timelineList = document.getElementById('timeline-list');
+        const loadingState = document.getElementById('loading-state');
+        const activityContent = document.getElementById('activity-content');
+        const lastUpdatedEl = document.getElementById('last-updated');
+
+        async function fetchActivityHistory() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/doctor/activity-history/${doctorId}`);
+                if (!res.ok) throw new Error('API error');
+                const data = await res.json();
+                renderTimeline(data.activities || []);
+                lastUpdatedEl.textContent = 'Updated: ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                loadingState.style.display = 'none';
+                activityContent.style.display = 'block';
+            } catch (err) {
+                console.error('Activity history error:', err);
+                loadingState.style.display = 'none';
+                activityContent.style.display = 'block';
+                timelineList.innerHTML = '<li class="no-activity"><i class="fas fa-inbox"></i>Unable to load activity history</li>';
+                lastUpdatedEl.textContent = 'Update failed';
+            }
+        }
+
+        function renderTimeline(activities) {
+            if (!activities.length) {
+                timelineList.innerHTML = '<li class="no-activity"><i class="fas fa-inbox"></i>No activity recorded yet</li>';
+                return;
+            }
+
+            let html = '';
+            activities.forEach(function (item, idx) {
+                const newestClass = idx === 0 ? ' newest' : '';
+                html += `<li class="timeline-item${newestClass}">
+                    <span class="tl-time">${item.time}</span>
+                    <span class="tl-dot"></span>
+                    <span class="tl-action">${item.action}</span>
+                    <span class="tl-date">${item.date}</span>
+                </li>`;
+            });
+            timelineList.innerHTML = html;
+        }
+
+        async function fetchMetricCards() {
+            // Last Activity
+            try {
+                const r1 = await fetch(`${API_BASE_URL}/doctor/last-activity/${doctorId}`);
+                if (r1.ok) {
+                    const d = await r1.json();
+                    document.getElementById('mc-last-activity').textContent = d.last_activity;
+                }
+            } catch(e) { console.error(e); }
+
+            // Workload Status
+            try {
+                const r2 = await fetch(`${API_BASE_URL}/doctor/workload-status/${doctorId}`);
+                if (r2.ok) {
+                    const d = await r2.json();
+                    const colorMap = { green: 'pill-green', orange: 'pill-orange', red: 'pill-red' };
+                    const cls = colorMap[d.color] || 'pill-green';
+                    document.getElementById('mc-workload-status').innerHTML =
+                        `<span class="pill ${cls}">${d.status}</span>`;
+                }
+            } catch(e) { console.error(e); }
+
+            // Stats (last update + total actions)
+            try {
+                const r3 = await fetch(`${API_BASE_URL}/doctor/stats/${doctorId}`);
+                if (r3.ok) {
+                    const d = await r3.json();
+                    document.getElementById('mc-last-update').textContent = d.last_update;
+                    document.getElementById('mc-total-actions').textContent = d.total_actions;
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        // Initial fetch
+        fetchActivityHistory();
+        fetchMetricCards();
+
+        // Auto-refresh every 25 seconds
+        setInterval(fetchActivityHistory, 25000);
+        setInterval(fetchMetricCards, 25000);
+    </script>
+</body>
+
+</html>
