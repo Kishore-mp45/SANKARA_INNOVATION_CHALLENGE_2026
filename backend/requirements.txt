@@ -31,3 +31,4 @@ scikit-learn
 ultralytics
 opencv-python-headless
 numpy
+reportlab

@@ -131,6 +131,13 @@ class PatientService:
                 if mobile: patient.mobile = mobile
                 db.commit()
 
+        # Auto-complete: billing_insurance is the last department in the workflow.
+        # When a completion action is recorded here, auto-route to exit.
+        if department == "billing_insurance" and not next_department:
+            billing_completion_keywords = ["received", "verified", "completed", "done", "finished"]
+            if action and any(kw in action.lower() for kw in billing_completion_keywords):
+                next_department = "exit"
+
         # 2. Update Zone if next_department is provided
         if next_department:
             if next_department == "exit":

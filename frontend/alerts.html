@@ -8,16 +8,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .alerts-page {
-            padding: 2rem;
-            max-width: 1400px;
-            margin: 0 auto;
+            padding: 1.5rem 2rem;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .alerts-page-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 2rem;
+            margin-bottom: 1.25rem;
             flex-wrap: wrap;
             gap: 1rem;
         }
@@ -36,10 +36,24 @@
             color: #f59e0b;
         }
 
-        .alert-counter-pills {
+        /* ── Risk Summary Bar ─────────────────────────── */
+        .risk-summary-bar {
             display: flex;
             gap: 0.75rem;
             align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+            padding: 0.85rem 1.25rem;
+            background: var(--card-bg, #1e293b);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 10px;
+        }
+
+        .risk-summary-bar .summary-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted, #94a3b8);
+            margin-right: 0.5rem;
         }
 
         .counter-pill {
@@ -62,25 +76,24 @@
             color: #f59e0b;
         }
 
+        .counter-pill.info {
+            background: rgba(14, 165, 233, 0.15);
+            color: #0ea5e9;
+        }
+
         .counter-pill.clear {
             background: rgba(16, 185, 129, 0.15);
             color: #10b981;
         }
 
-        /* Two-column layout */
+        /* ── Stacked full-width layout ────────────────── */
         .alerts-layout {
-            display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
         }
 
-        @media (max-width: 900px) {
-            .alerts-layout {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Alerts list */
+        /* ── Alerts list panel ────────────────────────── */
         .alerts-list-panel {
             background: var(--card-bg, #1e293b);
             border: 1px solid var(--border-color, #334155);
@@ -101,49 +114,44 @@
             color: #f59e0b;
         }
 
+        /* ── Alert Card Grid ─────────────────────────── */
+        .alerts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.25rem;
+        }
+
         .alert-card {
             background: var(--sidebar-bg, #0f172a);
             border: 1px solid var(--border-color, #334155);
-            border-left: 4px solid;
-            border-radius: 8px;
-            padding: 1rem 1.25rem;
-            margin-bottom: 0.75rem;
+            border-top: 3px solid;
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem 1.1rem;
+            display: flex;
+            flex-direction: column;
             transition: opacity 0.3s, transform 0.3s;
         }
 
-        .alert-card.critical {
-            border-left-color: #ef4444;
-        }
+        .alert-card.critical { border-top-color: #ef4444; }
+        .alert-card.warning  { border-top-color: #f59e0b; }
+        .alert-card.info     { border-top-color: #0ea5e9; }
 
-        .alert-card.warning {
-            border-left-color: #f59e0b;
-        }
-
-        .alert-card.info {
-            border-left-color: #0ea5e9;
-        }
-
+        /* ── Card top row: icon + name + badge ──────── */
         .alert-card-header {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-        }
-
-        .alert-card-meta {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
+            gap: 0.75rem;
+            margin-bottom: 0.85rem;
         }
 
         .alert-card-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.85rem;
+            font-size: 1.1rem;
             flex-shrink: 0;
         }
 
@@ -157,28 +165,148 @@
             color: #f59e0b;
         }
 
-        .alert-source-badge {
-            font-size: 0.65rem;
-            padding: 0.15rem 0.5rem;
+        .alert-card.info .alert-card-icon {
+            background: rgba(14, 165, 233, 0.15);
+            color: #0ea5e9;
+        }
+
+        .alert-card-header-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .alert-card-title {
+            font-size: 1rem;
+            color: var(--text-main, #e2e8f0);
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        .alert-severity-badge {
+            font-size: 0.62rem;
+            padding: 0.2rem 0.6rem;
             border-radius: 999px;
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.4px;
+            flex-shrink: 0;
+        }
+
+        .alert-severity-badge.critical {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .alert-severity-badge.warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+
+        .alert-severity-badge.info {
+            background: rgba(14, 165, 233, 0.15);
+            color: #0ea5e9;
+        }
+
+        /* ── Message ────────────────────────────────── */
+        .alert-card-msg {
+            font-size: 0.8rem;
+            color: var(--text-muted, #94a3b8);
+            line-height: 1.55;
+            margin-bottom: 1rem;
+        }
+
+        /* ── Risk Score Bar ─────────────────────────── */
+        .risk-score-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 1rem;
+        }
+
+        .risk-score-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-muted, #94a3b8);
+            white-space: nowrap;
+        }
+
+        .risk-bar-track {
+            flex: 1;
+            height: 8px;
             background: rgba(148, 163, 184, 0.12);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .risk-bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.6s ease;
+        }
+
+        .risk-bar-fill.critical { background: linear-gradient(90deg, #ef4444, #dc2626); }
+        .risk-bar-fill.warning  { background: linear-gradient(90deg, #f59e0b, #d97706); }
+        .risk-bar-fill.info     { background: linear-gradient(90deg, #0ea5e9, #0284c7); }
+
+        .risk-score-value {
+            font-size: 0.78rem;
+            font-weight: 700;
+            min-width: 46px;
+            text-align: right;
+        }
+
+        .risk-score-value.critical { color: #ef4444; }
+        .risk-score-value.warning  { color: #f59e0b; }
+        .risk-score-value.info     { color: #0ea5e9; }
+
+        /* ── Stat chips row ─────────────────────────── */
+        .alert-stats {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .alert-stat-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.7rem;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            background: rgba(148, 163, 184, 0.08);
+            border: 1px solid var(--border-color, #334155);
             color: var(--text-muted, #94a3b8);
         }
 
-        .alert-card-msg {
-            font-size: 0.9rem;
-            color: var(--text-main, #e2e8f0);
-            font-weight: 600;
-            line-height: 1.4;
+        .alert-stat-chip i {
+            font-size: 0.65rem;
+            opacity: 0.7;
         }
 
+        .alert-stat-chip strong {
+            color: var(--text-main, #e2e8f0);
+            font-weight: 700;
+        }
+
+        .alert-stat-chip.deficit {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.25);
+            color: #fca5a5;
+        }
+
+        .alert-stat-chip.deficit strong {
+            color: #ef4444;
+        }
+
+        /* ── Card actions (pushed to bottom) ────────── */
         .alert-card-actions {
             display: flex;
             gap: 0.5rem;
-            margin-top: 0.75rem;
+            margin-top: auto;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-color, #334155);
         }
 
         .btn-resolve {
@@ -219,13 +347,12 @@
             background: rgba(148, 163, 184, 0.1);
         }
 
-        /* Decision Support panel */
+        /* ── Decision Support panel ───────────────────── */
         .decisions-panel {
             background: var(--card-bg, #1e293b);
             border: 1px solid var(--border-color, #334155);
             border-radius: 12px;
             padding: 1.25rem;
-            height: fit-content;
         }
 
         .decisions-panel h2 {
@@ -241,33 +368,78 @@
             color: #f59e0b;
         }
 
+        .decisions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+
         .decision-card {
             background: var(--sidebar-bg, #0f172a);
             border: 1px solid var(--border-color, #334155);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            flex-direction: column;
             transition: opacity 0.3s, transform 0.3s;
         }
 
-        .decision-title {
+        .decision-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .decision-type-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .decision-type-icon.redirect {
+            background: rgba(239, 68, 68, 0.12);
+            color: #ef4444;
+        }
+
+        .decision-type-icon.staff {
+            background: rgba(245, 158, 11, 0.12);
+            color: #f59e0b;
+        }
+
+        .decision-type-icon.normal {
+            background: rgba(16, 185, 129, 0.12);
+            color: #10b981;
+        }
+
+        .decision-title {
+            font-size: 0.9rem;
             color: var(--text-main, #e2e8f0);
-            font-weight: 600;
-            margin: 0 0 0.5rem 0;
-            line-height: 1.4;
+            font-weight: 700;
+            margin: 0;
+            line-height: 1.35;
+            flex: 1;
         }
 
         .decision-desc {
             font-size: 0.8rem;
             color: var(--text-muted, #94a3b8);
-            line-height: 1.5;
-            margin-bottom: 0.75rem;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+            flex: 1;
         }
 
         .decision-actions {
             display: flex;
             gap: 0.5rem;
+            margin-top: auto;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-color, #334155);
         }
 
         .btn-action-apply {
@@ -323,19 +495,23 @@
             margin: 0;
         }
 
-        @keyframes slideInRight {
+        @keyframes slideInUp {
             from {
-                transform: translateX(30px);
+                transform: translateY(20px);
                 opacity: 0;
             }
             to {
-                transform: translateX(0);
+                transform: translateY(0);
                 opacity: 1;
             }
         }
 
-        .alert-card {
-            animation: slideInRight 0.4s ease forwards;
+        .alerts-grid .alert-card {
+            animation: slideInUp 0.4s ease forwards;
+        }
+
+        .decisions-grid .decision-card {
+            animation: slideInUp 0.4s ease forwards;
         }
     </style>
 </head>
@@ -367,10 +543,13 @@
 
             <!-- Header -->
             <div class="alerts-page-header">
-                <h1><i class="fas fa-exclamation-triangle"></i> Active Alerts</h1>
-                <div class="alert-counter-pills" id="alert-counters">
-                    <span class="counter-pill clear"><i class="fas fa-spinner fa-spin"></i> Loading...</span>
-                </div>
+                <h1><i class="fas fa-exclamation-triangle"></i> AI Alerts &amp; Decision Support</h1>
+            </div>
+
+            <!-- Risk Summary Bar -->
+            <div class="risk-summary-bar" id="risk-summary-bar">
+                <span class="summary-label">Risk Overview:</span>
+                <span class="counter-pill clear"><i class="fas fa-spinner fa-spin"></i> Loading...</span>
             </div>
 
             <!-- Two-Column Layout -->
@@ -402,73 +581,152 @@
         </div>
     </div>
 
-    <script src="js/config.js"></script>
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
     <script src="js/main.js?v=999"></script>
     <script>
         var ALERT_API_BASE = API_BASE;
         var alertsList = document.getElementById('alerts-list');
         var decisionsList = document.getElementById('decisions-list');
-        var countersPill = document.getElementById('alert-counters');
+        var summaryBar = document.getElementById('risk-summary-bar');
         var dismissedAlerts = {};
+        var _isDoctorRole = (localStorage.getItem('currentRole') === 'doctor');
 
-        async function fetchLiveAlerts() {
+        // Hospital workflow sequential order
+        var WORKFLOW_ORDER = [
+            'registration',
+            'vision_lab',
+            'dilation_hall',
+            'diagnostics',
+            'consultation',
+            'pharmacy',
+            'billing_insurance'
+        ];
+
+        function sortByWorkflowOrder(arr, zoneKey) {
+            return arr.slice().sort(function(a, b) {
+                var idxA = WORKFLOW_ORDER.indexOf(a[zoneKey]);
+                var idxB = WORKFLOW_ORDER.indexOf(b[zoneKey]);
+                if (idxA === -1) idxA = 999;
+                if (idxB === -1) idxB = 999;
+                return idxA - idxB;
+            });
+        }
+
+        async function fetchIntelligentAlerts() {
             try {
-                var res = await fetch(ALERT_API_BASE + '/prediction/live-alerts');
+                var res = await fetch(ALERT_API_BASE + '/alerts/intelligent');
                 if (!res.ok) throw new Error('Failed to fetch');
                 var data = await res.json();
-                renderAlerts(data.alerts || []);
-                renderDecisions(data.decisions || []);
-                renderCounters(data);
+
+                var departments = data.departments || [];
+                var decisions = data.decisions || [];
+
+                // Sort by hospital workflow order
+                departments = sortByWorkflowOrder(departments, 'zone_name');
+                decisions = sortByWorkflowOrder(decisions, 'zone');
+
+                // Doctor role: show only consultation department
+                if (_isDoctorRole) {
+                    departments = departments.filter(function(d) { return d.zone_name === 'consultation'; });
+                    decisions = decisions.filter(function(d) { return d.zone === 'consultation'; });
+                }
+
+                renderSummaryBar(data.summary || {}, departments);
+                renderAlerts(departments);
+                renderDecisions(decisions);
             } catch (e) {
-                console.error('Alert fetch error:', e);
+                console.error('Intelligent alert fetch error:', e);
                 alertsList.innerHTML = '<div class="empty-alert-state"><i class="fas fa-exclamation-circle"></i><p>Could not load alerts. Retrying...</p></div>';
             }
         }
 
-        function renderCounters(data) {
-            var html = '';
-            if (data.critical_count > 0) {
-                html += '<span class="counter-pill critical"><i class="fas fa-exclamation-circle"></i> ' + data.critical_count + ' Critical</span>';
+        function renderSummaryBar(summary, filteredDepts) {
+            var html = '<span class="summary-label">Risk Overview:</span>';
+
+            // If doctor role, recompute counts from filtered departments
+            var crit, warn, info;
+            if (_isDoctorRole && filteredDepts) {
+                crit = 0; warn = 0; info = 0;
+                filteredDepts.forEach(function(d) {
+                    var s = (d.severity || '').toUpperCase();
+                    if (s === 'CRITICAL') crit++;
+                    else if (s === 'WARNING') warn++;
+                    else info++;
+                });
+            } else {
+                crit = summary.critical_count || 0;
+                warn = summary.warning_count || 0;
+                info = summary.info_count || 0;
             }
-            if (data.warning_count > 0) {
-                html += '<span class="counter-pill warning"><i class="fas fa-exclamation-triangle"></i> ' + data.warning_count + ' Warning</span>';
+
+            if (crit > 0) {
+                html += '<span class="counter-pill critical"><i class="fas fa-circle"></i> Critical: ' + crit + '</span>';
             }
-            if (data.total_count === 0) {
+            if (warn > 0) {
+                html += '<span class="counter-pill warning"><i class="fas fa-circle"></i> Warning: ' + warn + '</span>';
+            }
+            if (info > 0) {
+                html += '<span class="counter-pill info"><i class="fas fa-circle"></i> Info: ' + info + '</span>';
+            }
+            if (crit === 0 && warn === 0 && info === 0) {
                 html += '<span class="counter-pill clear"><i class="fas fa-check-circle"></i> All Clear</span>';
             }
-            countersPill.innerHTML = html;
+            summaryBar.innerHTML = html;
         }
 
-        function renderAlerts(alerts) {
-            // Filter out dismissed alerts
-            var visible = alerts.filter(function(a) { return !dismissedAlerts[a.id]; });
+        function renderAlerts(departments) {
+            var visible = departments.filter(function(d) { return !dismissedAlerts[d.zone_name]; });
 
             if (visible.length === 0) {
                 alertsList.innerHTML = '<div class="empty-alert-state"><i class="fas fa-shield-alt"></i><p>No active alerts. All departments operating normally.</p></div>';
                 return;
             }
 
-            var html = '';
-            visible.forEach(function(alert, idx) {
-                var iconHtml = alert.icon ? '<i class="fas ' + alert.icon + '"></i>' : '<i class="fas fa-exclamation-triangle"></i>';
-                var confHtml = alert.confidence ? ' <span style="font-size:0.7rem;color:var(--text-muted);">(' + alert.confidence + ')</span>' : '';
-                var sourceHtml = alert.source ? '<span class="alert-source-badge">' + alert.source + '</span>' : '';
+            var html = '<div class="alerts-grid">';
+            visible.forEach(function(dept, idx) {
+                var sev = dept.severity.toLowerCase();
+                var sevLabel = dept.severity;
+                var iconEmoji = dept.icon || '';
 
-                html += '<div class="alert-card ' + alert.severity + '" id="alert-' + idx + '">' +
+                html += '<div class="alert-card ' + sev + '" id="alert-' + idx + '">' +
+
+                    /* Header: icon + title + badge */
                     '<div class="alert-card-header">' +
-                        '<div class="alert-card-meta">' +
-                            '<div class="alert-card-icon">' + iconHtml + '</div>' +
-                            sourceHtml +
+                        '<div class="alert-card-icon"><span style="font-size:1.1rem;">' + iconEmoji + '</span></div>' +
+                        '<div class="alert-card-header-text">' +
+                            '<div class="alert-card-title">' + dept.department + '</div>' +
                         '</div>' +
-                        confHtml +
+                        '<span class="alert-severity-badge ' + sev + '">' + sevLabel + '</span>' +
                     '</div>' +
-                    '<div class="alert-card-msg">' + alert.msg + '</div>' +
+
+                    /* Message */
+                    '<div class="alert-card-msg">' + dept.message + '</div>' +
+
+                    /* Risk Score Bar */
+                    '<div class="risk-score-row">' +
+                        '<span class="risk-score-label">Risk Score</span>' +
+                        '<div class="risk-bar-track">' +
+                            '<div class="risk-bar-fill ' + sev + '" style="width:' + dept.risk_score + '%;"></div>' +
+                        '</div>' +
+                        '<span class="risk-score-value ' + sev + '">' + dept.risk_score + ' / 100</span>' +
+                    '</div>' +
+
+                    /* Stat chips */
+                    '<div class="alert-stats">' +
+                        '<span class="alert-stat-chip"><i class="fas fa-clock"></i> Waiting Time <strong>' + dept.predicted_waiting_time + ' min</strong></span>' +
+                        '<span class="alert-stat-chip"><i class="fas fa-user-nurse"></i> Staff <strong>' + dept.staff_available + ' / ' + dept.staff_required + '</strong></span>' +
+                        (dept.staff_deficit > 0 ? '<span class="alert-stat-chip deficit"><i class="fas fa-exclamation-triangle"></i> Deficit <strong>' + dept.staff_deficit + '</strong></span>' : '') +
+                    '</div>' +
+
+                    /* Actions */
                     '<div class="alert-card-actions">' +
-                        '<button class="btn-resolve" onclick="resolveAlert(\'' + alert.id + '\', this)"><i class="far fa-check-circle"></i> Resolve</button>' +
-                        '<button class="btn-dismiss" onclick="dismissAlert(\'' + alert.id + '\', this)"><i class="fas fa-times"></i> Dismiss</button>' +
+                        '<button class="btn-resolve" onclick="resolveAlert(\'' + dept.zone_name + '\', this)"><i class="far fa-check-circle"></i> Resolve</button>' +
+                        '<button class="btn-dismiss" onclick="dismissAlert(\'' + dept.zone_name + '\', this)"><i class="fas fa-times"></i> Dismiss</button>' +
                     '</div>' +
                 '</div>';
             });
+            html += '</div>';
 
             alertsList.innerHTML = html;
         }
@@ -479,15 +737,18 @@
                 return;
             }
 
-            var html = '';
+            var html = '<div class="decisions-grid">';
             decisions.forEach(function(d, idx) {
                 var typeIcon = 'fa-check-circle';
-                if (d.type === 'staff') typeIcon = 'fa-user-plus';
-                else if (d.type === 'redirect') typeIcon = 'fa-arrow-right';
-                else if (d.type === 'normal') typeIcon = 'fa-check-circle';
+                var typeClass = 'normal';
+                if (d.type === 'staff')    { typeIcon = 'fa-user-plus';  typeClass = 'staff'; }
+                else if (d.type === 'redirect') { typeIcon = 'fa-arrow-right'; typeClass = 'redirect'; }
 
                 html += '<div class="decision-card" id="dec-' + idx + '">' +
-                    '<h4 class="decision-title"><i class="fas ' + typeIcon + '" style="color: var(--primary-color, #0ea5e9); margin-right: 0.4rem; font-size: 0.8rem;"></i>' + (d.title || '') + '</h4>' +
+                    '<div class="decision-card-header">' +
+                        '<div class="decision-type-icon ' + typeClass + '"><i class="fas ' + typeIcon + '"></i></div>' +
+                        '<h4 class="decision-title">' + (d.title || '') + '</h4>' +
+                    '</div>' +
                     '<div class="decision-desc">' + d.description + '</div>' +
                     '<div class="decision-actions">' +
                         '<button class="btn-action-apply" onclick="applyDecision(' + idx + ')"><i class="fas fa-check-circle"></i> ' + (d.action_label || 'Apply') + '</button>' +
@@ -495,15 +756,16 @@
                     '</div>' +
                 '</div>';
             });
+            html += '</div>';
 
             decisionsList.innerHTML = html;
         }
 
-        function resolveAlert(alertId, btn) {
+        function resolveAlert(zoneId, btn) {
             var card = btn.closest('.alert-card');
             btn.innerHTML = '<i class="fas fa-check"></i> Resolved';
             btn.style.background = 'rgba(16,185,129,0.25)';
-            dismissedAlerts[alertId] = true;
+            dismissedAlerts[zoneId] = true;
 
             setTimeout(function() {
                 card.style.opacity = '0.4';
@@ -518,9 +780,9 @@
             }, 500);
         }
 
-        function dismissAlert(alertId, btn) {
+        function dismissAlert(zoneId, btn) {
             var card = btn.closest('.alert-card');
-            dismissedAlerts[alertId] = true;
+            dismissedAlerts[zoneId] = true;
             card.style.transform = 'translateX(100%)';
             card.style.opacity = '0';
             setTimeout(function() { card.remove(); }, 300);
@@ -552,9 +814,9 @@
         }
 
         // Initial load
-        fetchLiveAlerts();
+        fetchIntelligentAlerts();
         // Poll every 30 seconds
-        setInterval(fetchLiveAlerts, 30000);
+        setInterval(fetchIntelligentAlerts, 30000);
     </script>
 </body>
 

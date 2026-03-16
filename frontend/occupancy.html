@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PatientPath AI - Live Occupancy</title>
     <link rel="stylesheet" href="css/style.css?v=100">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .occ-layout {
             display: flex;
@@ -354,9 +355,10 @@
         </div>
     </div>
 
-    <script src="js/config.js"></script>
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
     <script src="js/main.js?v=999"></script>
-    <script src="js/websocket.js"></script>
+    <script src="js/websocket.js?v=999"></script>
     <script>
         // Hospital sequential department flow
         const DEPT_ORDER = [
@@ -371,6 +373,41 @@
 
         const deptSelect = document.getElementById('occ-dept-select');
         let currentDept = 'registration';
+
+        // Doctor / Staff role: lock to specific department, hide dropdown
+        (function() {
+            var role = localStorage.getItem('currentRole');
+            var userDept = localStorage.getItem('currentDept');
+
+            if (role === 'doctor') {
+                currentDept = 'consultation';
+                deptSelect.innerHTML = '<option value="consultation">5. Doctor Consult</option>';
+                deptSelect.value = 'consultation';
+                deptSelect.disabled = true;
+                deptSelect.style.pointerEvents = 'none';
+                deptSelect.style.opacity = '0.7';
+            } else if (role === 'staff' && userDept) {
+                var targetOption = null;
+                for (var i = 0; i < deptSelect.options.length; i++) {
+                    if (deptSelect.options[i].value === userDept) {
+                        targetOption = deptSelect.options[i];
+                        break;
+                    }
+                }
+
+                if (targetOption) {
+                    currentDept = targetOption.value;
+                    deptSelect.innerHTML = `<option value="${targetOption.value}">${targetOption.text}</option>`;
+                    deptSelect.value = targetOption.value;
+                } else {
+                    currentDept = 'registration';
+                    deptSelect.value = 'registration';
+                }
+                deptSelect.disabled = true;
+                deptSelect.style.pointerEvents = 'none';
+                deptSelect.style.opacity = '0.7';
+            }
+        })();
 
         // Build flow bar with highlight
         function renderFlowBar(activeKey) {
@@ -463,8 +500,10 @@
             switchDept(e.target.value);
         });
 
-        // Listen for storage changes from video page
+        // Listen for storage changes from video page (non-doctor/staff only)
         window.addEventListener('storage', function (e) {
+            const r = localStorage.getItem('currentRole');
+            if (r === 'doctor' || r === 'staff') return;
             if (e.key === 'pp_selected_dept' && e.newValue) {
                 const dept = getDeptInfo(e.newValue);
                 if (dept) {
@@ -496,10 +535,15 @@
 
         // Initialize - sync with video page selection
         try {
-            const saved = localStorage.getItem('pp_selected_dept');
-            if (saved && getDeptInfo(saved)) {
-                currentDept = saved;
-                deptSelect.value = saved;
+            var role = localStorage.getItem('currentRole');
+            if (role === 'doctor' || role === 'staff') {
+                deptSelect.value = currentDept;
+            } else {
+                var saved = localStorage.getItem('pp_selected_dept');
+                if (saved && getDeptInfo(saved)) {
+                    currentDept = saved;
+                    deptSelect.value = saved;
+                }
             }
         } catch(e) {}
 

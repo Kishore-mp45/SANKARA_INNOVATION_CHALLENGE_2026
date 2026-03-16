@@ -242,6 +242,18 @@ app.include_router(prediction_router)
 from routers.detection import router as detection_router
 app.include_router(detection_router)
 
+# Hospital load status routes
+from routers.hospital import router as hospital_router
+app.include_router(hospital_router)
+
+# Staff bottleneck warning routes
+from routers.staff import router as staff_router
+app.include_router(staff_router)
+
+# Prescription routes
+from routers.prescription import router as prescription_router
+app.include_router(prescription_router)
+
 # Serve frontend static files
 frontend_dir = os.path.join(os.path.dirname(backend_dir), "frontend")
 if os.path.isdir(frontend_dir):

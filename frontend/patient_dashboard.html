@@ -101,6 +101,7 @@
             background: var(--primary-color);
             color: white;
             transform: scale(1.1);
+            animation: pulse-step 2s infinite;
         }
 
         .progress-step.active .step-label {
@@ -109,55 +110,23 @@
         }
 
         .progress-step.completed .step-circle {
-            border-color: var(--primary-color);
-            background: white;
-            color: var(--primary-color);
+            border-color: #10b981;
+            background: #10b981;
+            color: white;
+        }
+
+        .progress-step.completed .step-label {
+            color: #10b981;
         }
 
         .progress-step.completed .step-circle::after {
-            content: '✓';
+            content: '\2713';
             font-size: 0.9rem;
         }
 
-        .timeline-section {
-            background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 16px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--border-color);
-            text-align: left;
-        }
-
-        .timeline-item {
-            display: flex;
-            gap: 1.5rem;
-            padding-bottom: 1.5rem;
-            border-left: 2px solid var(--border-color);
-            padding-left: 1.5rem;
-            position: relative;
-        }
-
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -6px;
-            top: 0;
-            width: 10px;
-            height: 10px;
-            background: var(--sidebar-bg);
-            border: 2px solid var(--primary-color);
-            border-radius: 50%;
-        }
-
-        .timeline-item:last-child {
-            border-left: none;
-        }
-
-        .timeline-time {
-            min-width: 80px;
-            font-weight: 600;
-            color: var(--text-muted);
-            font-size: 0.9rem;
+        @keyframes pulse-step {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(14, 165, 233, 0); }
         }
 
         .status-badge {
@@ -283,27 +252,53 @@
                 <div id="ai-wait-label" style="font-size: 0.8rem; color: var(--text-muted);">Estimated by AI Model</div>
             </div>
 
-            <!-- Progress Tracker -->
-            <div class="progress-container">
-                <h3 style="color: var(--text-main); margin-bottom: 1rem; font-size: 1.1rem;">Treatment Journey</h3>
+            <!-- Patient Journey Tracker -->
+            <div class="progress-container" id="journey-tracker-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <i class="fas fa-route" style="color: var(--primary-color); font-size: 1.1rem;"></i>
+                        <h3 style="color: var(--text-main); margin: 0; font-size: 1.1rem;">Patient Journey Tracker</h3>
+                    </div>
+                    <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.85rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; background: rgba(59,130,246,0.12); color: #3b82f6; border: 1px solid rgba(59,130,246,0.25);">
+                        <i class="fas fa-clock"></i> ETA: <span id="eta-value">--</span>
+                    </span>
+                </div>
+
+                <!-- Journey Summary Mini-Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.85rem; margin-bottom: 1.5rem;" id="journey-summary">
+                    <div style="background: rgba(16,185,129,0.08); border-radius: 10px; padding: 0.85rem 0.75rem; text-align: center; border: 1px solid rgba(16,185,129,0.2);">
+                        <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35rem;">Current Stage</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: #10b981;" id="eta-current-stage">--</div>
+                    </div>
+                    <div style="background: rgba(59,130,246,0.08); border-radius: 10px; padding: 0.85rem 0.75rem; text-align: center; border: 1px solid rgba(59,130,246,0.2);">
+                        <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35rem;">Next Department</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: #3b82f6;" id="eta-next-dept">--</div>
+                    </div>
+                    <div style="background: rgba(245,158,11,0.08); border-radius: 10px; padding: 0.85rem 0.75rem; text-align: center; border: 1px solid rgba(245,158,11,0.2);">
+                        <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35rem;">Predicted Wait</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: #f59e0b;" id="eta-predicted-wait">--</div>
+                    </div>
+                    <div style="background: rgba(139,92,246,0.08); border-radius: 10px; padding: 0.85rem 0.75rem; text-align: center; border: 1px solid rgba(139,92,246,0.2);">
+                        <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35rem;">Queue Ahead</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: #8b5cf6;" id="eta-queue-size">--</div>
+                    </div>
+                </div>
+
+                <!-- Progress Bar Track -->
                 <div class="progress-track">
                     <!-- Steps injected via JS -->
                 </div>
             </div>
 
-            <!-- Recent History / Timeline -->
-            <div class="timeline-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <h3 style="color: var(--text-main); font-size: 1.1rem;">Activity History</h3>
-                    <button onclick="fetchPatientData()"
-                        style="background:none; border:none; color:var(--primary-color); cursor:pointer;">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
+            <!-- My Prescriptions Section -->
+            <div id="prescriptions-section" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.2); margin-top: 1.5rem; display: none;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+                    <div style="width: 38px; height: 38px; background: rgba(14,165,233,0.12); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-prescription" style="color: #0ea5e9; font-size: 1rem;"></i>
+                    </div>
+                    <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">My Prescriptions</h3>
                 </div>
-                <!-- V6.5: Explicit timeline container -->
-                <div id="timeline-list" style="min-height: 50px;">
-                    <!-- Timeline Items -->
-                </div>
+                <div id="prescriptions-list" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
             </div>
         </div>
     </div>
@@ -313,7 +308,8 @@
         style="position: fixed; bottom: 2rem; right: 2rem; z-index: 1000;"></div>
 
     <!-- MAIN JS for Layout/RBAC -->
-    <script src="js/config.js"></script>
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
     <script src="js/main.js?v=999"></script>
 
     <script>
@@ -324,6 +320,8 @@
         let currentPatientId = localStorage.getItem('currentPatientId') || localStorage.getItem('currentUser');
         let pollInterval = null;
         let lastZone = null;
+        let etaDataLoaded = false;
+        let etaPollInterval = null;
 
         const steps = [
             { key: 'registration', label: 'Registration' },
@@ -353,6 +351,10 @@
             // Immediate Fetch
             fetchPatientData();
             startPolling();
+
+            // Start ETA tracker polling (every 25 seconds)
+            fetchETAData();
+            etaPollInterval = setInterval(fetchETAData, 25000);
         });
 
         function startPolling() {
@@ -385,11 +387,9 @@
                     document.getElementById('next-dept').innerText = "Waiting for Staff";
                     document.getElementById('conn-text').innerText = "Waiting for Registration...";
                     document.getElementById('connection-status').className = 'status-badge status-waiting';
-                    // Clear progress and timeline
+                    // Clear progress track
                     const track = document.querySelector('.progress-track');
                     if (track) track.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 1rem;">Your tracking ID has not been registered yet. Please visit the Registration desk.</p>';
-                    const timeline = document.getElementById('timeline-list');
-                    if (timeline) timeline.innerHTML = '<div style="color: var(--text-muted); padding: 1rem;">No activity recorded yet. Staff will register your visit shortly.</div>';
                 } else {
                     console.error("Fetch failed with status:", response.status);
                     document.getElementById('conn-text').innerText = "Connecting...";
@@ -403,9 +403,17 @@
         }
 
         function updateDashboardUI(data) {
+            // Check if patient journey is completed
+            const isCompleted = data.status === 'exited' || data.current_zone === 'exit';
+
             // 1. Update Top Cards
             const zoneName = formatZone(data.current_zone);
-            document.getElementById('current-stage').innerText = zoneName || "Waiting";
+            document.getElementById('current-stage').innerText = isCompleted ? 'Journey Completed' : (zoneName || "Waiting");
+            if (isCompleted) {
+                document.getElementById('current-stage').style.color = '#10b981';
+            } else {
+                document.getElementById('current-stage').style.color = 'var(--primary-color)';
+            }
 
             // Use updated_at or entry_time
             // Timestamps are in local time from the backend, no Z suffix needed
@@ -425,19 +433,19 @@
                 }
                 // Status indicator
                 const waitStatus = document.getElementById('wait-status');
-                if (data.status === 'entered' || data.status === 'waiting') {
-                    waitStatus.innerText = 'In Progress';
-                    waitStatus.style.color = '#f59e0b';
-                } else if (data.status === 'exited') {
+                if (isCompleted) {
                     waitStatus.innerText = 'Completed';
                     waitStatus.style.color = '#10b981';
+                } else if (data.status === 'entered' || data.status === 'waiting') {
+                    waitStatus.innerText = 'In Progress';
+                    waitStatus.style.color = '#f59e0b';
                 } else {
                     waitStatus.innerText = 'Active';
                     waitStatus.style.color = '#10b981';
                 }
 
-                // Show last action if available
-                if (data.last_action) {
+                // Show last action if available (but not for completed journeys)
+                if (data.last_action && !isCompleted) {
                     waitStatus.innerText = data.last_action; // Override with specific action
                     waitStatus.style.fontSize = '0.9rem';
                 }
@@ -454,28 +462,32 @@
                     document.getElementById('dept-time').innerText = `${dHrs}h ${dRemain}m`;
                 }
                 const deptStatus = document.getElementById('dept-time-status');
-                deptStatus.innerText = formatZone(data.current_zone) || 'Current Dept';
-                deptStatus.style.color = '#3b82f6';
+                deptStatus.innerText = isCompleted ? 'Total Visit' : (formatZone(data.current_zone) || 'Current Dept');
+                deptStatus.style.color = isCompleted ? '#10b981' : '#3b82f6';
             }
 
             // Calculate 'Next Department'
-            const currentIndex = steps.findIndex(s => s.key === data.current_zone);
-            let nextStep = "Completed";
-            if (currentIndex >= 0 && currentIndex < steps.length - 1) {
-                nextStep = steps[currentIndex + 1].label;
+            if (isCompleted) {
+                document.getElementById('next-dept').innerText = 'All Done';
+                document.getElementById('next-dept').style.color = '#10b981';
+            } else {
+                const currentIndex = steps.findIndex(s => s.key === data.current_zone);
+                let nextStep = "Completed";
+                if (currentIndex >= 0 && currentIndex < steps.length - 1) {
+                    nextStep = steps[currentIndex + 1].label;
+                }
+                document.getElementById('next-dept').innerText = nextStep;
+                document.getElementById('next-dept').style.color = '';
             }
-            document.getElementById('next-dept').innerText = nextStep;
 
             // 2. Update Progress Bar
             renderProgressBar(data.current_zone);
-
-            // 3. Timeline (Simple)
-            renderTimeline(data);
 
             lastZone = data.current_zone;
         }
 
         function renderProgressBar(currentKey) {
+            if (etaDataLoaded) return; // Let the enhanced ETA version handle it
             const track = document.querySelector('.progress-track');
             track.innerHTML = '';
             const currentStepIndex = steps.findIndex(s => s.key === currentKey);
@@ -496,155 +508,6 @@
                 `;
                 track.appendChild(el);
             });
-        }
-
-        // History Management
-        function getLocalHistory() {
-            const key = `patientHistory_${currentPatientId}`;
-            try {
-                return JSON.parse(localStorage.getItem(key) || '[]');
-            } catch (e) { return []; }
-        }
-
-        function saveHistory(history) {
-            const key = `patientHistory_${currentPatientId}`;
-            localStorage.setItem(key, JSON.stringify(history));
-        }
-
-        function updateHistory(data) {
-            let history = getLocalHistory();
-
-            // Format current data item
-            let timeVal = data.updated_at || data.entry_time;
-
-            const newItem = {
-                time: timeVal,
-                action: data.last_action || `Status: ${formatZone(data.current_zone)}`,
-                zone: data.current_zone
-            };
-
-            // Check if this specific update already exists (by time and action)
-            const exists = history.some(item =>
-                new Date(item.time).getTime() === new Date(newItem.time).getTime() &&
-                item.action === newItem.action
-            );
-
-            if (!exists) {
-                // Add to history
-                history.unshift(newItem); // Add to top
-                // Keep max 50 items
-                if (history.length > 50) history.pop();
-                saveHistory(history);
-            }
-            return history;
-        }
-
-        function renderTimeline(data) {
-            const list = document.getElementById('timeline-list');
-            list.innerHTML = '';
-
-            // Requirement: Activity history must appear empty after journey completed (exited)
-            if (data.status === 'exited') {
-                list.innerHTML = `
-                    <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                        <i class="fas fa-check-circle" style="font-size: 3rem; color: #10b981; margin-bottom: 1rem; display: block;"></i>
-                        <p style="font-weight: 600; color: var(--text-main); margin-bottom: 0.5rem;">Journey Completed</p>
-                        <p>Your activity history has been cleared as your visit is now finished.</p>
-                        <p style="margin-top: 1rem; font-size: 0.9rem;">Thank you for visiting PatientPath Hospital!</p>
-                    </div>
-                `;
-                return;
-            }
-
-            let timelineItems = [];
-
-            // Use action_history from the API (authoritative source from database)
-            if (data.action_history && data.action_history.length > 0) {
-                data.action_history.forEach(entry => {
-                    timelineItems.push({
-                        time: entry.timestamp,
-                        action: entry.action,
-                        zone: entry.zone
-                    });
-                });
-            }
-
-            // Also inject consultation history (start/end from ConsultationLog)
-            if (data.consultation_history && data.consultation_history.length > 0) {
-                data.consultation_history.forEach(log => {
-                    if (log.start_time) {
-                        const exists = timelineItems.some(t =>
-                            t.action.includes("Consultation Started") &&
-                            Math.abs(new Date(t.time).getTime() - new Date(log.start_time).getTime()) < 2000
-                        );
-                        if (!exists) {
-                            timelineItems.push({ time: log.start_time, action: "Doctor Consultation Started", zone: "consultation" });
-                        }
-                    }
-                    if (log.end_time) {
-                        const exists = timelineItems.some(t =>
-                            (t.action.includes("Consultation Ended") || t.action.includes("Consultation Completed")) &&
-                            Math.abs(new Date(t.time).getTime() - new Date(log.end_time).getTime()) < 2000
-                        );
-                        if (!exists) {
-                            timelineItems.push({ time: log.end_time, action: "Doctor Consultation Ended", zone: "consultation" });
-                        }
-                    }
-                });
-            }
-
-            // Fallback: if no action_history yet, use the poll-based localStorage history
-            if (timelineItems.length === 0) {
-                const history = updateHistory(data);
-                timelineItems = history;
-            }
-
-            // Sort by time (newest first for display)
-            timelineItems.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-
-            // Render all items
-            timelineItems.forEach((item, index) => {
-                const isLatest = index === 0;
-                let statusHtml = '';
-
-                // Determine status badge
-                const actionLower = item.action.toLowerCase();
-                if (actionLower.includes('completed') || actionLower.includes('done') || actionLower.includes('finished') || actionLower.includes('ended') || actionLower.includes('dispensed') || actionLower.includes('received') || actionLower.includes('verified') || actionLower.includes('generated')) {
-                    statusHtml = '<div class="status-badge" style="background:#d1fae5; color:#047857; margin-top:5px; font-size:0.75rem;">Completed</div>';
-                } else if (actionLower.includes('started') || actionLower.includes('check-in') || actionLower.includes('registration') || actionLower.includes('administered')) {
-                    statusHtml = '<div class="status-badge" style="background:#dbeafe; color:#1d4ed8; margin-top:5px; font-size:0.75rem;">Started</div>';
-                } else if (isLatest) {
-                    statusHtml = '<div class="status-badge status-waiting" style="margin-top:5px; font-size:0.75rem;">In Progress</div>';
-                } else {
-                    statusHtml = '<div style="color:#6b7280; font-size:0.8rem; margin-top:2px;">Recorded</div>';
-                }
-
-                addTimelineItem(list, item.time, item.action, statusHtml, isLatest);
-            });
-
-            // Always add Entry item at the end if not present
-            if (data.entry_time) {
-                let entryTime = data.entry_time;
-                const entryExists = timelineItems.some(h => Math.abs(new Date(h.time).getTime() - new Date(entryTime).getTime()) < 1000);
-                if (!entryExists) {
-                    addTimelineItem(list, entryTime, "Checked In / Registration", '<div style="color:#10b981; font-size:0.8rem; margin-top:2px;">Completed</div>', false);
-                }
-            }
-        }
-
-        function addTimelineItem(container, timeStr, text, statusHtml, isLatest) {
-            const div = document.createElement('div');
-            div.className = 'timeline-item';
-            const time = new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-
-            div.innerHTML = `
-                <div class="timeline-time">${time}</div>
-                <div>
-                    <div style="font-weight: 600; color: var(--text-main);">${text}</div>
-                    ${statusHtml}
-                </div>
-            `;
-            container.appendChild(div);
         }
 
         function formatZone(zoneKey) {
@@ -691,6 +554,137 @@
                 waitLabel.textContent = 'Retrying...';
             }
         }
+
+        // ── Patient ETA Tracker ──────────────────────────
+        async function fetchETAData() {
+            if (!currentPatientId) return;
+            try {
+                var response = await fetch(API_BASE_URL + '/patient/eta/' + currentPatientId + '?_=' + new Date().getTime());
+                if (response.ok) {
+                    var eta = await response.json();
+                    updateJourneyTracker(eta);
+                } else if (response.status === 404) {
+                    console.warn("ETA: Patient not found yet");
+                }
+            } catch (err) {
+                console.error("ETA fetch error:", err);
+            }
+        }
+
+        function updateJourneyTracker(eta) {
+            etaDataLoaded = true;
+
+            var isJourneyCompleted = eta.journey_progress_pct === 100 || eta.current_zone === 'exit';
+
+            // Update summary mini-cards
+            var currentEl = document.getElementById('eta-current-stage');
+            var nextEl = document.getElementById('eta-next-dept');
+            var waitEl = document.getElementById('eta-predicted-wait');
+            var queueEl = document.getElementById('eta-queue-size');
+            var etaVal = document.getElementById('eta-value');
+
+            if (currentEl) {
+                currentEl.textContent = isJourneyCompleted ? 'Completed' : (eta.current_zone_display || '--');
+                currentEl.style.color = isJourneyCompleted ? '#10b981' : '';
+            }
+            if (nextEl) {
+                nextEl.textContent = isJourneyCompleted ? 'All Done' : (eta.next_zone_display || '--');
+                nextEl.style.color = isJourneyCompleted ? '#10b981' : '';
+            }
+            if (waitEl) {
+                if (isJourneyCompleted) {
+                    waitEl.textContent = 'Done';
+                    waitEl.style.color = '#10b981';
+                } else if (eta.predicted_waiting_time !== null) {
+                    waitEl.textContent = Math.round(eta.predicted_waiting_time) + ' min';
+                    waitEl.style.color = '';
+                } else {
+                    waitEl.textContent = '--';
+                    waitEl.style.color = '';
+                }
+            }
+            if (queueEl) {
+                if (isJourneyCompleted) {
+                    queueEl.textContent = 'N/A';
+                    queueEl.style.color = '#10b981';
+                } else {
+                    queueEl.textContent = eta.queue_size_next !== null && eta.queue_size_next !== undefined
+                        ? eta.queue_size_next + ' patients'
+                        : '--';
+                    queueEl.style.color = '';
+                }
+            }
+            if (etaVal) {
+                etaVal.textContent = isJourneyCompleted
+                    ? 'Complete'
+                    : (eta.predicted_waiting_time !== null
+                        ? Math.round(eta.predicted_waiting_time) + ' min'
+                        : '--');
+            }
+
+            // Render enhanced progress bar
+            renderEnhancedProgressBar(eta.journey_steps);
+        }
+
+        function renderEnhancedProgressBar(journeySteps) {
+            var track = document.querySelector('.progress-track');
+            if (!track || !journeySteps) return;
+            track.innerHTML = '';
+
+            journeySteps.forEach(function(step) {
+                var el = document.createElement('div');
+                el.className = 'progress-step';
+
+                if (step.status === 'completed') {
+                    el.classList.add('completed');
+                } else if (step.status === 'current') {
+                    el.classList.add('active');
+                }
+
+                var circleContent = step.status === 'completed' ? '' : step.step_number;
+                el.innerHTML =
+                    '<div class="step-circle">' + circleContent + '</div>' +
+                    '<div class="step-label">' + step.label + '</div>';
+                track.appendChild(el);
+            });
+        }
+
+        // --- Prescriptions ---
+        async function fetchPrescriptions() {
+            if (!currentPatientId) return;
+            try {
+                const res = await fetch(`${API_BASE_URL}/patient/prescriptions/${currentPatientId}?_=${Date.now()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const list = data.prescriptions || [];
+                    const section = document.getElementById('prescriptions-section');
+                    const container = document.getElementById('prescriptions-list');
+
+                    if (list.length === 0) { section.style.display = 'none'; return; }
+                    section.style.display = 'block';
+                    container.innerHTML = list.map(rx => `
+                        <div style="background: rgba(14,165,233,0.05); border: 1px solid rgba(14,165,233,0.12); border-radius: 10px; padding: 1rem 1.15rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-main);">${rx.diagnosis}</div>
+                                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">Dr. ${rx.doctor_id} &bull; ${rx.created_at}</div>
+                                </div>
+                                <a href="${API_BASE_URL}/prescription/download/${rx.id}" target="_blank"
+                                   style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.75rem; background: rgba(14,165,233,0.1); border: 1px solid rgba(14,165,233,0.25); border-radius: 6px; font-size: 0.78rem; color: #0ea5e9; text-decoration: none; font-weight: 600; white-space: nowrap;">
+                                    <i class="fas fa-file-pdf"></i> PDF
+                                </a>
+                            </div>
+                            <div style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">${rx.prescription}</div>
+                            ${rx.next_visit ? `<div style="margin-top: 0.5rem; font-size: 0.8rem; color: #f59e0b;"><i class="fas fa-calendar-alt" style="margin-right: 0.3rem;"></i>Next visit: ${rx.next_visit}</div>` : ''}
+                        </div>
+                    `).join('');
+                }
+            } catch (e) { console.error('Prescription fetch error:', e); }
+        }
+
+        // Fetch prescriptions on load and periodically
+        fetchPrescriptions();
+        setInterval(fetchPrescriptions, 30000);
     </script>
 </body>
 

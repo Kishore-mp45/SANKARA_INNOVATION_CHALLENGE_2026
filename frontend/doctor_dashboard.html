@@ -152,6 +152,53 @@
             opacity: 0.5;
             pointer-events: none;
         }
+
+        /* --- New Metric Cards --- */
+        .metric-cards-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.1rem 1rem;
+            text-align: center;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.22);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.32);
+        }
+        .mc-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 1.05rem; margin-bottom: 0.6rem;
+        }
+        .mc-icon.clock   { background: rgba(99,102,241,0.12); color: #6366f1; }
+        .mc-icon.load    { background: rgba(245,158,11,0.12); color: #f59e0b; }
+        .mc-icon.update  { background: rgba(59,130,246,0.12); color: #3b82f6; }
+        .mc-icon.actions { background: rgba(16,185,129,0.12); color: #10b981; }
+        .mc-label {
+            font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;
+            font-weight: 600; letter-spacing: 0.04em; margin-bottom: 0.35rem;
+        }
+        .mc-value {
+            font-size: 1.3rem; font-weight: 800; color: var(--text-main); line-height: 1;
+        }
+        .mc-value .pill {
+            display: inline-block; padding: 0.2rem 0.65rem; border-radius: 9999px;
+            font-size: 0.78rem; font-weight: 700;
+        }
+        .pill-green  { background: rgba(16,185,129,0.15); color: #10b981; }
+        .pill-orange { background: rgba(245,158,11,0.15); color: #f59e0b; }
+        .pill-red    { background: rgba(239,68,68,0.15);  color: #ef4444; }
+        @media (max-width: 640px) {
+            .metric-cards-row { grid-template-columns: repeat(2, 1fr); }
+        }
     </style>
 </head>
 
@@ -166,14 +213,13 @@
         <ul class="nav-menu">
             <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
             <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
-            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
-            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
-            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
-            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
-            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
-            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
-            <li><a href="doctor_dashboard.html" class="nav-item active"><span class="step-badge">9</span> Doctor
-                    Panel</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">3</span> Live Video</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">4</span> Alerts</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item active"><span class="step-badge">5</span> Doctor Panel</a></li>
+            <li><a href="doctor_workload.html" class="nav-item"><span class="step-badge">6</span> Doctor Workload</a></li>
+            <li><a href="doctor_activity.html" class="nav-item"><span class="step-badge">7</span> Activity History</a></li>
+            <li><a href="doctor_dept_insights.html" class="nav-item"><span class="step-badge">8</span> Dept Insights</a></li>
+            <li><a href="doctor_escalate.html" class="nav-item"><span class="step-badge">9</span> Escalate Issue</a></li>
         </ul>
     </div>
 
@@ -187,6 +233,30 @@
 
         <div class="page-container fade-in">
             <div class="staff-panel-container">
+
+                <!-- New Metric Cards -->
+                <div class="metric-cards-row">
+                    <div class="metric-card">
+                        <div class="mc-icon clock"><i class="fas fa-history"></i></div>
+                        <div class="mc-label">Last Activity</div>
+                        <div class="mc-value" id="mc-last-activity">--</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="mc-icon update"><i class="fas fa-clock"></i></div>
+                        <div class="mc-label">Last Update</div>
+                        <div class="mc-value" id="mc-last-update">--:--</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="mc-icon load"><i class="fas fa-tachometer-alt"></i></div>
+                        <div class="mc-label">Workload Status</div>
+                        <div class="mc-value" id="mc-workload-status">--</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="mc-icon actions"><i class="fas fa-bolt"></i></div>
+                        <div class="mc-label">My Actions</div>
+                        <div class="mc-value" id="mc-total-actions">0</div>
+                    </div>
+                </div>
 
                 <!-- Stats Bar -->
                 <div class="stats-bar">
@@ -268,6 +338,37 @@
                     </div>
                 </div>
 
+                <!-- Quick Prescription Note -->
+                <div class="workflow-card" id="prescription-panel">
+                    <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);"><i class="fas fa-prescription" style="margin-right: 0.5rem;"></i>Quick Prescription Note</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">Patient ID</label>
+                        <input type="text" class="form-input" id="rx-patient-id" placeholder="e.g. CV-12345">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Diagnosis</label>
+                        <textarea class="form-textarea" id="rx-diagnosis" placeholder="Enter diagnosis..." rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Prescription</label>
+                        <textarea class="form-textarea" id="rx-prescription" placeholder="Medications, instructions..." rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Next Visit Date (optional)</label>
+                        <input type="date" class="form-input" id="rx-next-visit">
+                    </div>
+                    <button id="btn-save-rx" class="btn-update" onclick="savePrescription()">
+                        <i class="fas fa-save"></i> Save Prescription
+                    </button>
+
+                    <!-- Recent Prescriptions -->
+                    <div id="rx-recent" style="margin-top: 1.5rem; display: none;">
+                        <h4 style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; margin-bottom: 0.75rem;">Recent Prescriptions</h4>
+                        <div id="rx-list" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -276,7 +377,8 @@
     <div class="toast-container" id="toast-container"
         style="position: fixed; bottom: 2rem; right: 2rem; z-index: 1000;"></div>
 
-    <script src="js/config.js"></script>
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
     <script src="js/main.js?v=999"></script>
     <script>
         const API_BASE_URL = API_BASE;
@@ -420,9 +522,9 @@
 
                 if (response.ok) {
                     showToast("Consultation Completed", "success");
-                    patientsSeen++;
-                    document.getElementById('patients-seen-count').innerText = patientsSeen;
                     resetConsultationForm();
+                    fetchPatientsSeenToday();
+                    fetchMetricCards();
                 } else {
                     showToast("Failed to complete", "error");
                 }
@@ -479,6 +581,52 @@
 
         loadStatus();
         fetchPeakHours();
+        fetchPatientsSeenToday();
+        fetchMetricCards();
+
+        async function fetchMetricCards() {
+            // Last Activity
+            try {
+                const r1 = await fetch(`${API_BASE_URL}/doctor/last-activity/${doctorId}`);
+                if (r1.ok) {
+                    const d = await r1.json();
+                    document.getElementById('mc-last-activity').textContent = d.last_activity;
+                }
+            } catch(e) { console.error(e); }
+
+            // Workload Status
+            try {
+                const r2 = await fetch(`${API_BASE_URL}/doctor/workload-status/${doctorId}`);
+                if (r2.ok) {
+                    const d = await r2.json();
+                    const colorMap = { green: 'pill-green', orange: 'pill-orange', red: 'pill-red' };
+                    const cls = colorMap[d.color] || 'pill-green';
+                    document.getElementById('mc-workload-status').innerHTML =
+                        `<span class="pill ${cls}">${d.status}</span>`;
+                }
+            } catch(e) { console.error(e); }
+
+            // Stats (last update + total actions)
+            try {
+                const r3 = await fetch(`${API_BASE_URL}/doctor/stats/${doctorId}`);
+                if (r3.ok) {
+                    const d = await r3.json();
+                    document.getElementById('mc-last-update').textContent = d.last_update;
+                    document.getElementById('mc-total-actions').textContent = d.total_actions;
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        async function fetchPatientsSeenToday() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/doctor/workload/${doctorId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    patientsSeen = data.patients_consulted_today || 0;
+                    document.getElementById('patients-seen-count').innerText = patientsSeen;
+                }
+            } catch (e) { console.error('Workload fetch error:', e); }
+        }
 
         async function fetchPeakHours() {
             try {
@@ -496,6 +644,86 @@
                 console.error('Peak hours fetch error:', e);
                 document.getElementById('peak-hours-value').textContent = 'Unavailable';
             }
+        }
+
+        // --- Prescription Logic ---
+        async function savePrescription() {
+            const patientId = document.getElementById('rx-patient-id').value.trim();
+            const diagnosis = document.getElementById('rx-diagnosis').value.trim();
+            const prescription = document.getElementById('rx-prescription').value.trim();
+            const nextVisit = document.getElementById('rx-next-visit').value;
+
+            if (!patientId || !diagnosis || !prescription) {
+                showToast('Please fill Patient ID, Diagnosis and Prescription', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btn-save-rx');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/doctor/save-prescription`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        doctor_id: String(doctorId),
+                        patient_id: patientId,
+                        diagnosis: diagnosis,
+                        prescription: prescription,
+                        next_visit: nextVisit || null,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                if (res.ok) {
+                    showToast('Prescription saved successfully', 'success');
+                    document.getElementById('rx-diagnosis').value = '';
+                    document.getElementById('rx-prescription').value = '';
+                    document.getElementById('rx-next-visit').value = '';
+                    loadRecentPrescriptions(patientId);
+                } else {
+                    const err = await res.json();
+                    showToast(err.detail || 'Failed to save prescription', 'error');
+                }
+            } catch (e) {
+                console.error('Save prescription error:', e);
+                showToast('Network error', 'error');
+            } finally {
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Prescription';
+                btn.disabled = false;
+            }
+        }
+
+        async function loadRecentPrescriptions(patientId) {
+            if (!patientId) return;
+            try {
+                const res = await fetch(`${API_BASE_URL}/patient/prescriptions/${patientId}?limit=5`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const list = data.prescriptions || [];
+                    const container = document.getElementById('rx-list');
+                    const section = document.getElementById('rx-recent');
+
+                    if (list.length === 0) { section.style.display = 'none'; return; }
+                    section.style.display = 'block';
+                    container.innerHTML = list.map(rx => `
+                        <div style="background: rgba(14,165,233,0.06); border: 1px solid rgba(14,165,233,0.15); border-radius: 8px; padding: 0.75rem 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+                                <span style="font-weight: 600; color: var(--text-main); font-size: 0.9rem;">${rx.diagnosis}</span>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">${rx.created_at}</span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--text-muted);">${rx.prescription}</div>
+                            <div style="margin-top: 0.4rem;">
+                                <a href="${API_BASE_URL}/prescription/download/${rx.id}" target="_blank"
+                                   style="font-size: 0.78rem; color: #0ea5e9; text-decoration: none;">
+                                    <i class="fas fa-file-pdf"></i> Download PDF
+                                </a>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) { console.error('Load prescriptions error:', e); }
         }
 
     </script>

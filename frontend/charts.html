@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <title>PatientPath AI - Charts</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .charts-grid {
@@ -73,6 +74,20 @@
                         <canvas id="deptActivityChart"></canvas>
                     </div>
                 </div>
+                <!-- Bottleneck Risk -->
+                <div class="chart-card">
+                    <h3><i class="fas fa-exclamation-triangle" style="color:#ef4444;margin-right:0.5rem;"></i>Bottleneck Risk</h3>
+                    <div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="bottleneckRiskChart"></canvas>
+                    </div>
+                </div>
+                <!-- Waiting Time Distribution -->
+                <div class="chart-card">
+                    <h3><i class="fas fa-hourglass-half" style="color:#f59e0b;margin-right:0.5rem;"></i>Waiting Time Distribution</h3>
+                    <div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="waitDistChart"></canvas>
+                    </div>
+                </div>
                 <!-- Radar Chart -->
                 <div class="chart-card">
                     <h3>Department Utilization Overview</h3>
@@ -135,9 +150,10 @@
             </div>
         </div>
 
-        <script src="js/config.js"></script>
+        <script src="js/theme.js?v=999"></script>
+        <script src="js/config.js?v=999"></script>
         <script src="js/main.js?v=999"></script>
-        <script src="js/websocket.js"></script>
+        <script src="js/websocket.js?v=999"></script>
         <script>
             // Hospital sequential zone order
             const ZONE_ORDER = [
@@ -154,8 +170,11 @@
             const zoneLabels = ZONE_ORDER.map(z => z.label);
             const zoneCounts = new Array(ZONE_ORDER.length).fill(0);
 
+            // Hourly Occupancy aggregation: bucket data by 30-min intervals
+            const halfHourBuckets = {};  // "HH:MM" -> { sum, count }
+
             // -----------------------------------------------------
-            // 1. Line Chart (Hourly Occupancy Trend)
+            // 1. Line Chart (Hourly Occupancy Trend — 30-min intervals, 5hr history)
             // -----------------------------------------------------
             const ctxLine = document.getElementById('lineChart').getContext('2d');
             const lineChart = new Chart(ctxLine, {
@@ -163,14 +182,18 @@
                 data: {
                     labels: [],
                     datasets: [{
-                        label: 'Detected Persons (Live Stream)',
+                        label: 'Average Occupancy (per 30 min)',
                         data: [],
                         borderColor: '#3b82f6',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         borderWidth: 2,
                         tension: 0.3,
                         fill: true,
-                        pointRadius: 2
+                        pointRadius: 4,
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 6
                     }]
                 },
                 options: {
@@ -180,20 +203,65 @@
                     scales: {
                         x: {
                             grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: { color: '#94a3b8', maxTicksLimit: 8 }
+                            ticks: { color: '#94a3b8', maxTicksLimit: 12 },
+                            title: { display: true, text: 'Time (30-min intervals)', color: '#94a3b8', font: { size: 11 } }
                         },
                         y: {
                             beginAtZero: true,
                             suggestedMax: 10,
                             grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: { color: '#94a3b8' }
+                            ticks: { color: '#94a3b8' },
+                            title: { display: true, text: 'Avg Persons Detected', color: '#94a3b8', font: { size: 11 } }
                         }
                     },
                     plugins: {
-                        legend: { labels: { color: '#e2e8f0' } }
+                        legend: { labels: { color: '#e2e8f0' } },
+                        tooltip: {
+                            backgroundColor: 'rgba(30,30,40,0.95)',
+                            displayColors: false,
+                            callbacks: {
+                                label: function (ctx) {
+                                    return 'Avg Occupancy: ' + ctx.parsed.y + ' persons';
+                                }
+                            }
+                        }
                     }
                 }
             });
+
+            // Fetch historical occupancy from backend (5hr, 30-min intervals)
+            async function fetchHourlyOccupancy() {
+                try {
+                    const res = await fetch(API_BASE + '/admin/hourly-occupancy');
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (data.occupancy_trend) {
+                        // Seed halfHourBuckets from backend data
+                        data.occupancy_trend.forEach(function (pt) {
+                            if (!halfHourBuckets[pt.time]) {
+                                halfHourBuckets[pt.time] = { sum: pt.avg_occupancy, count: 1 };
+                            }
+                        });
+                        rebuildLineChart();
+                    }
+                } catch (e) {
+                    console.warn('Hourly occupancy fetch error:', e);
+                }
+            }
+
+            function rebuildLineChart() {
+                const sortedKeys = Object.keys(halfHourBuckets).sort();
+                const labels = [];
+                const data = [];
+                sortedKeys.forEach(function (k) {
+                    const b = halfHourBuckets[k];
+                    labels.push(k);
+                    data.push(Math.round(b.sum / b.count));
+                });
+                lineChart.data.labels = labels;
+                lineChart.data.datasets[0].data = data;
+                lineChart.update();
+            }
 
             // -----------------------------------------------------
             // 2. Department Activity Chart (moved from Admin Center)
@@ -331,13 +399,19 @@
             });
 
             function updateLineChart(label, value) {
-                lineChart.data.labels.push(label);
-                lineChart.data.datasets[0].data.push(value);
-                if (lineChart.data.labels.length > 20) {
-                    lineChart.data.labels.shift();
-                    lineChart.data.datasets[0].data.shift();
+                // Aggregate into 30-minute bucket
+                const now = new Date();
+                const h = String(now.getHours()).padStart(2, '0');
+                const m = now.getMinutes() < 30 ? '00' : '30';
+                const bucketKey = h + ':' + m;
+
+                if (!halfHourBuckets[bucketKey]) {
+                    halfHourBuckets[bucketKey] = { sum: 0, count: 0 };
                 }
-                lineChart.update();
+                halfHourBuckets[bucketKey].sum += value;
+                halfHourBuckets[bucketKey].count += 1;
+
+                rebuildLineChart();
             }
 
             function updateRadarByKey(zoneKey, value) {
@@ -377,8 +451,168 @@
             // Initialize
             fetchInitialChartData();
             fetchDeptActivity();
+            fetchAdminAllDeptCharts();
+            fetchHourlyOccupancy();
             setInterval(fetchInitialChartData, 10000);
             setInterval(fetchDeptActivity, 10000);
+            setInterval(fetchAdminAllDeptCharts, 30000);
+            setInterval(fetchHourlyOccupancy, 30000);
+
+            // -----------------------------------------------------
+            // 8. Admin All-Department Charts (Patient Flow, Bottleneck Risk, Waiting Time Dist)
+            // -----------------------------------------------------
+            let bottleneckRiskChartInst = null;
+            let waitDistChartInst = null;
+
+            async function fetchAdminAllDeptCharts() {
+                try {
+                    // Fetch bottleneck predictions (covers all departments)
+                    const bnRes = await fetch(API_BASE + '/prediction/bottleneck');
+                    const bnData = bnRes.ok ? await bnRes.json() : null;
+
+                    // Fetch average wait times
+                    const waitRes = await fetch(API_BASE + '/prediction/average-wait');
+                    const waitData = waitRes.ok ? await waitRes.json() : null;
+
+                    renderBottleneckRiskChart(bnData);
+                    renderWaitDistChart(waitData);
+                } catch (e) {
+                    console.warn('Admin all-dept charts fetch error:', e);
+                }
+            }
+
+            function renderBottleneckRiskChart(bnData) {
+                const labels = [];
+                const data = [];
+
+                ZONE_ORDER.forEach(zone => {
+                    labels.push(zone.label);
+                    let risk = 0;
+                    if (bnData && bnData.predictions) {
+                        const found = bnData.predictions.find(p => p.zone_name === zone.key);
+                        if (found) risk = found.confidence_value || 0;
+                    }
+                    data.push(Math.round(risk));
+                });
+
+                if (bottleneckRiskChartInst) {
+                    bottleneckRiskChartInst.data.datasets[0].data = data;
+                    bottleneckRiskChartInst.update();
+                    return;
+                }
+
+                bottleneckRiskChartInst = new Chart(document.getElementById('bottleneckRiskChart').getContext('2d'), {
+                    type: 'radar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Risk %',
+                            data: data,
+                            fill: true,
+                            backgroundColor: 'rgba(239,68,68,0.12)',
+                            borderColor: '#ef4444',
+                            borderWidth: 2,
+                            pointBackgroundColor: '#ef4444',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15,23,42,0.9)',
+                                titleColor: '#e2e8f0',
+                                bodyColor: '#e2e8f0',
+                                cornerRadius: 8,
+                                padding: 10,
+                                callbacks: {
+                                    label: function (ctx) { return 'Risk: ' + ctx.raw + '%'; }
+                                }
+                            }
+                        },
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: { display: false },
+                                grid: { color: 'rgba(255,255,255,0.1)' },
+                                angleLines: { color: 'rgba(255,255,255,0.1)' },
+                                pointLabels: { color: '#94a3b8', font: { size: 10 } }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function renderWaitDistChart(waitData) {
+                const buckets = { '0-10 min': 0, '10-20 min': 0, '20-30 min': 0, '30+ min': 0 };
+
+                if (waitData && waitData.zones) {
+                    // Only count the 7 known hospital departments
+                    var knownZones = waitData.zones.filter(function(z) {
+                        return zoneKeys.indexOf(z.zone_name) !== -1;
+                    });
+                    knownZones.forEach(z => {
+                        const wt = z.predicted_wait || 0;
+                        if (wt < 10) buckets['0-10 min']++;
+                        else if (wt < 20) buckets['10-20 min']++;
+                        else if (wt < 30) buckets['20-30 min']++;
+                        else buckets['30+ min']++;
+                    });
+                }
+
+                const labels = Object.keys(buckets);
+                const data = Object.values(buckets);
+                const colors = ['#10b981', '#0ea5e9', '#f59e0b', '#ef4444'];
+
+                if (waitDistChartInst) {
+                    waitDistChartInst.data.datasets[0].data = data;
+                    waitDistChartInst.update();
+                    return;
+                }
+
+                waitDistChartInst = new Chart(document.getElementById('waitDistChart').getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: colors,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '55%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: '#94a3b8',
+                                    font: { size: 11 },
+                                    padding: 14,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(15,23,42,0.9)',
+                                titleColor: '#e2e8f0',
+                                bodyColor: '#e2e8f0',
+                                cornerRadius: 8,
+                                padding: 10,
+                                callbacks: {
+                                    label: function (ctx) { return ctx.label + ': ' + ctx.raw + ' dept(s)'; }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
 
             // -----------------------------------------------------
             // 7. Peak Hour Heatmap Logic

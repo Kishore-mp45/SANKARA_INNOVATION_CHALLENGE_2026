@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <title>PatientPath AI - Live Video</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .video-container {
             display: flex;
@@ -48,7 +49,8 @@
             aspect-ratio: 16 / 9;
         }
 
-        .video-frame video {
+        .video-frame video,
+        .video-frame img {
             width: 100%;
             height: 100%;
             object-fit: contain;
@@ -65,6 +67,157 @@
             font-weight: 600;
             padding: 0.2rem 0.6rem;
             border-radius: 4px;
+        }
+
+        /* Mode toggle switch */
+        .mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-left: auto;
+        }
+
+        .mode-toggle label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: var(--border-color);
+            border-radius: 24px;
+            cursor: pointer;
+            transition: background 0.25s;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.25s;
+        }
+
+        .toggle-switch input:checked+.toggle-slider {
+            background: #10b981;
+        }
+
+        .toggle-switch input:checked+.toggle-slider::before {
+            transform: translateX(20px);
+        }
+
+        .detection-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            color: #fff;
+        }
+
+        .detection-badge.active {
+            background: rgba(16, 185, 129, 0.8);
+        }
+
+        .detection-badge .pulse-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ff3b3b;
+            animation: pulse-blink 1.2s infinite;
+        }
+
+        @keyframes pulse-blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        /* Detection stats bar */
+        .detection-stats {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+        }
+
+        .detection-stats .stat-card {
+            flex: 1;
+            min-width: 100px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.5rem 0.7rem;
+            text-align: center;
+        }
+
+        .detection-stats .stat-card .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #10b981;
+        }
+
+        .detection-stats .stat-card .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 0.15rem;
+        }
+
+        /* Stream loading / error states */
+        .stream-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.85);
+            color: #ccc;
+            font-size: 0.85rem;
+            z-index: 5;
+        }
+
+        .stream-overlay .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(255, 255, 255, 0.15);
+            border-top-color: #10b981;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 0.6rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .video-note {
@@ -109,7 +262,7 @@
         <header>
             <div class="header-title-container">
                 <h1>Hospital Department Video</h1>
-                <p class="header-subtitle">Demo camera feeds from hospital departments</p>
+                <p class="header-subtitle">Live camera feeds with YOLOv8 detection tracking</p>
             </div>
         </header>
 
@@ -128,20 +281,64 @@
                         <option value="pharmacy">6. Pharmacy</option>
                         <option value="billing_insurance">7. Billing & Insurance</option>
                     </select>
+
+                    <!-- Detection mode toggle -->
+                    <div class="mode-toggle">
+                        <label for="detection-toggle">Detection</label>
+                        <span class="toggle-switch">
+                            <input type="checkbox" id="detection-toggle">
+                            <span class="toggle-slider"></span>
+                        </span>
+                    </div>
                 </div>
 
-                <!-- Video Frame -->
-                <div class="video-frame">
+                <!-- Video Frame (raw mp4 mode) -->
+                <div class="video-frame" id="raw-video-frame">
                     <video id="dept-video" autoplay loop muted playsinline>
                         <source id="video-source" src="assets/videos/registration.mp4" type="video/mp4">
                     </video>
                     <div class="video-label" id="video-label">Registration</div>
                 </div>
 
+                <!-- Detection Frame (MJPEG stream mode) -->
+                <div class="video-frame" id="detection-video-frame" style="display:none;">
+                    <img id="detection-stream" alt="Detection stream">
+                    <div class="video-label" id="detection-label">
+                        <span class="detection-badge active"><span class="pulse-dot"></span> YOLOv8 LIVE</span>
+                    </div>
+                    <div class="stream-overlay" id="stream-loading" style="display:none;">
+                        <div class="spinner"></div>
+                        Loading detection stream...
+                    </div>
+                    <div class="stream-overlay" id="stream-error" style="display:none;">
+                        <i class="fas fa-exclamation-triangle"
+                            style="font-size:1.4rem;color:#f59e0b;margin-bottom:0.5rem;"></i>
+                        <span id="stream-error-msg">Detection service unavailable</span>
+                        <button onclick="retryStream()"
+                            style="margin-top:0.6rem;padding:0.3rem 0.8rem;border-radius:4px;border:1px solid #555;background:transparent;color:#ccc;cursor:pointer;font-size:0.8rem;">Retry</button>
+                    </div>
+                </div>
+
+                <!-- Detection stats (visible only in detection mode) -->
+                <div class="detection-stats" id="detection-stats" style="display:none;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-count">--</div>
+                        <div class="stat-label">People Detected</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-confidence">--</div>
+                        <div class="stat-label">Avg Confidence</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-model">YOLOv8n</div>
+                        <div class="stat-label">Model</div>
+                    </div>
+                </div>
+
                 <!-- Info Note -->
                 <div class="video-note">
-                    This is a demo hospital video feed. For <strong>live YOLOv8 detection with bounding boxes</strong>,
-                    run the standalone tracker: <code>python detect.py</code>
+                    Toggle <strong>Detection</strong> to enable live YOLOv8 bounding-box tracking on department video
+                    feeds.
                 </div>
 
             </div>
@@ -153,48 +350,196 @@
         </div>
     </div>
 
-    <script src="js/config.js"></script>
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
     <script src="js/main.js?v=999"></script>
     <script>
+        // ---- DOM refs ----
         const deptSelect = document.getElementById('dept-select');
         const videoEl = document.getElementById('dept-video');
         const videoSource = document.getElementById('video-source');
         const videoLabel = document.getElementById('video-label');
+        const detectionToggle = document.getElementById('detection-toggle');
+        const rawFrame = document.getElementById('raw-video-frame');
+        const detFrame = document.getElementById('detection-video-frame');
+        const detStream = document.getElementById('detection-stream');
+        const detStats = document.getElementById('detection-stats');
+        const streamLoading = document.getElementById('stream-loading');
+        const streamError = document.getElementById('stream-error');
+        const streamErrorMsg = document.getElementById('stream-error-msg');
+        const statCount = document.getElementById('stat-count');
+        const statConfidence = document.getElementById('stat-confidence');
 
         const DEPT_MAP = {
-            registration:      { video: 'registration.mp4', name: 'Registration' },
-            vision_lab:        { video: 'vision.mp4',       name: 'Vision Lab' },
-            dilation_hall:     { video: 'dilation.mp4',     name: 'Dilation Hall' },
-            diagnostics:       { video: 'diagnostics.mp4',  name: 'Diagnostics' },
-            consultation:      { video: 'consultation.mp4', name: 'Doctor Consult' },
-            pharmacy:          { video: 'pharmacy.mp4',     name: 'Pharmacy' },
-            billing_insurance: { video: 'billing.mp4',      name: 'Billing & Insurance' },
+            registration: { video: 'registration.mp4', name: 'Registration' },
+            vision_lab: { video: 'vision.mp4', name: 'Vision Lab' },
+            dilation_hall: { video: 'dilation.mp4', name: 'Dilation Hall' },
+            diagnostics: { video: 'diagnostics.mp4', name: 'Diagnostics' },
+            consultation: { video: 'consultation.mp4', name: 'Doctor Consult' },
+            pharmacy: { video: 'pharmacy.mp4', name: 'Pharmacy' },
+            billing_insurance: { video: 'billing.mp4', name: 'Billing & Insurance' },
         };
 
+        var _currentZone = 'registration';
+        var _detectionMode = false;
+        var _statsInterval = null;
+
+        // Doctor role: lock to consultation only, hide dropdown
+        var _isDoctor = (localStorage.getItem('currentRole') === 'doctor');
+        var _isStaff = (localStorage.getItem('currentRole') === 'staff');
+        var _userDept = localStorage.getItem('currentDept');
+
+        if (_isDoctor) {
+            deptSelect.innerHTML = '<option value="consultation">5. Doctor Consult</option>';
+            deptSelect.value = 'consultation';
+            deptSelect.disabled = true;
+            deptSelect.style.pointerEvents = 'none';
+            deptSelect.style.opacity = '0.7';
+            _currentZone = 'consultation';
+        } else if (_isStaff && _userDept) {
+            var targetOption = null;
+            for (var i = 0; i < deptSelect.options.length; i++) {
+                if (deptSelect.options[i].value === _userDept) {
+                    targetOption = deptSelect.options[i];
+                    break;
+                }
+            }
+
+            if (targetOption) {
+                deptSelect.innerHTML = `<option value="${targetOption.value}">${targetOption.text}</option>`;
+                deptSelect.value = targetOption.value;
+                _currentZone = targetOption.value;
+            } else {
+                deptSelect.value = 'registration';
+                _currentZone = 'registration';
+            }
+            deptSelect.disabled = true;
+            deptSelect.style.pointerEvents = 'none';
+            deptSelect.style.opacity = '0.7';
+        }
+
+        // ---- Raw video mode ----
         function switchVideo(zone) {
             const dept = DEPT_MAP[zone];
             if (!dept) return;
+            _currentZone = zone;
             videoSource.src = 'assets/videos/' + dept.video;
             videoLabel.textContent = dept.name;
             videoEl.load();
             videoEl.play();
-
-            // Store selected department so occupancy page can read it
-            try { localStorage.setItem('pp_selected_dept', zone); } catch(e) {}
+            try { localStorage.setItem('pp_selected_dept', zone); } catch (e) { }
         }
 
-        deptSelect.addEventListener('change', function (e) {
-            switchVideo(e.target.value);
+        // ---- Detection stream mode ----
+        function startDetectionStream(zone) {
+            streamError.style.display = 'none';
+            streamLoading.style.display = 'flex';
+            detStream.style.display = 'none';
+
+            var streamUrl = (typeof API_BASE !== 'undefined' ? API_BASE : '') + '/detection/stream/' + zone;
+
+            // Use an img element for MJPEG — browsers handle multipart/x-mixed-replace natively
+            detStream.onload = function () {
+                streamLoading.style.display = 'none';
+                detStream.style.display = 'block';
+            };
+            detStream.onerror = function () {
+                streamLoading.style.display = 'none';
+                detStream.style.display = 'none';
+                streamErrorMsg.textContent = 'Detection service unavailable. Make sure the backend is running.';
+                streamError.style.display = 'flex';
+            };
+            detStream.src = streamUrl;
+        }
+
+        function stopDetectionStream() {
+            detStream.src = '';
+            detStream.onload = null;
+            detStream.onerror = null;
+        }
+
+        function retryStream() {
+            startDetectionStream(_currentZone);
+        }
+
+        // ---- Detection stats polling ----
+        function fetchDetectionStats() {
+            var url = (typeof API_BASE !== 'undefined' ? API_BASE : '') + '/detection/latest';
+            fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+                var zoneData = data.zones && data.zones[_currentZone];
+                if (zoneData) {
+                    statCount.textContent = zoneData.count;
+                    statConfidence.textContent = (zoneData.confidence * 100).toFixed(1) + '%';
+                } else {
+                    statCount.textContent = '--';
+                    statConfidence.textContent = '--';
+                }
+            }).catch(function () {
+                statCount.textContent = '--';
+                statConfidence.textContent = '--';
+            });
+        }
+
+        function startStatsPolling() {
+            fetchDetectionStats();
+            _statsInterval = setInterval(fetchDetectionStats, 3000);
+        }
+
+        function stopStatsPolling() {
+            if (_statsInterval) { clearInterval(_statsInterval); _statsInterval = null; }
+        }
+
+        // ---- Mode switching ----
+        function setDetectionMode(on) {
+            _detectionMode = on;
+            if (on) {
+                rawFrame.style.display = 'none';
+                videoEl.pause();
+                detFrame.style.display = 'block';
+                detStats.style.display = 'flex';
+                startDetectionStream(_currentZone);
+                startStatsPolling();
+            } else {
+                detFrame.style.display = 'none';
+                detStats.style.display = 'none';
+                stopDetectionStream();
+                stopStatsPolling();
+                rawFrame.style.display = 'block';
+                switchVideo(_currentZone);
+            }
+        }
+
+        // ---- Event listeners ----
+        detectionToggle.addEventListener('change', function () {
+            setDetectionMode(this.checked);
         });
 
-        // On load, check if a department was previously selected
-        try {
-            const saved = localStorage.getItem('pp_selected_dept');
-            if (saved && DEPT_MAP[saved]) {
-                deptSelect.value = saved;
-                switchVideo(saved);
+        deptSelect.addEventListener('change', function (e) {
+            _currentZone = e.target.value;
+            if (_detectionMode) {
+                stopDetectionStream();
+                startDetectionStream(_currentZone);
+                fetchDetectionStats();
+            } else {
+                switchVideo(_currentZone);
             }
-        } catch(e) {}
+        });
+
+        // ---- Init on load ----
+        try {
+            if (_isDoctor || _isStaff) {
+                switchVideo(_currentZone);
+            } else {
+                var saved = localStorage.getItem('pp_selected_dept');
+                if (saved && DEPT_MAP[saved]) {
+                    deptSelect.value = saved;
+                    _currentZone = saved;
+                    switchVideo(saved);
+                } else {
+                    switchVideo(deptSelect.value);
+                }
+            }
+        } catch (e) { }
     </script>
 </body>
 

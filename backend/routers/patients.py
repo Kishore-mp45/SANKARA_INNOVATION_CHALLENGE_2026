@@ -6,14 +6,16 @@ API endpoints for patient management and tracking.
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
+from collections import defaultdict
 import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database import get_db
 from models.patient import Patient, PatientStatus as ModelPatientStatus
+from models.zone import Zone
 from schemas.patient import (
     PatientEnter, PatientExit, PatientResponse, 
     PatientListResponse, PatientUpdate, PatientStatus,
@@ -34,6 +36,26 @@ from utils.helpers import calculate_pagination
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/patient", tags=["Patients"])
+
+# In-memory trend storage: { patient_tracking_id: [ {time, waiting_time, department}, ... ] }
+# Keeps last 20 data points per patient.
+_waiting_trends: Dict[str, list] = defaultdict(list)
+_TREND_MAX_POINTS = 20
+
+WORKFLOW_SEQUENCE = [
+    "registration", "vision_lab", "dilation_hall",
+    "diagnostics", "consultation", "pharmacy", "billing_insurance"
+]
+
+WORKFLOW_DISPLAY = {
+    "registration": "Registration",
+    "vision_lab": "Vision Lab",
+    "dilation_hall": "Dilation Hall",
+    "diagnostics": "Diagnostics",
+    "consultation": "Consultation",
+    "pharmacy": "Pharmacy",
+    "billing_insurance": "Billing & Insurance",
+}
 
 
 @router.post(
@@ -341,6 +363,194 @@ async def get_predicted_wait_time(
     result = PredictionService.predict_department_wait(db, current_zone)
     result["tracking_id"] = tracking_id
     return result
+
+
+@router.get(
+    "/waiting-trend/{patient_id}",
+    summary="Get Waiting Time Trend for Patient",
+    description="Returns a time-series of predicted waiting times for the patient's current department."
+)
+async def get_waiting_trend(
+    patient_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Predict the current waiting time for the patient's department, append it
+    to the patient's in-memory trend history (last 20 points), and return the
+    full trend as a time-series.
+    """
+    patient = PatientService.get_by_tracking_id(db, patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail=f"Patient {patient_id} not found")
+
+    current_zone = patient.current_zone
+    if not current_zone:
+        return {
+            "patient_id": patient_id,
+            "department": None,
+            "trend": [],
+            "message": "Patient has no current department assigned."
+        }
+
+    # Predict waiting time using waiting_model.pkl
+    wait_result = PredictionService.predict_department_wait(db, current_zone)
+    predicted_minutes = wait_result.get("predicted_minutes")
+    department_display = wait_result.get("department", current_zone)
+
+    now = datetime.now()
+    time_label = now.strftime("%H:%M")
+
+    # If department changed, reset the patient's trend history
+    history = _waiting_trends[patient_id]
+    if history and history[-1].get("zone") != current_zone:
+        history.clear()
+
+    # Append new data point
+    history.append({
+        "time": time_label,
+        "waiting_time": round(predicted_minutes, 1) if predicted_minutes is not None else 0,
+        "zone": current_zone,
+    })
+
+    # Keep only last N points
+    if len(history) > _TREND_MAX_POINTS:
+        _waiting_trends[patient_id] = history[-_TREND_MAX_POINTS:]
+        history = _waiting_trends[patient_id]
+
+    # Build the response trend (strip internal 'zone' field)
+    trend = [{"time": pt["time"], "waiting_time": pt["waiting_time"]} for pt in history]
+
+    return {
+        "patient_id": patient_id,
+        "department": department_display,
+        "trend": trend,
+    }
+
+
+@router.get(
+    "/eta/{patient_id}",
+    summary="Get Patient ETA and Journey Tracker",
+    description="Returns journey progress, predicted wait time, queue size, and next department for a patient."
+)
+async def get_patient_eta(
+    patient_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Patient ETA Tracker endpoint.
+    Uses waiting_model.pkl + arrival_model.pkl + real-time queue data
+    to predict waiting time for the next department in the workflow.
+    """
+    patient = PatientService.get_by_tracking_id(db, patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail=f"Patient {patient_id} not found")
+
+    current_zone = patient.current_zone
+
+    # Determine position in workflow
+    if current_zone in WORKFLOW_SEQUENCE:
+        current_index = WORKFLOW_SEQUENCE.index(current_zone)
+    else:
+        current_index = -1
+
+    # Determine next department
+    is_exited = patient.status == ModelPatientStatus.EXITED or current_zone == "exit"
+    if is_exited:
+        next_zone = None
+        next_zone_display = "Completed"
+    elif current_index >= 0 and current_index < len(WORKFLOW_SEQUENCE) - 1:
+        next_zone = WORKFLOW_SEQUENCE[current_index + 1]
+        next_zone_display = WORKFLOW_DISPLAY.get(next_zone, next_zone)
+    elif current_index == len(WORKFLOW_SEQUENCE) - 1:
+        next_zone = None
+        next_zone_display = "Exit"
+    else:
+        next_zone = WORKFLOW_SEQUENCE[0] if WORKFLOW_SEQUENCE else None
+        next_zone_display = WORKFLOW_DISPLAY.get(next_zone, "Unknown") if next_zone else "Unknown"
+
+    # Get queue size for next department
+    queue_size = 0
+    if next_zone:
+        zone_record = db.query(Zone).filter(Zone.zone_name == next_zone).first()
+        if zone_record:
+            queue_size = zone_record.current_occupancy or 0
+
+    # Predict wait time for next department using waiting_model
+    predicted_wait_minutes = None
+    predicted_wait_formatted = "--"
+    if next_zone:
+        try:
+            wait_result = PredictionService.predict_department_wait(db, next_zone)
+            if wait_result.get("available"):
+                base_wait = wait_result["predicted_minutes"]
+                queue_adjustment = queue_size * 2.0
+                predicted_wait_minutes = round(base_wait + queue_adjustment, 1)
+                total_mins = int(predicted_wait_minutes)
+                total_secs = int((predicted_wait_minutes - total_mins) * 60)
+                predicted_wait_formatted = f"{total_mins}m {total_secs}s"
+        except Exception as e:
+            logger.error(f"ETA wait prediction error: {e}")
+
+    # Get arrival rate from arrival_model for context
+    arrival_rate = 0
+    arrival_trend = "stable"
+    try:
+        arrival_info = PredictionService.predict_arrival_rate(db)
+        arrival_rate = arrival_info.get("predicted_arrival_rate", 0)
+        arrival_trend = arrival_info.get("trend", "stable")
+    except Exception as e:
+        logger.error(f"ETA arrival prediction error: {e}")
+
+    # Build journey steps array
+    journey_steps = []
+    for i, zone_key in enumerate(WORKFLOW_SEQUENCE):
+        display_name = WORKFLOW_DISPLAY.get(zone_key, zone_key)
+        if is_exited:
+            step_status = "completed"
+        elif current_index >= 0 and i < current_index:
+            step_status = "completed"
+        elif i == current_index:
+            step_status = "current"
+        else:
+            step_status = "pending"
+        journey_steps.append({
+            "zone_key": zone_key,
+            "label": display_name,
+            "step_number": i + 1,
+            "status": step_status
+        })
+    # Add exit step
+    journey_steps.append({
+        "zone_key": "exit",
+        "label": "Completed",
+        "step_number": len(WORKFLOW_SEQUENCE) + 1,
+        "status": "completed" if is_exited else "pending"
+    })
+
+    # Progress percentage
+    if is_exited:
+        progress_pct = 100
+    elif current_index >= 0:
+        progress_pct = round(((current_index + 1) / len(WORKFLOW_SEQUENCE)) * 100)
+    else:
+        progress_pct = 0
+
+    return {
+        "tracking_id": patient_id,
+        "patient_name": patient.name,
+        "current_zone": current_zone,
+        "current_zone_display": "Completed" if is_exited else WORKFLOW_DISPLAY.get(current_zone, current_zone or "Unknown"),
+        "next_zone": next_zone,
+        "next_zone_display": next_zone_display,
+        "queue_size_next": queue_size,
+        "predicted_waiting_time": predicted_wait_minutes,
+        "predicted_waiting_formatted": predicted_wait_formatted,
+        "arrival_rate": arrival_rate,
+        "arrival_trend": arrival_trend,
+        "journey_steps": journey_steps,
+        "journey_progress_pct": progress_pct,
+        "status": "Estimated waiting time for next stage" if predicted_wait_minutes else "Prediction unavailable"
+    }
 
 
 @router.get(

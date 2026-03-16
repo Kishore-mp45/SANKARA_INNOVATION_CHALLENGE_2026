@@ -166,6 +166,141 @@
                 opacity: 1;
             }
         }
+
+        /* Department Status Widget */
+        .dept-status-widget {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dept-status-widget::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            border-radius: 12px 0 0 12px;
+        }
+
+        .dept-status-widget.status-green::before {
+            background: #10b981;
+        }
+
+        .dept-status-widget.status-yellow::before {
+            background: #f59e0b;
+        }
+
+        .dept-status-widget.status-red::before {
+            background: #ef4444;
+        }
+
+        .dept-status-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .dept-status-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dept-status-title i {
+            font-size: 1rem;
+            color: #6366f1;
+        }
+
+        .dept-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .dept-status-badge.green {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .dept-status-badge.yellow {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+
+        .dept-status-badge.red {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .dept-status-dept-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+        }
+
+        .dept-status-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .dept-status-metric {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .dept-status-metric-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1.1rem;
+        }
+
+        .dept-status-metric-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .dept-status-metric-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        @media (max-width: 500px) {
+            .dept-status-metrics {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 
@@ -211,6 +346,40 @@
                         now</span>
                 </div>
 
+                <!-- Department Status Widget -->
+                <div class="dept-status-widget status-green" id="dept-status-widget">
+                    <div class="dept-status-header">
+                        <span class="dept-status-title"><i class="fas fa-building"></i> Department Status</span>
+                        <span class="dept-status-badge green" id="ds-badge">
+                            <span id="ds-dot" style="font-size: 0.7rem; line-height: 1;">&#11044;</span>
+                            <span id="ds-status-text">Loading...</span>
+                        </span>
+                    </div>
+                    <div class="dept-status-dept-name" id="ds-dept-name">--</div>
+                    <div class="dept-status-metrics">
+                        <div class="dept-status-metric">
+                            <div class="dept-status-metric-icon"
+                                style="background: rgba(99,102,241,0.15); color: #6366f1;">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div>
+                                <div class="dept-status-metric-label">Queue Size</div>
+                                <div class="dept-status-metric-value"><span id="ds-queue">--</span> patients</div>
+                            </div>
+                        </div>
+                        <div class="dept-status-metric">
+                            <div class="dept-status-metric-icon"
+                                style="background: rgba(245,158,11,0.15); color: #f59e0b;">
+                                <i class="fas fa-hourglass-half"></i>
+                            </div>
+                            <div>
+                                <div class="dept-status-metric-label">Predicted Waiting Time</div>
+                                <div class="dept-status-metric-value"><span id="ds-wait">--</span> minutes</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Stats Bar -->
                 <div class="stats-bar">
                     <div class="stat-item">
@@ -228,30 +397,21 @@
                 </div>
 
                 <!-- Peak Hours Card -->
-                <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.2); margin-bottom: 1.5rem;">
-                    <div style="width: 42px; height: 42px; background: rgba(245,158,11,0.12); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <div
+                    style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.2); margin-bottom: 1.5rem;">
+                    <div
+                        style="width: 42px; height: 42px; background: rgba(245,158,11,0.12); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                         <i class="fas fa-clock" style="color: #f59e0b; font-size: 1.1rem;"></i>
                     </div>
                     <div style="flex: 1;">
-                        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; margin-bottom: 0.2rem;">Peak Hours of Today</div>
-                        <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-main);" id="peak-hours-value">
-                            <i class="fas fa-spinner fa-spin" style="font-size: 0.9rem; color: var(--text-muted);"></i> Loading...
+                        <div
+                            style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; margin-bottom: 0.2rem;">
+                            Peak Hours of Today</div>
+                        <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-main);"
+                            id="peak-hours-value">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 0.9rem; color: var(--text-muted);"></i>
+                            Loading...
                         </div>
-                    </div>
-                </div>
-
-                <!-- AI Staff Allocation & Check-in -->
-                <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.2); margin-bottom: 1.5rem;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-                        <div style="width: 42px; height: 42px; background: rgba(139,92,246,0.12); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                            <i class="fas fa-user-nurse" style="color: #8b5cf6; font-size: 1.1rem;"></i>
-                        </div>
-                        <div style="flex:1;">
-                            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em;">AI Staff Allocation</div>
-                        </div>
-                    </div>
-                    <div id="staff-alloc-panel" style="display: grid; grid-template-columns: 1fr; gap: 0.75rem;">
-                        <div style="text-align: center; padding: 1rem; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
                     </div>
                 </div>
 
@@ -301,6 +461,16 @@
                             </div>
                             <div id="patient-info"
                                 style="margin-top: 5px; font-size: 0.9rem; color: #10b981; min-height: 20px;"></div>
+                            
+                            <!-- Pharmacy Prescriptions Section -->
+                            <div id="pharmacy-prescriptions" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 8px;">
+                                <div style="font-weight: 600; color: #0ea5e9; margin-bottom: 0.5rem; font-size: 0.95rem;">
+                                    <i class="fas fa-prescription"></i> Active Prescriptions found for this patient:
+                                </div>
+                                <div id="prescriptions-list" style="font-size: 0.9rem; color: var(--text-main); display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
                         </div>
 
                         <div class="form-group">
@@ -327,19 +497,6 @@
                         </div>
                 </div>
 
-                <!-- Recent Activity -->
-                <div class="recent-activity">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h3 class="subsection-title" style="margin-bottom: 0;">Recent Activity</h3>
-                        <button id="btn-clear-activity" onclick="clearActivityLog()"
-                            style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem;">Clear</button>
-                    </div>
-                    <ul class="activity-list" id="activity-list">
-                        <!-- JS generated -->
-                    </ul>
-                </div>
-
             </div>
         </div>
     </div>
@@ -347,7 +504,8 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
 
-    <script src="js/config.js"></script>
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
     <script src="js/main.js?v=999"></script>
     <script>
         // API Configuration
@@ -369,7 +527,6 @@
         const actionBtnContainer = document.getElementById('action-buttons-container');
         const nextDeptSelect = document.getElementById('next-dept-select');
         const form = document.getElementById('workflow-form');
-        const activityList = document.getElementById('activity-list');
         const toastContainer = document.getElementById('toast-container');
         const searchBtn = document.getElementById('btn-search');
         const genIdBtn = document.getElementById('btn-generate-id');
@@ -379,7 +536,8 @@
         const patientMobileInput = document.getElementById('patient-mobile');
         const regFieldsDiv = document.getElementById('registration-fields');
         const patientInfoDiv = document.getElementById('patient-info');
-        const btnClearActivity = document.getElementById('btn-clear-activity');
+        const pharmacyPrescriptionsDiv = document.getElementById('pharmacy-prescriptions');
+        const prescriptionsListDiv = document.getElementById('prescriptions-list');
 
         const currentUserId = localStorage.getItem('currentUser') || 'unknown';
         const ACTION_COUNT_KEY = `staffActionCount_${currentUserId}`;
@@ -388,9 +546,6 @@
 
         let actionCount = parseInt(localStorage.getItem(ACTION_COUNT_KEY) || '0');
         document.getElementById('my-action-count').innerText = actionCount;
-
-        // Load Activity Log
-        loadActivityLog();
 
         // Search Patient Logic
         searchBtn.addEventListener('click', async () => {
@@ -403,6 +558,8 @@
             searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             searchBtn.disabled = true;
             patientInfoDiv.textContent = "";
+            pharmacyPrescriptionsDiv.style.display = 'none';
+            prescriptionsListDiv.innerHTML = "";
 
             try {
                 const response = await fetch(`${API_BASE_URL}/patient/tracking/${id}`);
@@ -422,6 +579,43 @@
                             }
                         }
                     }
+
+                    // For pharmacy, also fetch prescriptions automatically
+                    if (deptSelect.value === 'pharmacy') {
+                        try {
+                            const rxRes = await fetch(`${API_BASE_URL}/patient/prescriptions/${id}?_=${Date.now()}`);
+                            if (rxRes.ok) {
+                                const rxData = await rxRes.json();
+                                const list = rxData.prescriptions || [];
+                                if (list.length > 0) {
+                                    pharmacyPrescriptionsDiv.style.display = 'block';
+                                    list.forEach(rx => {
+                                        const dateLabel = new Date(rx.created_at).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+                                        const p = document.createElement('div');
+                                        p.style.padding = '0.5rem';
+                                        p.style.background = 'rgba(255,255,255,0.05)';
+                                        p.style.borderRadius = '6px';
+                                        p.innerHTML = `
+                                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.35rem;">Prescribed on: ${dateLabel}</div>
+                                            <div style="font-weight: 500; font-size: 0.95rem; margin-bottom: 0.6rem; color: var(--text-main);">${rx.prescription}</div>
+                                            <div style="display: flex; gap: 0.75rem;">
+                                                <a href="${API_BASE_URL}/prescription/download/${rx.id}?view=true" target="_blank" style="padding: 0.4rem 0.85rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; font-size: 0.8rem; color: #10b981; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s ease;">
+                                                    <i class="fas fa-eye"></i> View Prescription
+                                                </a>
+                                                <a href="${API_BASE_URL}/prescription/download/${rx.id}" target="_blank" style="padding: 0.4rem 0.85rem; background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 6px; font-size: 0.8rem; color: #0ea5e9; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s ease;">
+                                                    <i class="fas fa-download"></i> Download PDF
+                                                </a>
+                                            </div>
+                                        `;
+                                        prescriptionsListDiv.appendChild(p);
+                                    });
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Failed to fetch prescriptions:', e);
+                        }
+                    }
+
                 } else {
                     patientInfoDiv.textContent = "✗ Patient not found";
                     patientInfoDiv.style.color = "#ef4444";
@@ -474,6 +668,15 @@
 
                 genIdBtn.style.display = 'none';
                 searchBtn.style.display = 'block';
+            }
+            
+            // clear prescription list on dept change
+            if (dept !== 'pharmacy') {
+                pharmacyPrescriptionsDiv.style.display = 'none';
+                prescriptionsListDiv.innerHTML = "";
+            } else if (patientIdInput.value.trim() && patientInfoDiv.textContent.includes('Found')) {
+                // re-trigger search if switching to pharmacy to load prescriptions
+                searchBtn.click();
             }
 
             let actions_list = [];
@@ -536,7 +739,7 @@
 
             // Refine Next Dept Logic based on Action
             let finalNextDept = nextDept;
-            const isCompletion = /Complete|Done|Dispensed|Recommended|Finished/i.test(action);
+            const isCompletion = /Complete|Done|Dispensed|Recommended|Finished|Received|Verified/i.test(action);
 
             if (isCompletion) {
                 // If user didn't manually select, apply logic
@@ -647,39 +850,6 @@
             logs.unshift(log); // Add to top
             if (logs.length > 10) logs = logs.slice(0, 10); // Keep last 10
             localStorage.setItem(ACTION_LOG_KEY, JSON.stringify(logs));
-
-            renderLogItem(log);
-        }
-
-        function loadActivityLog() {
-            activityList.innerHTML = '';
-            const logs = JSON.parse(localStorage.getItem(ACTION_LOG_KEY) || '[]');
-            logs.forEach(log => renderLogItem(log));
-        }
-
-        function clearActivityLog() {
-            localStorage.removeItem(ACTION_LOG_KEY);
-            activityList.innerHTML = '';
-        }
-
-        function renderLogItem(log) {
-            const li = document.createElement('li');
-            li.className = 'activity-item fade-in';
-            const timeStr = new Date(log.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            let desc = `<strong>${log.id}</strong>: ${log.action}`;
-            if (log.next) desc += ` <i class="fas fa-arrow-right" style="font-size:0.8em; margin:0 5px;"></i> ${log.next}`;
-
-            li.innerHTML = `
-                <div class="activity-time">${timeStr}</div>
-                <div class="activity-desc">${desc}</div>
-            `;
-            // Insert at top if rendering new, but load order implies loop
-            // For prepend:
-            // activityList.insertBefore(li, activityList.firstChild); 
-            // But if loading from array (ordered new->old), simple append works?
-            // saveActivityLog adds to top of array. So iteration gives new->old.
-            activityList.appendChild(li);
         }
 
         function formatZone(zoneKey) {
@@ -750,14 +920,6 @@
             }, 50);
         }
 
-        // Apply Staff Permissions
-        const currentRole = localStorage.getItem('currentRole');
-        if (currentRole === 'staff') {
-            if (btnClearActivity) {
-                btnClearActivity.style.display = 'none';
-            }
-        }
-
         // Fetch Peak Hours
         (async function fetchPeakHours() {
             try {
@@ -776,67 +938,51 @@
                 document.getElementById('peak-hours-value').textContent = 'Unavailable';
             }
         })();
+        // --- Department Status Widget ---
+        (async function initDeptStatus() {
+            var staffId = localStorage.getItem('currentUser') || 'staff1';
+            var dept = localStorage.getItem('currentDept') || '';
 
-        // Staff Allocation - fetch and render with check-in buttons
-        async function fetchStaffAllocation() {
-            try {
-                const res = await fetch(`${API_BASE_URL}/prediction/staff-recommendation`);
-                if (res.ok) {
-                    const data = await res.json();
-                    const panel = document.getElementById('staff-alloc-panel');
-                    if (!data.departments || data.departments.length === 0) {
-                        panel.innerHTML = '<div style="padding:1rem; color:var(--text-muted);">No data available.</div>';
-                        return;
-                    }
-                    let html = '';
-                    data.departments.forEach(dept => {
-                        const borderColor = dept.is_bottleneck ? '#ef4444' : '#10b981';
-                        const statusColor = dept.is_bottleneck ? '#ef4444' : '#10b981';
-                        const statusText = dept.is_bottleneck ? `${dept.deficit} Needed` : 'Sufficient';
-                        const statusIcon = dept.is_bottleneck ? 'fa-exclamation-triangle' : 'fa-check-circle';
-                        const zoneName = dept.zone_name || '';
-                        html += `
-                        <div style="background: rgba(30,41,59,0.5); border: 1px solid ${borderColor}; border-radius: 10px; padding: 1rem; display: flex; align-items: center; gap: 1rem;">
-                            <div style="flex:1;">
-                                <div style="font-weight: 600; color: var(--text-main); font-size: 0.95rem;">${dept.department}</div>
-                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
-                                    Patients: <strong style="color:var(--text-main);">${dept.active_patients}</strong> &nbsp;|&nbsp;
-                                    Staff: <strong style="color:var(--text-main);">${dept.current_staff}</strong> / <strong style="color:#8b5cf6;">${dept.optimal_staff}</strong>
-                                </div>
-                                <div style="margin-top: 0.4rem; display: flex; align-items: center; gap: 0.3rem;">
-                                    <i class="fas ${statusIcon}" style="color: ${statusColor}; font-size: 0.8rem;"></i>
-                                    <span style="color: ${statusColor}; font-weight: 600; font-size: 0.8rem;">${statusText}</span>
-                                </div>
-                            </div>
-                            ${dept.is_bottleneck ? `<button onclick="staffCheckin('${zoneName}')" style="padding: 0.5rem 1rem; background: #8b5cf6; color: white; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap;">Check in</button>` : ''}
-                        </div>`;
-                    });
-                    panel.innerHTML = html;
-                }
-            } catch (e) {
-                console.error('Staff allocation fetch error:', e);
-                document.getElementById('staff-alloc-panel').innerHTML = '<div style="padding:1rem; color:var(--text-muted);">Unavailable</div>';
+            // If no dept assigned, wait for dept-select to have a value
+            function getActiveDept() {
+                return localStorage.getItem('currentDept') || deptSelect.value || '';
             }
-        }
 
-        async function staffCheckin(zoneName) {
-            try {
-                const res = await fetch(`${API_BASE_URL}/prediction/staff-checkin/${zoneName}`, { method: 'POST' });
-                if (res.ok) {
-                    const data = await res.json();
-                    showToast(data.message || 'Checked in successfully', 'success');
-                    fetchStaffAllocation(); // Refresh immediately
-                } else {
-                    showToast('Check-in failed', 'error');
+            async function fetchDeptStatus() {
+                var d = getActiveDept();
+                if (!d) return;
+                try {
+                    var res = await fetch(API_BASE + '/staff/department-status/' + staffId + '?department=' + d);
+                    if (!res.ok) return;
+                    var data = await res.json();
+
+                    // Update department name
+                    document.getElementById('ds-dept-name').textContent = 'Department: ' + data.department;
+
+                    // Update queue size
+                    document.getElementById('ds-queue').textContent = data.queue_size;
+
+                    // Update predicted waiting time
+                    document.getElementById('ds-wait').textContent = data.predicted_waiting_time;
+
+                    // Update status badge
+                    var badge = document.getElementById('ds-badge');
+                    var statusText = document.getElementById('ds-status-text');
+                    var widget = document.getElementById('dept-status-widget');
+
+                    statusText.textContent = data.status;
+
+                    // Remove old colour classes
+                    badge.className = 'dept-status-badge ' + data.status_color;
+                    widget.className = 'dept-status-widget status-' + data.status_color;
+                } catch (e) {
+                    console.warn('Dept status fetch error:', e);
                 }
-            } catch (e) {
-                console.error('Staff check-in error:', e);
-                showToast('Network error during check-in', 'error');
             }
-        }
 
-        fetchStaffAllocation();
-        setInterval(fetchStaffAllocation, 15000);
+            fetchDeptStatus();
+            setInterval(fetchDeptStatus, 25000);
+        })();
     </script>
 </body>
 

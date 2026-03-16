@@ -81,6 +81,14 @@ Every 5 seconds, the CV service:
 5. Creates an `OccupancyLog` entry with detection metadata
 6. Broadcasts the update via WebSocket to all connected clients
 
+#### In-Browser Live Detection Tracker with Bounding Boxes
+The **Live Video** page (`video.html`) provides an integrated detection tracker directly in the browser:
+- **Detection Mode Toggle:** A toggle switch lets users switch between raw video playback and the live YOLOv8 MJPEG detection stream
+- **Server-Side MJPEG Streaming:** The backend streams annotated frames via `/detection/stream/{zone_name}` with green bounding boxes around detected persons, confidence labels, zone name overlay, detected count, and a pulsing LIVE indicator at ~12 FPS
+- **Real-Time Stats Panel:** When detection mode is active, a stats bar displays people count, average confidence, and model info, polling `/detection/latest` every 3 seconds
+- **Graceful Fallback:** If the CV service is unavailable, an error overlay with retry option is displayed; the raw video mode remains fully functional
+- **Per-Department Switching:** Users can switch between all 7 departments while in detection mode; the MJPEG stream reconnects automatically
+
 #### Zone-Based Crowd Analytics
 Each detection cycle generates structured analytics:
 - **People count** per zone
@@ -128,6 +136,13 @@ Each detection cycle generates structured analytics:
 - **Output:** Optimal staff count (rounded up)
 - **Integration:** Compared against current staff to calculate deficit; triggers reallocation alerts
 
+#### AI Risk Engine (Intelligent Alerts)
+The Risk Engine (`risk_engine.py`) aggregates outputs from **all 5 ML models** per department to compute a unified risk score:
+- **Weighted Risk Score (0-100):** 30% waiting time + 25% bottleneck probability + 20% arrival rate + 15% staff deficit + 10% exit rate slowdown
+- **Severity Classification:** CRITICAL (score >= 70), WARNING (score >= 40), INFO (score < 40)
+- **Decision Support:** Each alert includes AI-generated recommendations (e.g., "Deploy 2 additional staff to Diagnostics")
+- **Endpoint:** `GET /alerts/intelligent` returns per-department risk assessments with actionable decision support items
+
 #### Dynamic Deficit Calculation Engine
 The system continuously compares ML-predicted optimal staffing against actual staff presence:
 
@@ -168,7 +183,7 @@ Every patient status change, zone occupancy shift, or alert creation is immediat
 The WebSocket server (`/ws`) supports:
 - **Topic-based subscriptions:** Clients subscribe to `occupancy`, `alerts`, or `metrics`
 - **Heartbeat monitoring:** 30-second keepalive pings
-- **Broadcast types:** `occupancy_update`, `alert`, `metric_update`
+- **Broadcast types:** `occupancy_update`, `alert`, `metric_update`, `staff_alert`, `staff_update`
 - **Client commands:** `subscribe`, `unsubscribe`, `ping`, `get_status`
 
 #### AI Staff Reallocation Workflow
@@ -214,27 +229,84 @@ The central operations hub displaying:
 - Total detected occupancy across all departments
 - Per-department detection grid with color-coded severity
 - Peak hour predictions
-- Recent activity log with export capability
+- Escalation review panel with status management
+- Hourly occupancy trend (30-min intervals, past 5 hours)
+- Recent activity log with CSV export capability
 
 #### Patient Dashboard
 Patient-facing view showing:
 - Current department and queue position
 - AI-predicted waiting time for current department
-- Journey progress through hospital stages
+- Step-by-step journey progress through all 7 departments with ETA
 - Consultation history and timestamps
+
+#### Patient Activity History
+Patient timeline page providing:
+- Chronological activity log of all movements through the hospital
+- PDF export via jsPDF for patient records
+
+#### Hospital Load Status (Patient-Facing)
+Real-time department load overview for patients:
+- All 7 departments displayed with HIGH/MEDIUM/LOW load indicators
+- Waiting times and queue sizes per department
+- Uses AI models (waiting_model, arrival_model, bottleneck_model) for load classification
+
+#### Patient Waiting Time Trend
+Live chart tracking predicted waiting times:
+- Chart.js real-time trend for the patient's current department
+- Auto-polling updates for continuous monitoring
 
 #### Staff Dashboard
 Staff operations panel with:
 - Department assignment and check-in functionality
-- Patient stage update controls
+- Patient stage update controls (register, move to next department)
 - Current department occupancy
 - Active patient list for assigned zone
+
+#### Staff Activity Feed
+Live activity monitoring for staff:
+- Real-time feed of patient movements, department changes, and staff actions
+
+#### AI Staff Allocation Panel
+Staff-facing resource optimization:
+- AI-recommended staff allocation per department
+- Deficit warnings with visual indicators
+- Staff check-in functionality with immediate deficit recalculation
+
+#### Bottleneck Warnings (Staff)
+Per-department AI bottleneck analysis for staff members:
+- Bottleneck risk level, queue size, predicted waiting time
+- AI-recommended actions for congestion mitigation
+
+#### Patient Search
+Quick patient lookup tool:
+- Search by tracking ID
+- Displays current stage, next department, predicted ETA
+
+#### Escalation System
+Operational issue reporting and management:
+- **Staff-side:** Escalation form for reporting issues (Equipment Delay, System Error, Patient Congestion, Staff Shortage, Other)
+- **Admin-side:** Escalation review panel with status filtering (OPEN/IN_PROGRESS/RESOLVED)
+- Stored in `escalations` database table with full audit trail
+
+#### Department Performance
+Department-specific KPI dashboard for staff:
+- Patients processed today, average service time
+- Queue size, waiting time, arrival rate
+- Workload level classification
+
+#### Department Insights
+Rich Chart.js analytics for staff members:
+- Load gauge, queue trend, bottleneck risk
+- Patient flow funnel, waiting time distribution
+- Service time trend, 30-minute queue prediction
 
 #### Doctor Dashboard
 Clinical workflow interface providing:
 - Doctor check-in/check-out controls
 - Patient lookup by tracking ID
-- Consultation start/complete workflow
+- Consultation start/complete workflow with notes
+- Automatic patient routing to next stage on completion
 - Consultation history log
 
 #### Resource Allocation Panel
@@ -263,7 +335,7 @@ Centralized alert management with:
 - Active alert list with severity filtering (Critical/Warning/Info)
 - Alert types: Capacity Warning, Capacity Critical, Long Wait Time, Unusual Activity, System Error
 - Acknowledge and resolve workflows
-- AI-generated alerts from bottleneck and staff deficit detection
+- **AI Risk Engine alerts** with weighted risk scores (0-100) and decision support recommendations
 
 #### Peak Hour Card
 Predictive indicator showing:
@@ -286,12 +358,12 @@ Data visualization panels including:
 #### Role-Based Access Control
 The system implements four user roles with differentiated access:
 
-| Role | Access Level | Dashboard |
-|------|-------------|-----------|
-| **Admin** | Full system access, activity logs, exports, CV status | Admin Command Center |
-| **Doctor** | Patient lookup, consultation workflow, check-in/out | Doctor Dashboard |
-| **Staff** | Department operations, patient stage updates, check-in | Staff Panel |
-| **Patient** | Journey tracking, wait time prediction, consultation history | Patient Dashboard |
+| Role | Access Level | Dashboard | Pages |
+|------|-------------|-----------|-------|
+| **Admin** | Full system access, activity logs, exports, CV status, escalation review | Admin Command Center | 10 pages |
+| **Doctor** | Patient lookup, consultation workflow, check-in/out, live video | Doctor Dashboard | 5 pages |
+| **Staff** | Department operations, patient stage updates, check-in, bottleneck warnings, escalation reporting, department analytics | Staff Panel | 10 pages |
+| **Patient** | Journey tracking, wait time prediction, hospital load status, activity history | Patient Dashboard | 5 pages |
 
 #### Protected API Endpoints
 API endpoints enforce role-based access through session validation. Administrative endpoints (activity logs, exports, system configuration) are restricted to authorized roles.
@@ -436,17 +508,22 @@ User authentication follows a structured flow:
 |                   |     | (person class=0) |     |                  |
 +-------------------+     +------------------+     +--------+---------+
                                                             |
-                          +------------------+     +--------v---------+
-                          | WebSocket Layer  | <-- | Database Update  |
-                          | broadcast_       |     | Zone + OccLog    |
-                          | occupancy_update |     +------------------+
-                          +--------+---------+
-                                   |
-                          +--------v---------+
-                          | Frontend Clients  |
-                          | Heatmap, Occupancy|
-                          | Admin Dashboard   |
-                          +-------------------+
+                    +---------------------+        +--------v---------+
+                    | MJPEG Stream        |        | Database Update  |
+                    | /detection/stream/  | <----- | Zone + OccLog    |
+                    | (Bounding Boxes,    |        +--------+---------+
+                    |  ~12 FPS, Browser)  |                 |
+                    +---------------------+        +--------v---------+
+                                                   | WebSocket Layer  |
+                                                   | broadcast_       |
+                                                   | occupancy_update |
+                                                   +--------+---------+
+                                                            |
+                                                   +--------v---------+
+                                                   | Frontend Clients  |
+                                                   | Heatmap, Occupancy|
+                                                   | Admin, Detection  |
+                                                   +-------------------+
 ```
 
 ### Pipeline Stages
@@ -494,7 +571,18 @@ for zone_name, cap in self._captures.items():
 - Broadcast payload: `{ "zone": zone_name, "count": people_count, "timestamp": ISO8601 }`
 - All subscribed clients receive the update within milliseconds
 
-**7. Integration with Occupancy and Bottleneck Detection**
+**7. MJPEG Live Streaming with Bounding Boxes**
+- The endpoint `GET /detection/stream/{zone_name}` provides a live annotated video stream
+- Opens a dedicated `VideoCapture` per stream request (separate from background detection)
+- Runs YOLOv8 inference on every frame with thread-safe model locking
+- Draws green bounding boxes with confidence labels around each detected person
+- Adds a semi-transparent overlay bar showing zone name and detected count
+- Adds a pulsing red "LIVE" dot indicator
+- Encodes frames as JPEG (quality 75) and yields MJPEG multipart frames at ~12 FPS
+- Loops video automatically when it reaches the end
+- The frontend `video.html` page embeds this stream via an `<img>` tag pointing to the MJPEG URL
+
+**8. Integration with Occupancy and Bottleneck Detection**
 - Updated `Zone.current_occupancy` feeds directly into ML model inputs
 - Bottleneck classifier uses `active_patients` (sourced from CV-detected occupancy)
 - Staff allocation model uses the same occupancy data
@@ -522,28 +610,30 @@ for zone_name, cap in self._captures.items():
 |                     | FastAPI Backend  |<---+-----------------------+     |
 |                     | (Uvicorn)        |                                  |
 |                     |                  |    +-----------------------+     |
-|                     | - REST API       |--->| MySQL Database        |     |
+|                     | - REST API (70+) |--->| MySQL / SQLite DB     |     |
 |                     | - WebSocket      |    | - patients            |     |
 |                     | - CV Service     |    | - zones               |     |
-|                     | - Prediction Svc |    | - occupancy_logs      |     |
-|                     | - Alert Service  |    | - alerts              |     |
-|                     +--------+---------+    | - metrics             |     |
-|                              |              | - doctors             |     |
-|                     +--------v---------+    | - consultation_logs   |     |
-|                     | WebSocket Layer  |    +-----------------------+     |
+|                     | - MJPEG Stream   |    | - occupancy_logs      |     |
+|                     | - Prediction Svc |    | - alerts              |     |
+|                     | - Risk Engine    |    | - metrics             |     |
+|                     | - Alert Service  |    | - doctors             |     |
+|                     +--------+---------+    | - consultation_logs   |     |
+|                              |              | - escalations         |     |
+|                     +--------v---------+    +-----------------------+     |
+|                     | WebSocket Layer  |                                  |
 |                     | Real-Time Push   |                                  |
 |                     +--------+---------+    +-----------------------+     |
 |                              |              | n8n Automation        |     |
-|              +---------------+-------+      | - Appointment Booking |     |
-|              |               |       |      | - Alert Workflows     |     |
-|              v               v       v      +-----------------------+     |
-|  +-----------+--+ +--------+----+ +--+----------+                        |
-|  | Admin        | | Staff      | | Doctor      |   +--------------+      |
-|  | Dashboard    | | Panel      | | Dashboard   |   | Patient      |      |
-|  | - CV Status  | | - Check-in | | - Consult   |   | Dashboard    |      |
-|  | - Heatmap    | | - Stage Upd| | - Lookup    |   | - Wait Time  |      |
-|  | - Alerts     | | - Occupancy| | - History   |   | - Journey    |      |
-|  +--------------+ +------------+ +-------------+   +--------------+      |
+|              +-------+-------+----+----+    | - Appointment Booking |     |
+|              |       |       |    |    |    | - Alert Workflows     |     |
+|              v       v       v    v    v    +-----------------------+     |
+|  +-----------+-+ +---+----+ +----+---+ +-----+-----+ +----------+       |
+|  | Admin (10)  | | Staff  | | Doctor | | Patient   | | Detection|       |
+|  | - CV Status | | (10pg) | | (5pg)  | | (5 pages) | | Tracker  |       |
+|  | - Heatmap   | | - Ops  | | - Clin | | - Journey | | - MJPEG  |       |
+|  | - Alerts    | | - Anal | | - Hist | | - ETA     | | - BBoxes |       |
+|  | - Escalate  | | - Escal| |        | | - PDF     | | - Stats  |       |
+|  +-------------+ +--------+ +--------+ +-----------+ +----------+       |
 |                                                                           |
 +===========================================================================+
 ```
@@ -568,28 +658,32 @@ flowchart TB
     subgraph Backend
         API[FastAPI Server<br/>Uvicorn :8000]
         WS[WebSocket Manager]
-        CVS[CV Detection Service<br/>Background Thread]
+        CVS[CV Detection Service<br/>Background Thread + MJPEG]
         PS[Prediction Service]
         AS[Alert Service]
         SAS[Staff Allocation Service]
+        RE[Risk Engine<br/>Weighted Risk Scoring]
     end
 
     subgraph Database
-        DB[(MySQL Database)]
+        DB[(MySQL / SQLite)]
         T1[patients]
         T2[zones]
         T3[occupancy_logs]
         T4[alerts]
         T5[metrics]
+        T6[doctors + consultation_logs]
+        T7[escalations]
     end
 
     subgraph Frontend Dashboards
-        ADMIN[Admin Command Center]
-        STAFF[Staff Panel]
-        DOC[Doctor Dashboard]
-        PAT[Patient Dashboard]
+        ADMIN[Admin Command Center<br/>10 pages]
+        STAFF[Staff Panel<br/>10 pages]
+        DOC[Doctor Dashboard<br/>5 pages]
+        PAT[Patient Dashboard<br/>5 pages]
         HEAT[Zone Heatmap]
         OCC[Live Occupancy]
+        DET[Detection Tracker<br/>MJPEG + BBoxes]
     end
 
     subgraph Automation
@@ -608,9 +702,10 @@ flowchart TB
     AS --> API
     SAS --> API
     API --> WS
-    WS --> ADMIN & STAFF & DOC & PAT & HEAT & OCC
+    WS --> ADMIN & STAFF & DOC & PAT & HEAT & OCC & DET
     API --> N8N
-    DB --> T1 & T2 & T3 & T4 & T5
+    DB --> T1 & T2 & T3 & T4 & T5 & T6 & T7
+    RE --> AS
 ```
 
 ### C. Data Flow Explanation
@@ -691,9 +786,11 @@ is_bottleneck = True (still needs 1 more)
 | `POST` | `/patient/exit` | Register patient exit |
 | `GET` | `/patient/list` | Paginated patient list with filters |
 | `GET` | `/patient/{patient_id}` | Get patient by ID |
-| `GET` | `/patient/tracking/{tracking_id}` | Get patient by tracking ID |
+| `GET` | `/patient/tracking/{tracking_id}` | Get patient by tracking ID (with consultation history) |
 | `POST` | `/patient/movement` | Record patient zone movement |
 | `GET` | `/patient/predicted-wait-time/{tracking_id}` | AI wait time prediction |
+| `GET` | `/patient/waiting-trend/{patient_id}` | Time-series of predicted waiting times |
+| `GET` | `/patient/eta/{patient_id}` | Journey tracker with progress steps, ETA, queue size |
 | `GET` | `/patient/zone/{zone_name}` | Get patients in a zone |
 | `POST` | `/patient/update-stage` | Update patient department stage |
 
@@ -702,18 +799,27 @@ is_bottleneck = True (still needs 1 more)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/zones` | List all zones with occupancy |
+| `POST` | `/zones` | Create a new zone |
 | `POST` | `/zones/update` | Update zone occupancy from CV |
+| `PUT` | `/zones/{zone_name}` | Update zone settings (capacity, thresholds) |
+| `GET` | `/zones/{zone_name}` | Get zone details |
 | `GET` | `/zones/summary/all` | Zone summaries for widgets |
+| `GET` | `/zones/types/list` | List unique zone types |
+| `DELETE` | `/zones/{zone_name}` | Soft-delete (deactivate) a zone |
 | `POST` | `/occupancy/update` | Log CV occupancy reading |
+| `POST` | `/occupancy/batch` | Batch update for multiple zones |
 | `GET` | `/occupancy/current` | Facility-wide occupancy |
 | `GET` | `/occupancy/history` | Historical occupancy data |
 | `GET` | `/occupancy/hourly` | Hourly aggregated data |
 | `GET` | `/occupancy/trend/{zone_name}` | Zone trend analysis |
+| `GET` | `/occupancy/latest/{zone_name}` | Most recent occupancy reading |
+| `GET` | `/occupancy/peak-heatmap` | Peak hour heatmap (day-of-week x hour) |
 
 ### AI Predictions
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `GET` | `/prediction/forecast` | AI forecast with time-windowed predictions and decision support |
 | `GET` | `/prediction/bottleneck` | Bottleneck severity per department |
 | `GET` | `/prediction/average-wait` | Predicted avg dwell time |
 | `GET` | `/prediction/arrival-rate` | Next-hour arrival forecast |
@@ -724,17 +830,69 @@ is_bottleneck = True (still needs 1 more)
 | `GET` | `/prediction/staff-recommendation/{dept}` | Staff recommendation (dept) |
 | `POST` | `/prediction/staff-checkin/{dept}` | Staff check-in |
 
+### Staff Allocation & Analytics
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/analytics/staff-recommendation` | All departments staff recommendations (WebSocket broadcast) |
+| `GET` | `/analytics/staff-recommendation/{dept}` | Per-department AI staff recommendation |
+| `POST` | `/analytics/staff-checkin/{dept}` | Check in staff, broadcast updated status |
+
 ### Alerts & Metrics
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/alerts/active` | Active alerts with pagination |
+| `POST` | `/alerts/create` | Create alert manually |
+| `GET` | `/alerts/active` | Active alerts with severity/zone filters |
 | `GET` | `/alerts/summary` | Alert count by severity |
+| `GET` | `/alerts/intelligent` | AI Risk Engine alerts with risk scores and decision support |
 | `POST` | `/alerts/acknowledge` | Acknowledge an alert |
 | `POST` | `/alerts/resolve` | Resolve an alert |
+| `GET` | `/alerts/{alert_id}` | Get alert details |
+| `GET` | `/alerts` | List all alerts (including resolved) |
 | `GET` | `/metrics/live` | Real-time facility metrics |
 | `GET` | `/metrics/dashboard` | Comprehensive analytics |
+| `GET` | `/metrics/history` | Historical aggregated metrics |
+| `GET` | `/metrics/flow` | Patient flow analysis (hourly entry/exit) |
+| `GET` | `/metrics/zone/{zone_name}` | Zone-specific analytics |
 | `GET` | `/metrics/peak-hours` | Historical peak hours |
+| `POST` | `/metrics/calculate` | Manually trigger metric calculation |
+
+### Doctor Workflow
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/doctor/check-in` | Doctor check-in (status: ONLINE) |
+| `POST` | `/doctor/check-out` | Doctor check-out (status: OFFLINE) |
+| `POST` | `/doctor/consult/start` | Start consultation, moves patient to consultation zone |
+| `POST` | `/doctor/consult/complete` | Complete consultation, route patient to next stage |
+| `GET` | `/doctor/status/{doctor_id}` | Get doctor status |
+
+### Hospital & Staff Operations
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/hospital/load-status` | Real-time load level (HIGH/MEDIUM/LOW) for all 7 departments |
+| `GET` | `/staff/bottleneck-warning/{staff_id}` | AI bottleneck warning for staff member's department |
+| `GET` | `/staff/patient-search/{patient_id}` | Quick patient search with workflow status and ETA |
+| `POST` | `/staff/escalate-issue` | Submit operational escalation report |
+| `GET` | `/staff/escalations` | List escalation reports |
+| `GET` | `/staff/department-performance/{staff_id}` | Department KPIs (processed, service time, queue, arrivals) |
+| `GET` | `/staff/department-charts/{staff_id}` | Rich chart data (load gauge, queue trend, bottleneck risk, flow funnel) |
+| `GET` | `/staff/waiting-distribution/{staff_id}` | Wait time distribution (0-5, 5-10, 10-20, 20+ min) |
+| `GET` | `/staff/queue-trend/{staff_id}` | Queue movement trend (30-min intervals, past 5 hours) |
+| `GET` | `/staff/patient-processing-rate/{staff_id}` | Hourly patient processing rate |
+| `GET` | `/staff/department-status/{staff_id}` | Compact department status widget |
+
+### Admin Operations
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/admin/activity` | Recent activity logs |
+| `GET` | `/admin/export` | Export activity logs as CSV |
+| `GET` | `/admin/dashboard-stats` | Aggregated stats (active patients, zone distribution) |
+| `GET` | `/admin/escalations` | List escalation reports with status filter |
+| `GET` | `/admin/hourly-occupancy` | 30-min interval occupancy for past 5 hours |
 
 ### CV Detection & System
 
@@ -742,9 +900,20 @@ is_bottleneck = True (still needs 1 more)
 |--------|----------|-------------|
 | `GET` | `/detection/status` | CV model status and zone counts |
 | `GET` | `/detection/latest` | Latest per-zone detections |
+| `GET` | `/detection/stream/{zone_name}` | Live MJPEG stream with bounding boxes (~12 FPS) |
 | `WebSocket` | `/ws` | Real-time event stream |
 | `GET` | `/ws/status` | Active connection count |
 | `GET` | `/status` | System health check |
+| `GET` | `/cache/stats` | Cache hit/miss statistics |
+| `POST` | `/cache/clear` | Clear all cached data |
+
+### Data Export
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/export/occupancy/csv` | Export occupancy logs to CSV |
+| `GET` | `/export/patients/csv` | Export patient records to CSV |
+| `GET` | `/export/metrics/csv` | Export aggregated metrics to CSV |
 
 ### Sample API Responses
 
@@ -830,17 +999,19 @@ is_bottleneck = True (still needs 1 more)
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| **Frontend** | HTML5, CSS3, JavaScript | Role-based dashboards, real-time UI |
-| **Backend** | FastAPI (Python 3.13+) | REST API, WebSocket server, service orchestration |
-| **ASGI Server** | Uvicorn | High-performance async server |
-| **Database** | MySQL 8.0 | Persistent storage for patients, zones, logs, alerts |
+| **Frontend** | HTML5, CSS3, JavaScript, Chart.js | Role-based dashboards, real-time UI, data visualization |
+| **Backend** | FastAPI (Python 3.11+) | REST API, WebSocket server, service orchestration |
+| **ASGI Server** | Uvicorn | High-performance async server with hot-reload |
+| **Database** | MySQL 8.0 (local) / SQLite (cloud) | Persistent storage with auto-detection |
 | **ORM** | SQLAlchemy | Database abstraction and query building |
 | **Machine Learning** | XGBoost, Scikit-learn | 5 prediction models (`.pkl` serialized) |
-| **Computer Vision** | YOLOv8n (Ultralytics) | Real-time person detection |
-| **Video Processing** | OpenCV (cv2) | Frame extraction from video feeds |
-| **Real-Time Layer** | WebSockets | Sub-second event broadcasting |
+| **Computer Vision** | YOLOv8n (Ultralytics) | Real-time person detection with bounding boxes |
+| **Video Processing** | OpenCV (cv2) | Frame extraction, MJPEG stream generation |
+| **Real-Time Layer** | WebSockets | Sub-second event broadcasting (5 message types) |
 | **Automation** | n8n | Workflow automation and alert orchestration |
 | **Serialization** | Joblib / Pickle | ML model persistence |
+| **PDF Export** | jsPDF | Client-side PDF generation for patient activity |
+| **Deployment** | Docker, Railway | Containerized deployment with health checks |
 
 ---
 
@@ -904,16 +1075,17 @@ Tables are auto-created on first startup.
 
 ### 5. Model Placement
 
-Ensure the following model files are present in the project root (`PATIENTPATH-AI/`):
+Ensure the following model files are present in `ml_models/`:
 
 ```
 PATIENTPATH-AI/
-  yolov8n.pt                          # YOLOv8 Nano model
-  waiting_model.pkl                    # Wait time prediction
-  arrival_model.pkl                    # Arrival rate prediction
-  exit_rate_model.pkl                  # Exit rate prediction
-  bottleneck_classification_model.pkl  # Bottleneck classifier
-  staff_allocation_model.pkl           # Staff allocation
+  ml_models/
+    yolov8n.pt                          # YOLOv8 Nano model
+    waiting_model.pkl                    # Wait time prediction
+    arrival_model.pkl                    # Arrival rate prediction
+    exit_rate_model.pkl                  # Exit rate prediction
+    bottleneck_classification_model.pkl  # Bottleneck classifier
+    staff_allocation_model.pkl           # Staff allocation
 ```
 
 ### 6. Video Files
@@ -935,14 +1107,21 @@ frontend/assets/videos/
 
 ```bash
 cd backend
-python -m uvicorn main:app --host 0.0.0.0 --port 8000
+python main.py
+```
+
+Or with uvicorn directly:
+
+```bash
+cd backend
+python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 On startup, the server will:
-1. Initialize the database and create tables
-2. Seed sample data (zones, patients, occupancy logs)
-3. Load the YOLOv8n model and start CV detection
-4. Begin processing video feeds every 5 seconds
+1. Initialize the database and create all tables (7 tables)
+2. Seed sample data (zones, patients, occupancy logs, alerts, metrics)
+3. Load the YOLOv8n model and start CV detection (if model exists)
+4. Begin processing video feeds every 5 seconds across 7 departments
 5. Log "CV Detection Service initialized and running"
 
 ### 8. Access the Application
@@ -953,6 +1132,7 @@ On startup, the server will:
 | **API Documentation** | `http://localhost:8000/docs` |
 | **WebSocket** | `ws://localhost:8000/ws` |
 | **CV Detection Status** | `http://localhost:8000/detection/status` |
+| **Live Detection Stream** | `http://localhost:8000/detection/stream/{zone_name}` |
 
 ### 9. Verify CV Detection
 
@@ -961,6 +1141,46 @@ curl http://localhost:8000/detection/status
 ```
 
 Expected response should show `"running": true` with detection counts for all 7 zones.
+
+---
+
+## Deployment
+
+### Local Development
+```bash
+cd backend && python main.py
+```
+Runs with hot-reload on `http://localhost:8000`. Requires MySQL 8.0 on `localhost:3306`.
+
+### Docker
+```bash
+docker build -t patientpath-ai .
+docker run -p 8000:8000 patientpath-ai
+```
+The Dockerfile uses Python 3.11-slim with SQLite for cloud environments (no MySQL required).
+
+### Railway
+The project includes `railway.toml` for one-click deployment:
+- Dockerfile-based build
+- Health check at `/status` endpoint
+- Auto-restart on failure (max 3 retries)
+- `start.sh` handles PORT environment variable from Railway
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `8000` | Server port |
+| `HOST` | `0.0.0.0` | Server bind address |
+| `DATABASE_URL` | Auto-detected | Full database URL override |
+| `USE_SQLITE` | `false` | Use SQLite instead of MySQL |
+| `DB_HOST` | `127.0.0.1` | MySQL host |
+| `DB_PORT` | `3306` | MySQL port |
+| `DB_USER` | `root` | MySQL user |
+| `DB_PASSWORD` | `root` | MySQL password |
+| `DB_NAME` | `hospital` | MySQL database name |
+| `DEBUG` | `True` | Debug mode (enables SQL echo, hot-reload) |
+| `LOG_LEVEL` | `INFO` | Logging level |
 
 ---
 
@@ -1016,11 +1236,12 @@ PATIENTPATH-AI/
 |
 |-- backend/
 |   |-- main.py                     # FastAPI application entry point
-|   |-- config.py                   # Application configuration
+|   |-- config.py                   # Application configuration (MySQL/SQLite auto-detect)
 |   |-- seed_data.py                # Database seeding logic
+|   |-- check_processing.py         # Debug utility for patient action_history
 |   |
 |   |-- database/
-|   |   |-- database.py             # SQLAlchemy engine, session, base
+|   |   |-- database.py             # SQLAlchemy engine, session, base (MySQL + SQLite)
 |   |
 |   |-- models/
 |   |   |-- patient.py              # Patient ORM model
@@ -1028,64 +1249,87 @@ PATIENTPATH-AI/
 |   |   |-- occupancy.py            # OccupancyLog ORM model
 |   |   |-- alert.py                # Alert ORM model
 |   |   |-- metric.py               # Metric ORM model
-|   |   |-- doctor.py               # Doctor ORM model
+|   |   |-- doctor.py               # Doctor + ConsultationLog ORM models
+|   |   |-- escalation.py           # Escalation ORM model
 |   |
 |   |-- routers/
-|   |   |-- patients.py             # Patient CRUD endpoints
+|   |   |-- patients.py             # Patient CRUD + journey tracking endpoints
+|   |   |-- zones.py                # Zone management endpoints
 |   |   |-- occupancy.py            # Occupancy tracking endpoints
 |   |   |-- prediction.py           # AI prediction endpoints
-|   |   |-- detection.py            # CV detection status endpoints
-|   |   |-- admin.py                # Admin dashboard endpoints
-|   |   |-- system.py               # Health check endpoints
+|   |   |-- detection.py            # CV detection status + MJPEG streaming
+|   |   |-- admin.py                # Admin dashboard + escalation review
+|   |   |-- system.py               # Health check, cache management
 |   |   |-- metrics.py              # Analytics endpoints
+|   |   |-- alerts.py               # Alert management + AI intelligent alerts
 |   |   |-- export.py               # CSV export endpoints
 |   |   |-- websocket.py            # WebSocket connection manager
 |   |   |-- doctor.py               # Doctor workflow endpoints
 |   |   |-- staff_allocation.py     # Staff allocation endpoints
+|   |   |-- hospital.py             # Hospital load status endpoints
+|   |   |-- staff.py                # Staff operations (bottleneck, search, escalation, analytics)
 |   |
 |   |-- services/
-|   |   |-- cv_detection_service.py # YOLOv8 background detection
-|   |   |-- prediction_service.py   # ML model inference
-|   |   |-- staff_allocation_service.py # Staff optimization
+|   |   |-- cv_detection_service.py # YOLOv8 background detection + MJPEG streaming
+|   |   |-- prediction_service.py   # ML model inference (4 XGBoost models)
+|   |   |-- staff_allocation_service.py # Staff optimization (1 XGBoost model)
+|   |   |-- risk_engine.py          # AI Risk Engine (aggregates all 5 models)
 |   |   |-- patient_service.py      # Patient business logic
 |   |   |-- zone_service.py         # Zone business logic
 |   |   |-- occupancy_svc.py        # Occupancy business logic
 |   |   |-- alert_service.py        # Alert management
 |   |   |-- metric_service.py       # Metrics aggregation
-|   |   |-- analytics_service.py    # Analytics computation
-|   |   |-- activity_service.py     # Activity logging
+|   |   |-- analytics_service.py    # Analytics computation + CSV export
+|   |   |-- activity_service.py     # Activity logging (in-memory circular buffer)
 |   |   |-- doctor_service.py       # Doctor workflow logic
 |   |
 |   |-- schemas/
 |   |   |-- patient.py              # Pydantic request/response schemas
+|   |   |-- occupancy.py            # Occupancy update schemas
 |   |
 |   |-- utils/
-|       |-- cache.py                # In-memory caching utility
-|       |-- helpers.py              # Shared helper functions
-|       |-- middleware.py           # CORS, rate limiting, error handling
+|       |-- cache.py                # In-memory caching utility with TTL
+|       |-- helpers.py              # Pagination, shared helper functions
+|       |-- middleware.py           # Request logging, error handling, rate limiting
+|       |-- logger.py              # Centralized logging with file + console handlers
 |
 |-- frontend/
-|   |-- index.html                  # Landing page
+|   |-- index.html                  # Landing page / About
+|   |-- login.html                  # Role-based authentication (v4.0)
+|   |-- signup.html                 # Registration
 |   |-- admin_dashboard.html        # Admin command center
-|   |-- patient_dashboard.html      # Patient journey view
+|   |-- patient_dashboard.html      # Patient journey tracker
 |   |-- staff_panel.html            # Staff operations panel
 |   |-- doctor_dashboard.html       # Doctor workflow interface
 |   |-- prediction.html             # AI predictions display
 |   |-- heatmap.html                # Zone occupancy heatmap
 |   |-- occupancy.html              # Live occupancy panel
-|   |-- alerts.html                 # Alert management
-|   |-- metrics.html                # Historical analytics
-|   |-- charts.html                 # Data visualization
-|   |-- resource_allocation.html    # Resource management
-|   |-- video.html                  # CV detection feed
-|   |-- login.html                  # Authentication
-|   |-- signup.html                 # Registration
+|   |-- alerts.html                 # AI-powered alert management
+|   |-- metrics.html                # Real-time metrics cards
+|   |-- charts.html                 # Chart.js data visualization
+|   |-- resource_allocation.html    # Resource management panel
+|   |-- video.html                  # Live detection tracker with bounding boxes
+|   |-- staff_activity.html         # Staff live activity feed
+|   |-- staff_allocation.html       # AI staff allocation (staff-facing)
+|   |-- bottleneck_warnings.html    # AI bottleneck warnings
+|   |-- patient_search.html         # Patient lookup by tracking ID
+|   |-- escalate_issue.html         # Staff escalation form
+|   |-- department_performance.html # Department KPI dashboard
+|   |-- department_insights.html    # Department Chart.js analytics
+|   |-- patient_activity.html       # Patient activity history (PDF export)
+|   |-- hospital_load_status.html   # Patient-facing hospital load overview
+|   |-- waiting_time_trend.html     # Patient waiting time chart
 |   |
 |   |-- js/
-|   |   |-- main.js                 # Shared JavaScript utilities
+|   |   |-- main.js                 # RBAC enforcement, sidebar filtering, role management
+|   |   |-- config.js               # API_BASE / WS_BASE auto-detection
+|   |   |-- theme.js                # Light/dark theme toggle with localStorage
+|   |   |-- websocket.js            # WebSocket client with auto-reconnect
+|   |
+|   |-- css/
+|   |   |-- style.css               # Global styles, CSS variables, responsive layout
 |   |
 |   |-- assets/
-|       |-- hospital_video.mp4      # Main hospital feed
 |       |-- videos/
 |           |-- registration.mp4    # Department video feeds
 |           |-- consultation.mp4
@@ -1095,12 +1339,20 @@ PATIENTPATH-AI/
 |           |-- pharmacy.mp4
 |           |-- billing.mp4
 |
-|-- yolov8n.pt                      # YOLOv8 Nano model weights
-|-- waiting_model.pkl               # Wait time prediction model
-|-- arrival_model.pkl               # Arrival rate prediction model
-|-- exit_rate_model.pkl             # Exit rate prediction model
-|-- bottleneck_classification_model.pkl  # Bottleneck classifier model
-|-- staff_allocation_model.pkl      # Staff allocation model
+|-- ml_models/
+|   |-- yolov8n.pt                  # YOLOv8 Nano model weights
+|   |-- waiting_model.pkl           # Wait time prediction model
+|   |-- arrival_model.pkl           # Arrival rate prediction model
+|   |-- exit_rate_model.pkl         # Exit rate prediction model
+|   |-- bottleneck_classification_model.pkl  # Bottleneck classifier model
+|   |-- staff_allocation_model.pkl  # Staff allocation model
+|
+|-- detect.py                       # Standalone GUI detection tracker (OpenCV window)
+|-- headless_detect.py              # Headless detection tracker (server/testing)
+|-- Dockerfile                      # Production container (Python 3.11-slim)
+|-- railway.toml                    # Railway deployment config
+|-- Procfile                        # Process definition for PaaS
+|-- start.sh                        # Startup script for Railway/Docker
 |-- requirements.txt                # Python dependencies
 ```
 

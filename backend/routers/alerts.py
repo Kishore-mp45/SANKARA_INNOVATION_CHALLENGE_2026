@@ -19,6 +19,7 @@ from schemas.alert import (
 )
 from schemas.common import SuccessResponse
 from services.alert_service import AlertService
+from services.risk_engine import RiskEngine
 from utils.logger import get_logger
 from utils.helpers import calculate_pagination
 
@@ -304,6 +305,69 @@ async def resolve_alert(
         resolution_notes=alert.resolution_notes,
         age_minutes=alert.age_minutes
     )
+
+
+@router.get(
+    "/intelligent",
+    summary="Get Intelligent AI Alerts with Risk Scores",
+    description="Returns AI-powered alert severity classification and department risk scores using all 5 ML models."
+)
+async def get_intelligent_alerts(db: Session = Depends(get_db)):
+    """
+    AI-powered endpoint that aggregates outputs from all ML models
+    (arrival, waiting, exit rate, bottleneck, staff allocation) and returns:
+      - Alert Severity Level (CRITICAL / WARNING / INFO)
+      - Department Risk Score (0-100)
+    Sorted by highest risk first.
+    """
+    departments = RiskEngine.get_intelligent_alerts(db)
+
+    critical_count = sum(1 for d in departments if d["severity"] == "CRITICAL")
+    warning_count = sum(1 for d in departments if d["severity"] == "WARNING")
+    info_count = sum(1 for d in departments if d["severity"] == "INFO")
+
+    # Build decision support for CRITICAL and WARNING departments
+    decisions = []
+    for dept in departments:
+        if dept["severity"] == "CRITICAL":
+            decisions.append({
+                "title": f"{dept['department']} - Critical Alert",
+                "description": f"Immediately deploy {dept['staff_deficit']} additional staff to {dept['department']}. "
+                               f"Predicted wait: {dept['predicted_waiting_time']}min, Risk: {dept['risk_score']}/100.",
+                "action_label": "Intervene Now",
+                "type": "redirect",
+                "zone": dept["zone_name"],
+            })
+        elif dept["severity"] == "WARNING":
+            decisions.append({
+                "title": f"{dept['department']} - Needs Attention",
+                "description": f"Monitor {dept['department']} closely. "
+                               f"Staff: {dept['staff_available']}/{dept['staff_required']}, "
+                               f"Wait: {dept['predicted_waiting_time']}min.",
+                "action_label": "Deploy Staff",
+                "type": "staff",
+                "zone": dept["zone_name"],
+            })
+
+    if not decisions:
+        decisions.append({
+            "title": "All Clear",
+            "description": "All departments operating within normal capacity. No immediate actions required.",
+            "action_label": "Acknowledged",
+            "type": "normal",
+        })
+
+    return {
+        "departments": departments,
+        "decisions": decisions,
+        "summary": {
+            "critical_count": critical_count,
+            "warning_count": warning_count,
+            "info_count": info_count,
+            "total": len(departments),
+        },
+        "timestamp": __import__('datetime').datetime.now().isoformat(),
+    }
 
 
 @router.get(

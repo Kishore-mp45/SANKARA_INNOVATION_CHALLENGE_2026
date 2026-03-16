@@ -8,11 +8,128 @@
     <link rel="stylesheet" href="css/style.css?v=200">
     <link rel="stylesheet" href="css/admin.css?v=200">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         @keyframes admin-pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.3; }
+        }
+
+        /* Row layouts */
+        .admin-row-1 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .admin-row-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .admin-row-1 .metric-card {
+            margin-bottom: 0;
+        }
+
+        .admin-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .admin-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.25);
+        }
+
+        /* AI Staff Allocation — exact same styles as standalone page */
+        .alloc-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .alloc-stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .alloc-stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .alloc-stat-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .alloc-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            line-height: 1.1;
+        }
+
+        .alloc-stat-label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 0.15rem;
+        }
+
+        .alloc-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .alloc-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .alloc-panel-title {
+            font-size: 1.3rem;
+            color: var(--admin-primary, #60a5fa);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+        }
+
+        #staff-alloc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
         }
     </style>
 </head>
@@ -39,7 +156,9 @@
             <!-- View-Only Links Removed for Admin Focus -->
             <li><a href="admin_dashboard.html" class="nav-item active"><span class="step-badge">9</span> Admin
                     Center</a></li>
-            <li><a href="resource_allocation.html" class="nav-item"><span class="step-badge">10</span> Resources</a>
+            <li><a href="notification_center.html" class="nav-item"><span class="step-badge">10</span> Notifications</a></li>
+            <li><a href="escalation_reports.html" class="nav-item"><span class="step-badge">11</span> Escalations</a></li>
+            <li><a href="resource_allocation.html" class="nav-item"><span class="step-badge">12</span> Resources</a>
             </li>
         </ul>
     </div>
@@ -64,8 +183,8 @@
         </header>
 
         <div class="admin-container fade-in">
-            <!-- Widgets Grid -->
-            <div class="metrics-grid">
+            <!-- Row 1: 4 Metric Cards -->
+            <div class="admin-row-1">
                 <div class="metric-card">
                     <div>
                         <div class="metric-value" id="active-patients">--</div>
@@ -98,9 +217,10 @@
                 </div>
             </div>
 
-            <!-- Peak Hours Card -->
-            <div style="margin-bottom: 1.5rem;">
-                <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+            <!-- Row 2: Peak Hours + System Health -->
+            <div class="admin-row-2">
+                <!-- Peak Hours Card -->
+                <div class="admin-card">
                     <div style="width: 42px; height: 42px; background: rgba(245,158,11,0.12); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                         <i class="fas fa-clock" style="color: #f59e0b; font-size: 1.1rem;"></i>
                     </div>
@@ -111,123 +231,156 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Activity Feed & Dept Status -->
-            <div class="feeds-container">
-                <!-- Live Notification Center -->
-                <div class="feed-panel">
-                    <div class="panel-header">
-                        <div class="panel-title">
-                            <i class="fas fa-stream" style="color:var(--admin-accent)"></i>
-                            Live Notification Center
-                        </div>
-                        <div class="panel-actions">
-                            <input type="text" id="log-search" placeholder="Search activity..." class="form-control"
-                                style="font-size:0.85rem; padding:0.4rem; width:180px;">
-                            <button onclick="exportLogs()" class="btn-sm btn-primary">
-                                <i class="fas fa-download"></i> Export CSV
-                            </button>
-                        </div>
+                <!-- System Health Card -->
+                <div class="admin-card" style="flex-direction: column; align-items: stretch; padding: 1.25rem 1.5rem;">
+                    <div style="font-weight: 700; font-size: 1rem; color: var(--text-main); margin-bottom: 0.75rem;">
+                        <i class="fas fa-heartbeat" style="color: #10b981; margin-right: 0.5rem;"></i>System Health
                     </div>
-                    <div class="activity-list" id="activity-list">
-                        <!-- Items injected by JS -->
-                        <div style="padding:2rem; text-align:center; color:#94a3b8;">Loading activity stream...</div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
+                        <span style="color:var(--text-muted); font-size:0.85rem;">Backend Connection</span>
+                        <span style="color:#10b981; font-weight:600; font-size:0.85rem;"><i class="fas fa-check-circle"></i> Online</span>
                     </div>
-                </div>
-
-                <!-- Right Column: Dept Status & Distribution -->
-                <div style="display:flex; flex-direction:column; gap:1.5rem;">
-                    <!-- Live CV Detection Occupancy -->
-                    <div class="feed-panel" style="height: auto;">
-                        <div class="panel-header">
-                            <div class="panel-title">
-                                <i class="fas fa-video" style="color:#8b5cf6;"></i>
-                                Live Detection - Department Occupancy
-                            </div>
-                            <div style="display:flex; align-items:center; gap:0.5rem;">
-                                <span style="width:8px; height:8px; border-radius:50%; background:#ef4444; animation: admin-pulse 1.5s infinite;"></span>
-                                <span style="font-size:0.7rem; color:#ef4444; font-weight:600;">LIVE</span>
-                            </div>
-                        </div>
-                        <!-- Flow indicator -->
-                        <div style="padding:0.5rem 1rem 0; display:flex; align-items:center; justify-content:center; gap:0.15rem; flex-wrap:wrap;">
-                            <span style="font-size:0.6rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">Patient Flow:</span>
-                            <span style="font-size:0.6rem; color:#10b981;">Registration</span>
-                            <span style="font-size:0.55rem; color:var(--text-muted); opacity:0.4;">&#9654;</span>
-                            <span style="font-size:0.6rem; color:#10b981;">Vision Lab</span>
-                            <span style="font-size:0.55rem; color:var(--text-muted); opacity:0.4;">&#9654;</span>
-                            <span style="font-size:0.6rem; color:#10b981;">Dilation</span>
-                            <span style="font-size:0.55rem; color:var(--text-muted); opacity:0.4;">&#9654;</span>
-                            <span style="font-size:0.6rem; color:#10b981;">Diagnostics</span>
-                            <span style="font-size:0.55rem; color:var(--text-muted); opacity:0.4;">&#9654;</span>
-                            <span style="font-size:0.6rem; color:#10b981;">Consult</span>
-                            <span style="font-size:0.55rem; color:var(--text-muted); opacity:0.4;">&#9654;</span>
-                            <span style="font-size:0.6rem; color:#10b981;">Pharmacy</span>
-                            <span style="font-size:0.55rem; color:var(--text-muted); opacity:0.4;">&#9654;</span>
-                            <span style="font-size:0.6rem; color:#10b981;">Billing</span>
-                        </div>
-                        <div id="cv-detection-grid" style="padding:0.75rem 1rem 1rem; display:grid; grid-template-columns: 1fr; gap:0.5rem;">
-                            <!-- CV detection cards injected by JS -->
-                            <div style="grid-column: 1 / -1; text-align:center; color:#94a3b8; padding:1rem;">
-                                <i class="fas fa-spinner fa-spin"></i> Waiting for CV model...
-                            </div>
-                        </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
+                        <span style="color:var(--text-muted); font-size:0.85rem;">Database Connection</span>
+                        <span style="color:#10b981; font-weight:600; font-size:0.85rem;"><i class="fas fa-check-circle"></i> Connected</span>
                     </div>
-
-                    <!-- System Info -->
-                    <div class="feed-panel" style="height: auto; flex:1;">
-                        <div class="panel-header">
-                            <div class="panel-title">System Health</div>
-                        </div>
-                        <div style="padding:1.5rem;">
-                            <div
-                                style="display:flex; justify-content:space-between; margin-bottom:1rem; border-bottom:1px solid #f1f5f9; padding-bottom:0.5rem;">
-                                <span style="color:#64748b;">Backend Connection</span>
-                                <span style="color:#10b981; font-weight:600;"><i class="fas fa-check-circle"></i>
-                                    Online</span>
-                            </div>
-                            <div
-                                style="display:flex; justify-content:space-between; margin-bottom:1rem; border-bottom:1px solid #f1f5f9; padding-bottom:0.5rem;">
-                                <span style="color:#64748b;">Database Connection</span>
-                                <span style="color:#10b981; font-weight:600;"><i class="fas fa-check-circle"></i>
-                                    Connected</span>
-                            </div>
-                            <div style="display:flex; justify-content:space-between;">
-                                <span style="color:#64748b;">Last Backup</span>
-                                <span style="color:#64748b;">Today, 04:00 AM</span>
-                            </div>
-                        </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="color:var(--text-muted); font-size:0.85rem;">Last Backup</span>
+                        <span style="color:var(--text-muted); font-size:0.85rem;">Today, 04:00 AM</span>
                     </div>
                 </div>
             </div>
+
+            <!-- AI Staff Allocation Section (exact same UI as standalone page) -->
+            <div style="margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+                    <h2 style="font-size: 1.3rem; color: var(--admin-primary, #60a5fa); margin: 0; display: flex; align-items: center; gap: 0.75rem; font-weight: 700;">
+                        <i class="fas fa-user-nurse" style="font-size: 1.1rem;"></i>
+                        AI Staff Allocation Recommendation
+                    </h2>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">Powered by XGBoost Model</span>
+                        <button onclick="refreshStaffAllocation()" class="btn-sm" id="btn-refresh-staff">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Row -->
+                <div class="alloc-stats-grid">
+                    <div class="alloc-stat-card">
+                        <div class="alloc-stat-icon" style="background: rgba(59,130,246,0.12); color: #3b82f6;">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div>
+                            <div class="alloc-stat-value" id="stat-departments">--</div>
+                            <div class="alloc-stat-label">Departments</div>
+                        </div>
+                    </div>
+                    <div class="alloc-stat-card">
+                        <div class="alloc-stat-icon" style="background: rgba(16,185,129,0.12); color: #10b981;">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div>
+                            <div class="alloc-stat-value" id="stat-optimal">--</div>
+                            <div class="alloc-stat-label">Optimal</div>
+                        </div>
+                    </div>
+                    <div class="alloc-stat-card">
+                        <div class="alloc-stat-icon" style="background: rgba(239,68,68,0.12); color: #ef4444;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div>
+                            <div class="alloc-stat-value" id="stat-understaffed">--</div>
+                            <div class="alloc-stat-label">Understaffed</div>
+                        </div>
+                    </div>
+                    <div class="alloc-stat-card">
+                        <div class="alloc-stat-icon" style="background: rgba(139,92,246,0.12); color: #8b5cf6;">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div>
+                            <div class="alloc-stat-value" id="stat-total-staff">--</div>
+                            <div class="alloc-stat-label">Total Staff</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Staff Allocation Grid -->
+                <div class="alloc-panel">
+                    <div class="alloc-panel-header">
+                        <h2 class="alloc-panel-title">
+                            <i class="fas fa-user-nurse" style="font-size: 1.1rem;"></i>
+                            Department Staffing Overview
+                        </h2>
+                    </div>
+                    <div id="staff-alloc-grid">
+                        <div style="text-align: center; padding: 1.5rem; color: var(--text-muted, #94a3b8);">
+                            <i class="fas fa-spinner fa-spin"></i> Loading...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Hospital Occupancy Chart -->
+            <div class="alloc-panel" style="margin-bottom: 1.5rem;">
+                <div class="alloc-panel-header">
+                    <h2 class="alloc-panel-title">
+                        <i class="fas fa-chart-bar" style="font-size: 1.1rem;"></i>
+                        Total Hospital Patient Occupancy (All Departments)
+                    </h2>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 0.78rem; color: var(--text-muted);">Last 5 hours &bull; 30-min intervals</span>
+                        <button onclick="fetchHourlyOccupancy()" class="btn-sm"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                </div>
+                <div style="position: relative; height: 320px; width: 100%;">
+                    <canvas id="occupancyChart"></canvas>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="js/config.js"></script>
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
     <script src="js/main.js?v=999"></script>
     <script>
         const API_BASE_URL = API_BASE;
-        let lastLogId = 0;
+
+        const DEPT_ICONS = {
+            'Registration': 'fa-clipboard-list',
+            'Consultation': 'fa-stethoscope',
+            'Diagnostics': 'fa-x-ray',
+            'Vision Lab': 'fa-eye',
+            'Dilation Hall': 'fa-clock',
+            'Pharmacy': 'fa-pills',
+            'Billing & Insurance': 'fa-file-invoice-dollar'
+        };
+        const DEPT_COLORS = {
+            'Registration': '59,130,246',
+            'Consultation': '139,92,246',
+            'Diagnostics': '236,72,153',
+            'Vision Lab': '6,182,212',
+            'Dilation Hall': '245,158,11',
+            'Pharmacy': '16,185,129',
+            'Billing & Insurance': '99,102,241'
+        };
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             console.log("Admin Dashboard Initialized");
             fetchStats();
-            fetchActivity();
             fetchPeakHours();
-            fetchCVDetection();
+            fetchCVStatus();
+            fetchStaffAllocation();
+            fetchHourlyOccupancy();
 
-            // Poll every 2 seconds
-            setInterval(fetchActivity, 2000);
-            // Poll stats every 10 seconds
             setInterval(fetchStats, 10000);
-            // Poll CV detection every 5 seconds
-            setInterval(fetchCVDetection, 5000);
-
-            // Filter listeners
-            document.getElementById('log-search').addEventListener('input', filterLocalLogs);
+            setInterval(fetchCVStatus, 5000);
+            setInterval(fetchStaffAllocation, 15000);
+            setInterval(fetchHourlyOccupancy, 30000);
         });
 
         async function fetchStats() {
@@ -235,114 +388,11 @@
                 const response = await fetch(`${API_BASE_URL}/admin/dashboard-stats`);
                 if (response.ok) {
                     const data = await response.json();
-
                     document.getElementById('active-patients').innerText = data.active_patients;
                 }
             } catch (error) {
                 console.error("Stats Fetch Error:", error);
             }
-        }
-
-        async function fetchActivity() {
-            let url = `${API_BASE_URL}/admin/activity?limit=100`;
-
-            try {
-                const response = await fetch(url);
-                if (response.ok) {
-                    const data = await response.json();
-                    renderActivityList(data.logs);
-                }
-            } catch (error) {
-                console.error("Activity Fetch Error:", error);
-            }
-        }
-
-        function renderActivityList(logs) {
-            const container = document.getElementById('activity-list');
-            const search = document.getElementById('log-search').value.toLowerCase();
-
-            // Filter locally for search text
-            const filteredLogs = logs.filter(log =>
-                log.action.toLowerCase().includes(search) ||
-                log.details.toLowerCase().includes(search) ||
-                log.role.toLowerCase().includes(search)
-            );
-
-            if (filteredLogs.length === 0) {
-                container.innerHTML = '<div style="padding:2rem; text-align:center; color:#94a3b8;"><i class="fas fa-stream" style="font-size:1.5rem; margin-bottom:0.5rem; display:block; opacity:0.4;"></i>No patient activity records found.</div>';
-                return;
-            }
-
-            let html = '';
-            filteredLogs.forEach(log => {
-                let iconClass = 'icon-success';
-                let iconContent = '<i class="fas fa-check"></i>';
-
-                // Map actions to specific icons
-                const a = log.action.toLowerCase();
-                if (a.includes('registration') || a.includes('check-in')) {
-                    iconContent = '<i class="fas fa-clipboard-list"></i>';
-                    iconClass = 'icon-info';
-                } else if (a.includes('vision') || a.includes('screening')) {
-                    iconContent = '<i class="fas fa-eye"></i>';
-                } else if (a.includes('dilation')) {
-                    iconContent = '<i class="fas fa-clock"></i>';
-                } else if (a.includes('diagnostic') || a.includes('test')) {
-                    iconContent = '<i class="fas fa-x-ray"></i>';
-                } else if (a.includes('consultation') || a.includes('doctor')) {
-                    iconContent = '<i class="fas fa-stethoscope"></i>';
-                } else if (a.includes('medicine') || a.includes('dispensed') || a.includes('pharmacy')) {
-                    iconContent = '<i class="fas fa-pills"></i>';
-                } else if (a.includes('payment') || a.includes('billing') || a.includes('insurance')) {
-                    iconContent = '<i class="fas fa-file-invoice-dollar"></i>';
-                } else if (a.includes('discharged') || a.includes('exit')) {
-                    iconContent = '<i class="fas fa-sign-out-alt"></i>';
-                    iconClass = 'icon-warning';
-                } else if (a.includes('assign') || a.includes('id card')) {
-                    iconContent = '<i class="fas fa-id-card"></i>';
-                } else if (a.includes('treatment') || a.includes('started')) {
-                    iconContent = '<i class="fas fa-user-md"></i>';
-                } else if (a.includes('movement')) {
-                    iconContent = '<i class="fas fa-walking"></i>';
-                    iconClass = 'icon-info';
-                }
-
-                // Format date + time
-                const date = new Date(log.timestamp.replace('Z', ''));
-                const now = new Date();
-                const isToday = date.toDateString() === now.toDateString();
-                const timeStr = isToday
-                    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                    : date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                html += `
-                    <div class="activity-item">
-                        <div class="activity-icon ${iconClass}">
-                            ${iconContent}
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-header">
-                                <div class="activity-title">
-                                    ${log.action}
-                                </div>
-                                <div class="activity-time">${timeStr}</div>
-                            </div>
-                            <div class="activity-desc">${log.details}</div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            container.innerHTML = html;
-        }
-
-        function filterLocalLogs() {
-            // Trigger fetch which triggers render + filter
-            fetchActivity();
-        }
-
-        function exportLogs() {
-            window.location.href = `${API_BASE_URL}/admin/export`;
         }
 
         async function fetchPeakHours() {
@@ -363,25 +413,13 @@
             }
         }
 
-        // Hospital sequential order for CV detection display
-        const ADMIN_DEPT_ORDER = [
-            { key: 'registration',      name: 'Registration',        icon: 'fa-clipboard-list', capacity: 15 },
-            { key: 'vision_lab',        name: 'Vision Lab',          icon: 'fa-eye',            capacity: 12 },
-            { key: 'dilation_hall',     name: 'Dilation Hall',       icon: 'fa-clock',          capacity: 20 },
-            { key: 'diagnostics',       name: 'Diagnostics',         icon: 'fa-x-ray',          capacity: 15 },
-            { key: 'consultation',      name: 'Doctor Consult',      icon: 'fa-stethoscope',    capacity: 10 },
-            { key: 'pharmacy',          name: 'Pharmacy',            icon: 'fa-pills',          capacity: 12 },
-            { key: 'billing_insurance', name: 'Billing & Insurance', icon: 'fa-file-invoice-dollar', capacity: 10 },
-        ];
-
-        async function fetchCVDetection() {
+        async function fetchCVStatus() {
             try {
                 const res = await fetch(`${API_BASE_URL}/detection/status`);
                 if (res.ok) {
                     const data = await res.json();
                     const cvEl = document.getElementById('cv-status');
                     const totalEl = document.getElementById('total-detected');
-                    const grid = document.getElementById('cv-detection-grid');
 
                     if (data.running) {
                         cvEl.innerHTML = '<span style="color:#10b981;">Running</span>';
@@ -390,64 +428,198 @@
                     }
 
                     const detections = data.detections || {};
-
-                    if (Object.keys(detections).length === 0) {
-                        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#94a3b8; padding:1rem;"><i class="fas fa-spinner fa-spin"></i> Waiting for CV model...</div>';
-                        totalEl.textContent = '--';
-                        return;
-                    }
-
                     let totalCount = 0;
-                    let html = '';
-
-                    ADMIN_DEPT_ORDER.forEach((dept, idx) => {
-                        const det = detections[dept.key];
-                        const count = det ? det.count : 0;
-                        const confidence = det ? det.confidence : 0;
-                        totalCount += count;
-
-                        let statusColor = '#10b981';
-                        let statusLabel = 'Low';
-                        const pct = Math.min(100, Math.round((count / dept.capacity) * 100));
-                        if (pct > 75) {
-                            statusColor = '#ef4444';
-                            statusLabel = 'High';
-                        } else if (pct > 40) {
-                            statusColor = '#f59e0b';
-                            statusLabel = 'Med';
-                        }
-
-                        html += '<div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-left:3px solid ' + statusColor + '; border-radius:8px; padding:0.6rem 0.8rem;">';
-                        html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">';
-                        html += '<div style="display:flex; align-items:center; gap:0.4rem;">';
-                        html += '<i class="fas ' + dept.icon + '" style="font-size:0.7rem; color:' + statusColor + '; opacity:0.8;"></i>';
-                        html += '<span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.03em;">' + dept.name + '</span>';
-                        html += '</div>';
-                        html += '<div style="display:flex; align-items:center; gap:0.5rem;">';
-                        html += '<span style="font-size:1rem; font-weight:700; color:var(--text-main);">' + count + '</span>';
-                        html += '<span style="font-size:0.6rem; font-weight:600; color:' + statusColor + '; text-transform:uppercase; letter-spacing:0.05em; background:' + statusColor + '18; padding:0.1rem 0.35rem; border-radius:3px;">' + statusLabel + '</span>';
-                        html += '</div>';
-                        html += '</div>';
-                        // Capacity bar
-                        html += '<div style="width:100%; height:4px; background:rgba(255,255,255,0.06); border-radius:2px; overflow:hidden;">';
-                        html += '<div style="width:' + pct + '%; height:100%; background:' + statusColor + '; border-radius:2px; transition:width 0.5s ease;"></div>';
-                        html += '</div>';
-                        html += '<div style="display:flex; justify-content:space-between; margin-top:0.2rem;">';
-                        html += '<span style="font-size:0.6rem; color:var(--text-muted);">' + pct + '% capacity</span>';
-                        html += '<span style="font-size:0.6rem; color:var(--text-muted);">' + (confidence > 0 ? (confidence * 100).toFixed(0) + '% conf' : '--') + '</span>';
-                        html += '</div>';
-                        html += '</div>';
+                    Object.values(detections).forEach(det => {
+                        totalCount += (det.count || 0);
                     });
-
-                    grid.innerHTML = html;
-                    totalEl.textContent = totalCount;
+                    totalEl.textContent = totalCount > 0 ? totalCount : '--';
                 }
             } catch (e) {
-                console.error('CV Detection fetch error:', e);
+                console.error('CV status fetch error:', e);
                 document.getElementById('cv-status').innerHTML = '<span style="color:#ef4444;">Error</span>';
             }
         }
 
+        // ---- AI Staff Allocation (exact same logic as standalone page) ----
+        async function fetchStaffAllocation() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/prediction/staff-recommendation`);
+                if (!res.ok) return;
+                const data = await res.json();
+                const depts = data.departments || [];
+                updateAllocStats(depts);
+                renderStaffGrid(depts);
+            } catch (e) {
+                console.error('Staff allocation fetch error:', e);
+                const g = document.getElementById('staff-alloc-grid');
+                if (g) g.innerHTML = '<div style="padding:1.5rem;text-align:center;color:#94a3b8;"><i class="fas fa-exclamation-circle"></i> Could not load staff data. Retrying...</div>';
+            }
+        }
+
+        function updateAllocStats(depts) {
+            document.getElementById('stat-departments').textContent = depts.length;
+            const optimal = depts.filter(d => !d.is_bottleneck).length;
+            const understaffed = depts.filter(d => d.is_bottleneck).length;
+            const totalStaff = depts.reduce((sum, d) => sum + d.current_staff, 0);
+
+            document.getElementById('stat-optimal').textContent = optimal;
+            document.getElementById('stat-understaffed').textContent = understaffed;
+            document.getElementById('stat-total-staff').textContent = totalStaff;
+        }
+
+        function renderStaffGrid(departments) {
+            const grid = document.getElementById('staff-alloc-grid');
+            if (!departments || departments.length === 0) {
+                grid.innerHTML = '<div style="padding:1.5rem; text-align:center; color:#94a3b8;">No data available.</div>';
+                return;
+            }
+            let html = '';
+            departments.forEach(function(dept) {
+                const icon = DEPT_ICONS[dept.department] || 'fa-hospital';
+                const rgb = DEPT_COLORS[dept.department] || '139,92,246';
+                const accentColor = 'rgb(' + rgb + ')';
+                const accentBg = 'rgba(' + rgb + ',0.12)';
+                const isBn = dept.is_bottleneck;
+                const statusColor = isBn ? '#ef4444' : '#10b981';
+                const statusBg = isBn ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)';
+                const statusText = isBn ? 'Understaffed' : 'Optimal';
+                const statusIcon = isBn ? 'fa-exclamation-triangle' : 'fa-check-circle';
+                const barColor = isBn ? '#ef4444' : '#10b981';
+                const staffRatio = dept.optimal_staff > 0 ? Math.min(Math.round((dept.current_staff / dept.optimal_staff) * 100), 100) : 100;
+                const deficitColor = dept.deficit > 0 ? '#ef4444' : '#10b981';
+                const deficitText = dept.deficit > 0 ? '+' + dept.deficit : '0';
+                const pillExtra = dept.deficit > 0 ? ' &mdash; ' + dept.deficit + ' needed' : '';
+                const pLabel = dept.active_patients === 1 ? 'patient' : 'patients';
+
+                html += '<div class="staff-alloc-card" style="background:var(--card-bg,#1e293b);border:1px solid var(--border-color,#334155);border-radius:12px;overflow:hidden;position:relative;transition:transform 0.25s ease,box-shadow 0.25s ease,border-color 0.25s ease;cursor:default;" data-bar-color="' + barColor + '">';
+                html += '<div style="height:4px;background:' + barColor + ';"></div>';
+                html += '<div style="padding:1.25rem;">';
+
+                // Header: icon + name
+                html += '<div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">';
+                html += '<div style="width:44px;height:44px;border-radius:12px;background:' + accentBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;">';
+                html += '<i class="fas ' + icon + '" style="color:' + accentColor + ';font-size:1.1rem;"></i></div>';
+                html += '<div style="flex:1;min-width:0;">';
+                html += '<div style="font-weight:700;font-size:0.95rem;color:var(--text-main,#e2e8f0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + dept.department + '</div>';
+                html += '<div style="font-size:0.72rem;color:var(--text-muted,#94a3b8);">' + dept.active_patients + ' active ' + pLabel + '</div>';
+                html += '</div></div>';
+
+                // Metrics row: Current | Optimal | Deficit
+                html += '<div style="display:flex;justify-content:space-between;margin-bottom:0.6rem;">';
+                html += '<div style="text-align:center;flex:1;"><div style="font-size:1.5rem;font-weight:800;color:var(--text-main,#e2e8f0);line-height:1;font-variant-numeric:tabular-nums;">' + dept.current_staff + '</div><div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);margin-top:0.2rem;">Current</div></div>';
+                html += '<div style="width:1px;background:var(--border-color,#334155);margin:0 0.5rem;"></div>';
+                html += '<div style="text-align:center;flex:1;"><div style="font-size:1.5rem;font-weight:800;color:#8b5cf6;line-height:1;font-variant-numeric:tabular-nums;">' + dept.optimal_staff + '</div><div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);margin-top:0.2rem;">Optimal</div></div>';
+                html += '<div style="width:1px;background:var(--border-color,#334155);margin:0 0.5rem;"></div>';
+                html += '<div style="text-align:center;flex:1;"><div style="font-size:1.5rem;font-weight:800;color:' + deficitColor + ';line-height:1;font-variant-numeric:tabular-nums;">' + deficitText + '</div><div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);margin-top:0.2rem;">Deficit</div></div>';
+                html += '</div>';
+
+                // Progress bar
+                html += '<div style="background:rgba(148,163,184,0.1);border-radius:999px;height:6px;overflow:hidden;margin-bottom:0.75rem;">';
+                html += '<div style="height:100%;width:' + staffRatio + '%;background:' + barColor + ';border-radius:999px;transition:width 0.5s ease;"></div></div>';
+
+                // Status pill
+                html += '<div style="display:flex;align-items:center;justify-content:center;">';
+                html += '<span style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.25rem 0.75rem;border-radius:999px;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;background:' + statusBg + ';color:' + statusColor + ';">';
+                html += '<i class="fas ' + statusIcon + '" style="font-size:0.65rem;"></i> ' + statusText + pillExtra + '</span></div>';
+
+                html += '</div></div>';
+            });
+            grid.innerHTML = html;
+
+            // Attach hover effects
+            grid.querySelectorAll('.staff-alloc-card').forEach(function(card) {
+                var bc = card.getAttribute('data-bar-color');
+                card.addEventListener('mouseenter', function() {
+                    card.style.transform = 'translateY(-4px)';
+                    card.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
+                    card.style.borderColor = bc;
+                });
+                card.addEventListener('mouseleave', function() {
+                    card.style.transform = 'none';
+                    card.style.boxShadow = 'none';
+                    card.style.borderColor = '';
+                });
+            });
+        }
+
+        async function refreshStaffAllocation() {
+            const btn = document.getElementById('btn-refresh-staff');
+            btn.classList.add('spinning');
+            btn.disabled = true;
+            await fetchStaffAllocation();
+            setTimeout(() => { btn.classList.remove('spinning'); btn.disabled = false; }, 600);
+        }
+
+        // ---- Hourly Occupancy Chart ----
+        let occupancyChartInst = null;
+
+        async function fetchHourlyOccupancy() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/admin/hourly-occupancy`);
+                if (!res.ok) return;
+                const data = await res.json();
+                const trend = data.occupancy_trend || [];
+                const labels = trend.map(p => p.time);
+                const values = trend.map(p => p.avg_occupancy);
+
+                if (occupancyChartInst) {
+                    occupancyChartInst.data.labels = labels;
+                    occupancyChartInst.data.datasets[0].data = values;
+                    occupancyChartInst.update();
+                    return;
+                }
+
+                const ctx = document.getElementById('occupancyChart').getContext('2d');
+                occupancyChartInst = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Total Occupancy',
+                            data: values,
+                            backgroundColor: 'rgba(59,130,246,0.6)',
+                            borderColor: '#3b82f6',
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            hoverBackgroundColor: 'rgba(59,130,246,0.85)',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 600 },
+                        scales: {
+                            x: {
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                ticks: { color: '#94a3b8', font: { size: 11 } },
+                                title: { display: true, text: 'Time (30-min intervals)', color: '#94a3b8', font: { size: 11 } }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                ticks: { color: '#94a3b8', stepSize: 1 },
+                                title: { display: true, text: 'Total Persons (All Depts)', color: '#94a3b8', font: { size: 11 } }
+                            }
+                        },
+                        plugins: {
+                            legend: { labels: { color: '#e2e8f0' } },
+                            tooltip: {
+                                backgroundColor: 'rgba(15,23,42,0.95)',
+                                titleColor: '#e2e8f0',
+                                bodyColor: '#e2e8f0',
+                                cornerRadius: 8,
+                                padding: 10,
+                                callbacks: {
+                                    label: function(ctx) { return 'Occupancy: ' + ctx.parsed.y + ' persons'; }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error('Hourly occupancy fetch error:', e);
+            }
+        }
     </script>
 </body>
 

@@ -443,7 +443,9 @@
             <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
             <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
             <li><a href="admin_dashboard.html" class="nav-item"><span class="step-badge">9</span> Admin Center</a></li>
-            <li><a href="resource_allocation.html" class="nav-item active"><span class="step-badge">10</span>
+            <li><a href="notification_center.html" class="nav-item"><span class="step-badge">10</span> Notifications</a></li>
+            <li><a href="escalation_reports.html" class="nav-item"><span class="step-badge">11</span> Escalations</a></li>
+            <li><a href="resource_allocation.html" class="nav-item active"><span class="step-badge">12</span>
                     Resources</a></li>
         </ul>
     </div>
@@ -557,32 +559,13 @@
                             </div>
                         </div>
 
-                        <!-- AI Staff Allocation Recommendation -->
-                        <div style="margin-top: 2rem;">
-                            <div style="background: var(--card-bg, #1e293b); border: 1px solid var(--border-color, #334155); border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
-                                    <h2 style="font-size: 1.5rem; color: var(--admin-primary, #60a5fa); margin: 0; display: flex; align-items: center; gap: 0.75rem;">
-                                        <i class="fas fa-user-nurse" style="font-size: 1.3rem;"></i>
-                                        AI Staff Allocation Recommendation
-                                    </h2>
-                                    <div style="display: flex; align-items: center; gap: 1rem;">
-                                        <span style="font-size: 0.8rem; color: var(--text-muted, #94a3b8);">Powered by XGBoost Model</span>
-                                        <button class="btn-refresh" id="btn-refresh-staff" onclick="refreshStaffAllocation()" style="font-size: 0.85rem; padding: 0.5rem 1.2rem;">
-                                            <i class="fas fa-sync-alt"></i> Refresh
-                                        </button>
-                                    </div>
-                                </div>
-                                <div id="staff-alloc-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
-                                    <div style="text-align: center; padding: 1.5rem; color: var(--text-muted, #94a3b8);"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
-                                </div>
-                            </div>
-                        </div>
+
 
                     </div>
                 </div>
 
-                <!-- Scripts -->
-                <script src=\"js/config.js\"></script>
+                <script src="js/theme.js?v=999"></script>
+                <script src="js/config.js?v=999"></script>
                 <script src="js/main.js?v=999"></script>
                 <script>
                     // =================================================================
@@ -787,127 +770,11 @@
                     }
 
                     // ---- Staff Allocation (AI Model) ----
-                    const DEPT_ICONS = {
-                        'Registration': 'fa-clipboard-list',
-                        'Consultation': 'fa-stethoscope',
-                        'Diagnostics': 'fa-x-ray',
-                        'Vision Lab': 'fa-eye',
-                        'Dilation Hall': 'fa-clock',
-                        'Pharmacy': 'fa-pills',
-                        'Billing & Insurance': 'fa-file-invoice-dollar'
-                    };
-                    const DEPT_COLORS = {
-                        'Registration': '59,130,246',
-                        'Consultation': '139,92,246',
-                        'Diagnostics': '236,72,153',
-                        'Vision Lab': '6,182,212',
-                        'Dilation Hall': '245,158,11',
-                        'Pharmacy': '16,185,129',
-                        'Billing & Insurance': '99,102,241'
-                    };
-
-                    function hexToRgb(r, g, b) { return 'rgb(' + r + ',' + g + ',' + b + ')'; }
-
-                    async function fetchStaffAllocation() {
-                        try {
-                            const res = await fetch(RESOURCE_API_BASE + '/prediction/staff-recommendation');
-                            if (!res.ok) return;
-                            const data = await res.json();
-                            const grid = document.getElementById('staff-alloc-grid');
-                            if (!grid) return;
-                            if (!data.departments || data.departments.length === 0) {
-                                grid.innerHTML = '<div style="padding:1.5rem; text-align:center; color:#94a3b8;">No data available.</div>';
-                                return;
-                            }
-                            let html = '';
-                            data.departments.forEach(function(dept) {
-                                const icon = DEPT_ICONS[dept.department] || 'fa-hospital';
-                                const rgb = DEPT_COLORS[dept.department] || '139,92,246';
-                                const accentColor = 'rgb(' + rgb + ')';
-                                const accentBg = 'rgba(' + rgb + ',0.12)';
-                                const isBn = dept.is_bottleneck;
-                                const statusColor = isBn ? '#ef4444' : '#10b981';
-                                const statusBg = isBn ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)';
-                                const statusText = isBn ? 'Understaffed' : 'Optimal';
-                                const statusIcon = isBn ? 'fa-exclamation-triangle' : 'fa-check-circle';
-                                const barColor = isBn ? '#ef4444' : '#10b981';
-                                const staffRatio = dept.optimal_staff > 0 ? Math.min(Math.round((dept.current_staff / dept.optimal_staff) * 100), 100) : 100;
-                                const deficitColor = dept.deficit > 0 ? '#ef4444' : '#10b981';
-                                const deficitText = dept.deficit > 0 ? '+' + dept.deficit : '0';
-                                const pillExtra = dept.deficit > 0 ? ' &mdash; ' + dept.deficit + ' needed' : '';
-                                const pLabel = dept.active_patients === 1 ? 'patient' : 'patients';
-
-                                html += '<div class="staff-alloc-card" style="background:var(--card-bg,#1e293b);border:1px solid var(--border-color,#334155);border-radius:12px;overflow:hidden;position:relative;transition:transform 0.25s ease,box-shadow 0.25s ease,border-color 0.25s ease;cursor:default;" data-bar-color="' + barColor + '">';
-                                html += '<div style="height:4px;background:' + barColor + ';"></div>';
-                                html += '<div style="padding:1.25rem;">';
-
-                                // Header: icon + name
-                                html += '<div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">';
-                                html += '<div style="width:44px;height:44px;border-radius:12px;background:' + accentBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;">';
-                                html += '<i class="fas ' + icon + '" style="color:' + accentColor + ';font-size:1.1rem;"></i></div>';
-                                html += '<div style="flex:1;min-width:0;">';
-                                html += '<div style="font-weight:700;font-size:0.95rem;color:var(--text-main,#e2e8f0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + dept.department + '</div>';
-                                html += '<div style="font-size:0.72rem;color:var(--text-muted,#94a3b8);">' + dept.active_patients + ' active ' + pLabel + '</div>';
-                                html += '</div></div>';
-
-                                // Metrics row: Current | Optimal | Deficit
-                                html += '<div style="display:flex;justify-content:space-between;margin-bottom:0.6rem;">';
-                                html += '<div style="text-align:center;flex:1;"><div style="font-size:1.5rem;font-weight:800;color:var(--text-main,#e2e8f0);line-height:1;font-variant-numeric:tabular-nums;">' + dept.current_staff + '</div><div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);margin-top:0.2rem;">Current</div></div>';
-                                html += '<div style="width:1px;background:var(--border-color,#334155);margin:0 0.5rem;"></div>';
-                                html += '<div style="text-align:center;flex:1;"><div style="font-size:1.5rem;font-weight:800;color:#8b5cf6;line-height:1;font-variant-numeric:tabular-nums;">' + dept.optimal_staff + '</div><div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);margin-top:0.2rem;">Optimal</div></div>';
-                                html += '<div style="width:1px;background:var(--border-color,#334155);margin:0 0.5rem;"></div>';
-                                html += '<div style="text-align:center;flex:1;"><div style="font-size:1.5rem;font-weight:800;color:' + deficitColor + ';line-height:1;font-variant-numeric:tabular-nums;">' + deficitText + '</div><div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);margin-top:0.2rem;">Deficit</div></div>';
-                                html += '</div>';
-
-                                // Progress bar
-                                html += '<div style="background:rgba(148,163,184,0.1);border-radius:999px;height:6px;overflow:hidden;margin-bottom:0.75rem;">';
-                                html += '<div style="height:100%;width:' + staffRatio + '%;background:' + barColor + ';border-radius:999px;transition:width 0.5s ease;"></div></div>';
-
-                                // Status pill
-                                html += '<div style="display:flex;align-items:center;justify-content:center;">';
-                                html += '<span style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.25rem 0.75rem;border-radius:999px;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;background:' + statusBg + ';color:' + statusColor + ';">';
-                                html += '<i class="fas ' + statusIcon + '" style="font-size:0.65rem;"></i> ' + statusText + pillExtra + '</span></div>';
-
-                                html += '</div></div>';
-                            });
-                            grid.innerHTML = html;
-
-                            // Attach hover effects via JS (avoids inline handler quote issues)
-                            grid.querySelectorAll('.staff-alloc-card').forEach(function(card) {
-                                var bc = card.getAttribute('data-bar-color');
-                                card.addEventListener('mouseenter', function() {
-                                    card.style.transform = 'translateY(-4px)';
-                                    card.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
-                                    card.style.borderColor = bc;
-                                });
-                                card.addEventListener('mouseleave', function() {
-                                    card.style.transform = 'none';
-                                    card.style.boxShadow = 'none';
-                                    card.style.borderColor = '';
-                                });
-                            });
-                        } catch (e) {
-                            console.error('Staff allocation fetch error:', e);
-                            var g = document.getElementById('staff-alloc-grid');
-                            if (g) g.innerHTML = '<div style="padding:1.5rem;text-align:center;color:#94a3b8;"><i class="fas fa-exclamation-circle"></i> Could not load staff data. Retrying...</div>';
-                        }
-                    }
-
-                    async function refreshStaffAllocation() {
-                        const btn = document.getElementById('btn-refresh-staff');
-                        btn.classList.add('spinning');
-                        btn.disabled = true;
-                        await fetchStaffAllocation();
-                        setTimeout(() => { btn.classList.remove('spinning'); btn.disabled = false; }, 600);
-                    }
-
                     // ---- Initialize ----
                     document.addEventListener('DOMContentLoaded', () => {
                         const role = (localStorage.getItem('currentRole') || '').toLowerCase();
                         if (role === 'admin') {
                             startAutoRefresh();
-                            fetchStaffAllocation();
-                            setInterval(fetchStaffAllocation, 15000);
                         }
                     });
                 </script>

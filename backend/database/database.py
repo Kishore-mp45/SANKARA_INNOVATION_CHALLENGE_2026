@@ -84,5 +84,7 @@ def init_db():
     from models.occupancy import OccupancyLog
     from models.alert import Alert
     from models.metric import Metric
-    
+    from models.escalation import Escalation
+    from models.prescription import Prescription
+
     Base.metadata.create_all(bind=engine)
