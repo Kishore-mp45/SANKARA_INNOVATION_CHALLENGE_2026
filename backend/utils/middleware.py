@@ -32,15 +32,19 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
 class ErrorHandlingMiddleware(BaseHTTPMiddleware):
     """Middleware for handling uncaught errors."""
-    
+
     async def dispatch(self, request: Request, call_next):
         try:
             return await call_next(request)
         except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(
+                "Unhandled exception on %s %s: %s", request.method, request.url.path, e, exc_info=True
+            )
             from fastapi.responses import JSONResponse
             return JSONResponse(
                 status_code=500,
-                content={"error": "internal_server_error", "message": str(e)}
+                content={"error": "internal_server_error", "message": "An unexpected error occurred"}
             )
 
 

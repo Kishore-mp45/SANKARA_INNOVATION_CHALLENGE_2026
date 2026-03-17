@@ -1,7 +1,8 @@
 """Prediction Service"""
 from datetime import datetime, timedelta
-import random
 import pickle
+import threading
+import logging
 import os
 import pandas as pd
 import numpy as np
@@ -10,6 +11,9 @@ from sqlalchemy.orm import Session
 from models.zone import Zone
 from models.patient import Patient, PatientStatus
 from services.staff_allocation_service import StaffAllocationService
+
+logger = logging.getLogger(__name__)
+_model_load_lock = threading.Lock()
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -27,64 +31,37 @@ class PredictionService:
     _bottleneck_model_path = os.path.join(_PROJECT_ROOT, "ml_models", "bottleneck_classification_model.pkl")
 
     @classmethod
+    def _load_model_file(cls, attr: str, path: str, label: str):
+        """Generic thread-safe model loader using double-checked locking."""
+        if getattr(cls, attr) is None:
+            with _model_load_lock:
+                if getattr(cls, attr) is None:
+                    if os.path.exists(path):
+                        try:
+                            with open(path, "rb") as f:
+                                setattr(cls, attr, pickle.load(f))
+                            logger.info("Loaded %s from %s", label, path)
+                        except Exception as e:
+                            logger.error("Error loading %s: %s", label, e)
+                    else:
+                        logger.warning("%s not found at %s", label, path)
+        return getattr(cls, attr)
+
+    @classmethod
     def _load_model(cls):
-        """Load the XGBoost wait time model if not already loaded."""
-        if cls._model is None:
-            if os.path.exists(cls._model_path):
-                try:
-                    with open(cls._model_path, "rb") as f:
-                        cls._model = pickle.load(f)
-                    print(f"Loaded prediction model from {cls._model_path}")
-                except Exception as e:
-                    print(f"Error loading model: {e}")
-            else:
-                print(f"Model file not found at {cls._model_path}")
-        return cls._model
+        return cls._load_model_file("_model", cls._model_path, "wait-time model")
 
     @classmethod
     def _load_arrival_model(cls):
-        """Load the XGBoost arrival rate model if not already loaded."""
-        if cls._arrival_model is None:
-            if os.path.exists(cls._arrival_model_path):
-                try:
-                    with open(cls._arrival_model_path, "rb") as f:
-                        cls._arrival_model = pickle.load(f)
-                    print(f"Loaded arrival model from {cls._arrival_model_path}")
-                except Exception as e:
-                    print(f"Error loading arrival model: {e}")
-            else:
-                print(f"Arrival model file not found at {cls._arrival_model_path}")
-        return cls._arrival_model
+        return cls._load_model_file("_arrival_model", cls._arrival_model_path, "arrival model")
 
     @classmethod
     def _load_exit_rate_model(cls):
-        """Load the XGBoost exit rate model if not already loaded."""
-        if cls._exit_rate_model is None:
-            if os.path.exists(cls._exit_rate_model_path):
-                try:
-                    with open(cls._exit_rate_model_path, "rb") as f:
-                        cls._exit_rate_model = pickle.load(f)
-                    print(f"Loaded exit rate model from {cls._exit_rate_model_path}")
-                except Exception as e:
-                    print(f"Error loading exit rate model: {e}")
-            else:
-                print(f"Exit rate model file not found at {cls._exit_rate_model_path}")
-        return cls._exit_rate_model
+        return cls._load_model_file("_exit_rate_model", cls._exit_rate_model_path, "exit-rate model")
 
     @classmethod
     def _load_bottleneck_model(cls):
-        """Load the XGBoost bottleneck classification model if not already loaded."""
-        if cls._bottleneck_model is None:
-            if os.path.exists(cls._bottleneck_model_path):
-                try:
-                    with open(cls._bottleneck_model_path, "rb") as f:
-                        cls._bottleneck_model = pickle.load(f)
-                    print(f"Loaded bottleneck model from {cls._bottleneck_model_path}")
-                except Exception as e:
-                    print(f"Error loading bottleneck model: {e}")
-            else:
-                print(f"Bottleneck model file not found at {cls._bottleneck_model_path}")
-        return cls._bottleneck_model
+        return cls._load_model_file("_bottleneck_model", cls._bottleneck_model_path, "bottleneck model")
 
     # Department code mapping for the 7 zones
     DEPARTMENT_MAP = {
@@ -107,6 +84,13 @@ class PredictionService:
         "billing_insurance": "Billing & Insurance",
     }
 
+    # Feature schemas for each model — used for validation and documentation
+    WAIT_MODEL_FEATURES = ['day_of_week', 'hour', 'window', 'department_code', 'current_staff', 'active_patients']
+    ARRIVAL_MODEL_FEATURES = ['day_of_week', 'hour', 'window', 'lag1', 'rolling_mean_3', 'rolling_std_3']
+    EXIT_MODEL_FEATURES = ['day', 'day_of_week', 'hour', 'window', 'is_peak_hour', 'is_low_hour', 'is_week_start']
+    BOTTLENECK_MODEL_FEATURES = ['day_of_week', 'hour', 'window', 'department_code', 'current_staff', 'active_patients']
+    STAFF_MODEL_FEATURES = ['day_of_week', 'hour', 'window', 'department_code', 'active_patients']
+
     BOTTLENECK_LABELS = {
         0: "No Bottleneck",
         1: "Moderate Bottleneck",
@@ -128,6 +112,20 @@ class PredictionService:
         "pharmacy": "fa-pills",
         "billing_insurance": "fa-file-invoice-dollar",
     }
+
+    @staticmethod
+    def _confidence_interval(value: float, band_pct: float = 0.15) -> Dict[str, Any]:
+        """
+        Compute a simple ±band_pct confidence interval around a regression prediction.
+        Returns lower_bound, upper_bound, and confidence_pct (as integer 0-100).
+        """
+        lower = max(0.0, round(value * (1.0 - band_pct), 2))
+        upper = round(value * (1.0 + band_pct), 2)
+        return {
+            "lower_bound": lower,
+            "upper_bound": upper,
+            "confidence_pct": int((1.0 - band_pct) * 100),
+        }
 
     @staticmethod
     def _estimate_staff_count(hour: int) -> int:
@@ -194,10 +192,12 @@ class PredictionService:
             trend = "up" if prediction > lag1 else "down"
             if prediction == lag1: trend = "stable"
 
+            ci = cls._confidence_interval(float(prediction))
             return {
-                "predicted_arrival_rate": prediction, 
+                "predicted_arrival_rate": prediction,
                 "trend": trend,
-                "historical_counts": counts # Debugging info
+                "historical_counts": counts,
+                **ci,
             }
         except Exception as e:
             print(f"Arrival prediction failed: {e}")
@@ -254,10 +254,12 @@ class PredictionService:
             if prediction == prev_exit_count:
                 trend = "stable"
 
+            ci = cls._confidence_interval(float(prediction))
             return {
                 "predicted_exit_rate": prediction,
                 "trend": trend,
-                "previous_hour_exits": prev_exit_count
+                "previous_hour_exits": prev_exit_count,
+                **ci,
             }
         except Exception as e:
             print(f"Exit rate prediction failed: {e}")
@@ -415,12 +417,14 @@ class PredictionService:
             minutes = int(prediction)
             seconds = int((prediction - minutes) * 60)
 
+            ci = cls._confidence_interval(prediction)
             return {
                 "department": display_name,
                 "zone_name": zone_name,
                 "predicted_minutes": round(prediction, 1),
                 "formatted": f"{minutes}m {seconds}s",
-                "available": True
+                "available": True,
+                **ci,
             }
         except Exception as e:
             print(f"Department wait prediction failed for {zone_name}: {e}")
@@ -469,11 +473,8 @@ class PredictionService:
         # Max impact 5.0 mins
         congestion_impact = min((active_patient_count / 10.0) * 0.5, 5.0)
         
-        # Add small random jitter (-0.2 to +0.2 mins) to show "live" fluctuation
-        jitter = random.uniform(-0.2, 0.2)
-        
         # Clamp service time to reasonable range [10, 25]
-        adjusted_service_time = max(10.0, min(15.0 + congestion_impact + jitter, 25.0))
+        adjusted_service_time = max(10.0, min(15.0 + congestion_impact, 25.0))
         
         total_wait = 0
         valid_zones = 0
@@ -525,7 +526,7 @@ class PredictionService:
             "average_minutes": round(avg_wait, 2),
             "formatted": formatted,
             "trend": trend,
-            "trend_value": f"{abs(int(jitter * 10))}%", # Dynamic trend value
+            "trend_value": f"{abs(int(congestion_impact * 10))}%",
             "zones": zone_predictions
         }
 

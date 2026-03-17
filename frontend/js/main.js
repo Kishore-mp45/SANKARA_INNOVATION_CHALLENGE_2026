@@ -3,8 +3,30 @@
 // Removed by user request
 
 window.logout = function () {
-    localStorage.removeItem('currentRole');
+    const token = sessionStorage.getItem('authToken');
+    if (token) {
+        // Fire-and-forget server-side token invalidation
+        fetch('/auth/logout', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token }
+        }).catch(() => {});
+    }
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('currentUser');
+    sessionStorage.removeItem('currentRole');
+    sessionStorage.removeItem('currentDept');
+    sessionStorage.removeItem('currentName');
+    sessionStorage.removeItem('currentPatientId');
     window.location.href = 'login.html';
+}
+
+// Global helper: add Authorization header to fetch requests
+window.authFetch = function (url, options = {}) {
+    const token = sessionStorage.getItem('authToken');
+    if (token) {
+        options.headers = Object.assign({ 'Authorization': 'Bearer ' + token }, options.headers || {});
+    }
+    return fetch(url, options);
 }
 
 
@@ -23,14 +45,14 @@ const USER_ROLES = {
         label: 'Hospital Staff'
     },
     patient: {
-        allowed_pages: ['index.html', 'patient_dashboard.html', 'patient_activity.html', 'hospital_load_status.html', 'waiting_time_trend.html'],
+        allowed_pages: ['index.html', 'patient_dashboard.html', 'patient_activity.html', 'hospital_load_status.html', 'waiting_time_trend.html', 'navigation.html'],
         label: 'Patient'
     }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. RBAC Check
-    const currentRole = localStorage.getItem('currentRole');
+    const currentRole = sessionStorage.getItem('currentRole');
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 
     // Skip check for login page
@@ -58,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         } else {
-            localStorage.removeItem('currentRole'); // Invalid role
+            sessionStorage.removeItem('currentRole'); // Invalid role
             window.location.href = 'login.html';
             return;
         }
@@ -79,8 +101,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const href = link.getAttribute('href');
         if (href === currentPage || (currentPage === '' && href === 'index.html')) {
             link.classList.add('active');
+            link.setAttribute('aria-current', 'page');
         }
     });
+
+    // 15-minute inactivity timeout
+    let _inactivityTimer;
+    function _resetInactivityTimer() {
+        clearTimeout(_inactivityTimer);
+        _inactivityTimer = setTimeout(function () {
+            window.logout();
+        }, 15 * 60 * 1000);
+    }
+    ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(function (evt) {
+        document.addEventListener(evt, _resetInactivityTimer, { passive: true });
+    });
+    _resetInactivityTimer();
 });
 
 function applyRoleBasedAccess(role) {
@@ -255,22 +291,18 @@ function setupHeaderControls(role, label) {
     controls.id = 'rbac-controls';
     controls.style.cssText = 'position: absolute; top: 1rem; right: 2rem; display: flex; align-items: center; gap: 1rem;';
 
-    // Determine current theme icon
+    // Determine current theme icon (dark is default, .light-theme = light)
     const isLight = document.documentElement.classList.contains('light-theme');
     const themeIcon = isLight ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
     const themeTitle = isLight ? 'Switch to dark mode' : 'Switch to light mode';
 
-    // SVG now has pointer-events: none to prevent click swallowing
     controls.innerHTML = `
-        <button id="theme-toggle-btn" onclick="toggleTheme()" title="${themeTitle}">
+        <button id="theme-toggle-btn" onclick="toggleTheme()" title="${themeTitle}" aria-label="${themeTitle}">
             ${themeIcon}
         </button>
-        <div style="text-align: right;">
-            <div style="font-size: 0.8rem; color: var(--text-muted);">Current Role</div>
-            <div style="font-weight: 600; color: var(--primary-color);">${label}</div>
-        </div>
-        <button id="logout-btn" onclick="window.logout()" style="padding: 0.5rem 1rem; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 6px; cursor: pointer; transition: all 0.2s;">
-            Change Role
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Role: <strong>${label}</strong></span>
+        <button id="logout-btn" onclick="window.logout()" aria-label="Logout" style="padding: 0.4rem 0.9rem; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: background 0.2s;">
+            <i class="fas fa-sign-out-alt"></i> Logout
         </button>
     `;
 

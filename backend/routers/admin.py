@@ -10,6 +10,7 @@ from models.escalation import Escalation, EscalationStatus
 from models.occupancy import OccupancyLog
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
+from auth import require_role
 import json
 
 router = APIRouter(
@@ -66,7 +67,7 @@ async def get_activity(limit: int = 100, role: Optional[str] = None, db: Session
     }
 
 @router.get("/export")
-async def export_activity(db: Session = Depends(get_db)):
+async def export_activity(db: Session = Depends(get_db), _user: dict = Depends(require_role("admin"))):
     """Export patient activity logs as CSV from database."""
     import csv as csv_mod
     import io
@@ -164,6 +165,7 @@ class EscalationStatusUpdate(BaseModel):
 async def update_escalation_status(
     escalation_id: int,
     body: EscalationStatusUpdate,
+    _user: dict = Depends(require_role("admin", "staff")),
     db: Session = Depends(get_db)
 ):
     """Update the status of an escalation report."""

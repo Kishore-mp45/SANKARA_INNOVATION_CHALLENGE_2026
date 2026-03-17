@@ -1,24 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- PatientPath AI Login V4.0 -->
+<!-- PatientPath AI Login -->
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PatientPath AI - Login v4.0</title>
-    <script src="js/theme.js?v=999"></script>
+    <title>PatientPath AI - Login</title>
+    <script src="js/theme.js?v=2"></script>
     <script>
-        console.log("Login Page Loaded v4.0");
-
-        // Clear any existing session to prevent confusion on load
-        window.onload = function () {
-            localStorage.removeItem('currentUser');
-            localStorage.removeItem('currentRole');
-            localStorage.removeItem('currentDept');
-            console.log("Session cleared for fresh login.");
-        };
+        // Clear stale session on page load — but NOT if handleLogin just set a token
+        // (handleLogin sets a flag before redirecting)
+        if (!sessionStorage.getItem('_loginRedirect')) {
+            sessionStorage.removeItem('authToken');
+            sessionStorage.removeItem('currentUser');
+            sessionStorage.removeItem('currentRole');
+            sessionStorage.removeItem('currentDept');
+            sessionStorage.removeItem('currentName');
+        }
+        sessionStorage.removeItem('_loginRedirect');
     </script>
-    <link rel="stylesheet" href="css/style.css?v=4.0">
+    <link rel="stylesheet" href="css/style.css?v=2">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
@@ -27,87 +28,76 @@
             justify-content: center;
             min-height: 100vh;
             background: var(--bg-color);
-            margin: 0;
+            overflow: auto;
+            flex-direction: column;
         }
 
         .login-card {
             background: var(--card-bg);
-            padding: 2.5rem;
-            border-radius: 1rem;
             border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
             width: 100%;
-            max-width: 400px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            text-align: center;
+            max-width: 420px;
+            padding: 2.5rem;
+            margin: 1.5rem;
         }
 
-        .brand-logo {
-            margin-bottom: 2rem;
-            color: var(--text-color);
+        .login-logo {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            font-size: 1.5rem;
+            gap: 0.625rem;
+            font-size: 1.25rem;
             font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.375rem;
+        }
+
+        .login-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
         }
 
         .form-group {
-            margin-bottom: 1.5rem;
-            text-align: left;
+            margin-bottom: 1.125rem;
         }
 
-        label {
+        .form-group label {
             display: block;
-            margin-bottom: 0.5rem;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-
-        select,
-        input {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            color: var(--text-color);
-            font-size: 1rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        select:focus,
-        input:focus {
-            border-color: var(--primary-color);
-        }
-
-        .btn-login {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 0.5rem;
-            font-size: 1rem;
+            font-size: 0.8rem;
             font-weight: 600;
-            cursor: pointer;
-            transition: opacity 0.2s;
-            margin-top: 1rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.375rem;
         }
 
-        .btn-login:hover {
-            opacity: 0.9;
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            padding: 0.6rem 0.875rem;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            background: var(--input-bg, var(--card-bg));
+            outline: none;
+            transition: border-color 0.15s;
+            font-family: inherit;
+            box-sizing: border-box;
         }
 
-        /* Password wrapper for eye toggle */
-        .pw-wrapper {
-            position: relative;
+        .form-group select:focus,
+        .form-group input:focus {
+            border-color: var(--primary-color);
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
         }
 
-        .pw-wrapper input {
-            padding-right: 2.75rem;
-        }
+        /* Password wrapper */
+        .pw-wrapper { position: relative; }
+        .pw-wrapper input { padding-right: 2.75rem; }
 
         .pw-toggle {
             position: absolute;
@@ -119,131 +109,174 @@
             color: var(--text-muted);
             cursor: pointer;
             padding: 0;
-            font-size: 1rem;
+            font-size: 0.95rem;
             line-height: 1;
             display: flex;
             align-items: center;
+            transition: color 0.15s;
         }
+        .pw-toggle:hover { color: var(--primary-color); }
 
-        .pw-toggle:hover {
-            color: var(--primary-color);
-        }
-
-        /* Password requirements */
-        .pw-requirements {
-            margin-top: 0.6rem;
-            padding: 0;
-            list-style: none;
-        }
-
+        /* Requirements */
+        .pw-requirements { margin-top: 0.5rem; padding: 0; list-style: none; }
         .pw-req-item {
-            font-size: 0.78rem;
-            padding: 0.15rem 0;
+            font-size: 0.75rem;
+            padding: 0.125rem 0;
             display: flex;
             align-items: center;
-            gap: 0.4rem;
+            gap: 0.375rem;
             color: var(--text-muted);
             transition: color 0.2s;
         }
+        .pw-req-item i { font-size: 0.65rem; width: 12px; text-align: center; }
+        .pw-req-item.met   { color: #22c55e; }
+        .pw-req-item.unmet { color: #ef4444; }
 
-        .pw-req-item i {
-            font-size: 0.7rem;
-            width: 14px;
-            text-align: center;
+        /* Department dropdown — hidden by default */
+        #dept-group { display: none; }
+
+        .btn-login {
+            width: 100%;
+            padding: 0.7rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            margin-top: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-family: inherit;
         }
+        .btn-login:hover:not(:disabled) { background: var(--primary-hover, #0284c7); }
+        .btn-login:active:not(:disabled) { transform: scale(0.98); }
+        .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        .pw-req-item.met {
-            color: #10b981;
-        }
-
-        .pw-req-item.unmet {
+        .error-msg {
+            font-size: 0.83rem;
             color: #ef4444;
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.25);
+            border-radius: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            margin-top: 0.875rem;
+            display: none;
         }
+
+        .signup-link {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 1.25rem;
+        }
+
+        .signup-link a {
+            color: var(--primary-color);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .signup-link a:hover { text-decoration: underline; }
     </style>
 </head>
 
 <body>
     <div class="login-card fade-in">
-        <div class="brand-logo"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2">
+        <div class="login-logo">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg><span>PatientPath AI</span></div>
-        <h3 style="margin-bottom: 1.5rem; color: var(--text-color);">Welcome Back</h3>
-        <div class="form-group"><label for="role-select">Select Access Role</label><select id="role-select"
-                onchange="updateLabels()">
+            </svg>
+            PatientPath AI
+        </div>
+        <p class="login-subtitle">Sign in to your account to continue</p>
+
+        <div class="form-group">
+            <label for="role-select">Access Role</label>
+            <select id="role-select" onchange="updateLabels()">
                 <option value="admin">Admin</option>
                 <option value="doctor">Doctor</option>
                 <option value="staff">Staff</option>
                 <option value="patient">Patient</option>
-            </select></div>
-        <div class="form-group" id="dept-group" style="display: none;"><label for="dept-select">Select
-                Department</label><select id="dept-select">
+            </select>
+        </div>
+
+        <div class="form-group" id="dept-group">
+            <label for="dept-select">Department</label>
+            <select id="dept-select">
                 <option value="registration">Registration</option>
                 <option value="vision_lab">Vision Lab</option>
                 <option value="dilation_hall">Dilation Hall</option>
                 <option value="diagnostics">Diagnostics</option>
                 <option value="pharmacy">Pharmacy</option>
-                <option value="billing_insurance">Billing & Insurance</option>
-            </select></div>
-        <div class="form-group"><label id="id-label" for="user-id">Admin ID</label><input type="text" id="user-id"
-                placeholder="Enter ID"></div>
+                <option value="billing_insurance">Billing &amp; Insurance</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label id="id-label" for="user-id">Admin ID</label>
+            <input type="text" id="user-id" placeholder="Enter ID" autocomplete="username">
+        </div>
+
         <div class="form-group" id="password-group">
             <label for="password">Password</label>
             <div class="pw-wrapper">
-                <input type="password" id="password" placeholder="Enter Password" oninput="validatePasswordLive()">
-                <button type="button" class="pw-toggle" onclick="togglePassword()" title="Show/Hide password">
+                <input type="password" id="password" placeholder="Enter password"
+                       autocomplete="current-password" oninput="validatePasswordLive()">
+                <button type="button" class="pw-toggle" onclick="togglePassword()" title="Show/hide password" aria-label="Show/hide password">
                     <i class="fas fa-eye" id="pw-eye-icon"></i>
                 </button>
             </div>
             <ul class="pw-requirements" id="pw-requirements">
                 <li class="pw-req-item" id="req-length"><i class="fas fa-circle"></i> Minimum 8 characters</li>
-                <li class="pw-req-item" id="req-upper"><i class="fas fa-circle"></i> At least one uppercase letter (A-Z)</li>
-                <li class="pw-req-item" id="req-lower"><i class="fas fa-circle"></i> At least one lowercase letter (a-z)</li>
-                <li class="pw-req-item" id="req-number"><i class="fas fa-circle"></i> At least one number (0-9)</li>
-                <li class="pw-req-item" id="req-symbol"><i class="fas fa-circle"></i> At least one symbol (!@#$%&*)</li>
+                <li class="pw-req-item" id="req-upper"><i class="fas fa-circle"></i> At least one uppercase letter</li>
+                <li class="pw-req-item" id="req-lower"><i class="fas fa-circle"></i> At least one lowercase letter</li>
+                <li class="pw-req-item" id="req-number"><i class="fas fa-circle"></i> At least one number</li>
+                <li class="pw-req-item" id="req-symbol"><i class="fas fa-circle"></i> At least one symbol</li>
             </ul>
         </div>
-        <button class="btn-login" onclick="handleLogin()">Login</button>
-        <p id="error-msg" style="color: #ef4444; font-size: 0.9rem; margin-top: 1rem; display: none;"></p>
-        <div style="margin-top: 1.5rem; font-size: 0.9rem; color: var(--text-muted);">New User? <a href="signup.html"
-                style="color: var(--primary-color); text-decoration: none; font-weight: 500;">Sign up here</a></div>
+
+        <button class="btn-login" id="login-btn" onclick="handleLogin()">
+            <i class="fas fa-sign-in-alt"></i> Sign In
+        </button>
+
+        <div class="error-msg" id="error-msg"></div>
+
+        <p class="signup-link">
+            New here? <a href="signup.html">View demo credentials</a>
+        </p>
     </div>
 
     <script>
         function togglePassword() {
-            const pwInput = document.getElementById('password');
-            const eyeIcon = document.getElementById('pw-eye-icon');
-            if (pwInput.type === 'password') {
-                pwInput.type = 'text';
-                eyeIcon.classList.remove('fa-eye');
-                eyeIcon.classList.add('fa-eye-slash');
+            const pw = document.getElementById('password');
+            const icon = document.getElementById('pw-eye-icon');
+            if (pw.type === 'password') {
+                pw.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
             } else {
-                pwInput.type = 'password';
-                eyeIcon.classList.remove('fa-eye-slash');
-                eyeIcon.classList.add('fa-eye');
+                pw.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
             }
         }
 
-        function checkPasswordRules(password) {
+        function checkPasswordRules(p) {
             return {
-                length: password.length >= 8,
-                upper: /[A-Z]/.test(password),
-                lower: /[a-z]/.test(password),
-                number: /[0-9]/.test(password),
-                symbol: /[^A-Za-z0-9]/.test(password)
+                length: p.length >= 8,
+                upper:  /[A-Z]/.test(p),
+                lower:  /[a-z]/.test(p),
+                number: /[0-9]/.test(p),
+                symbol: /[^A-Za-z0-9]/.test(p)
             };
         }
 
         function updateRequirementUI(rules, highlight) {
-            const map = {
-                length: 'req-length',
-                upper: 'req-upper',
-                lower: 'req-lower',
-                number: 'req-number',
-                symbol: 'req-symbol'
-            };
-            for (const [key, elId] of Object.entries(map)) {
-                const el = document.getElementById(elId);
+            const map = { length: 'req-length', upper: 'req-upper', lower: 'req-lower', number: 'req-number', symbol: 'req-symbol' };
+            for (const [key, id] of Object.entries(map)) {
+                const el = document.getElementById(id);
                 const icon = el.querySelector('i');
                 el.classList.remove('met', 'unmet');
                 if (rules[key]) {
@@ -259,155 +292,99 @@
         }
 
         function validatePasswordLive() {
-            const password = document.getElementById('password').value;
-            const rules = checkPasswordRules(password);
-            updateRequirementUI(rules, false);
+            updateRequirementUI(checkPasswordRules(document.getElementById('password').value), false);
         }
 
         function updateLabels() {
             const role = document.getElementById('role-select').value;
-            const label = document.getElementById('id-label');
-            const placeholder = document.getElementById('user-id');
-            const deptGroup = document.getElementById('dept-group');
-            const passwordGroup = document.getElementById('password-group');
-            const loginBtn = document.querySelector('.btn-login');
-
-            const config = {
-                admin: { label: 'Admin ID', ph: 'Enter Admin ID', btn: 'Login' },
-                doctor: { label: 'Doctor ID', ph: 'Enter Doctor ID', btn: 'Login' },
-                staff: { label: 'Staff ID', ph: 'Enter Staff ID', btn: 'Login' },
-                patient: { label: 'Patient Tracking ID', ph: 'Enter Patient ID (e.g. CV-12345)', btn: 'Track Status' }
+            const cfg = {
+                admin:   { label: 'Admin ID',              ph: 'e.g. admin001' },
+                doctor:  { label: 'Doctor ID',             ph: 'e.g. doctor001' },
+                staff:   { label: 'Staff ID',              ph: 'e.g. staff001' },
+                patient: { label: 'Patient Tracking ID',   ph: 'e.g. patient001' }
             };
-
-            label.textContent = config[role].label;
-            placeholder.placeholder = config[role].ph;
-            loginBtn.textContent = config[role].btn;
-
-            // Show/Hide Logic
-            if (role === 'patient') {
-                passwordGroup.style.display = 'block';
-                deptGroup.style.display = 'none';
-            } else if (role === 'staff') {
-                passwordGroup.style.display = 'block';
-                deptGroup.style.display = 'block';
-            } else {
-                passwordGroup.style.display = 'block';
-                deptGroup.style.display = 'none';
-            }
-
-            // Reset requirement indicators when switching roles
-            const password = document.getElementById('password').value;
-            if (password) {
-                validatePasswordLive();
-            }
+            document.getElementById('id-label').textContent = cfg[role].label;
+            document.getElementById('user-id').placeholder  = cfg[role].ph;
+            document.getElementById('dept-group').style.display = role === 'staff' ? 'block' : 'none';
+            const btn = document.getElementById('login-btn');
+            if (btn) btn.innerHTML = role === 'patient'
+                ? '<i class="fas fa-search"></i> Track Status'
+                : '<i class="fas fa-sign-in-alt"></i> Sign In';
         }
 
-        function handleLogin() {
-            const role = document.getElementById('role-select').value;
+        async function handleLogin() {
+            const role   = document.getElementById('role-select').value;
             const userId = document.getElementById('user-id').value.trim();
             const password = document.getElementById('password').value.trim();
-            const errorEl = document.getElementById('error-msg');
-            const deptSelect = document.getElementById('dept-select');
+            const errorEl  = document.getElementById('error-msg');
+            const btn      = document.getElementById('login-btn');
+            const dept     = document.getElementById('dept-select').value;
 
             errorEl.style.display = 'none';
 
             if (!userId) {
-                errorEl.textContent = "Please enter your ID.";
+                errorEl.textContent = 'Please enter your ID.';
                 errorEl.style.display = 'block';
                 return;
             }
-
-            console.log("Attempting login", role, userId);
-
-            // PATIENT FLOW
-            if (role === 'patient') {
-                if (!password) {
-                    errorEl.textContent = "Please enter your password.";
-                    errorEl.style.display = 'block';
-                    return;
-                }
-
-                const users = JSON.parse(localStorage.getItem('ppa_users') || '{}');
-                const user = users[userId];
-
-                if (!user) {
-                    errorEl.textContent = "Patient ID not found. Please sign up first.";
-                    errorEl.style.display = 'block';
-                    return;
-                }
-
-                if (user.role !== 'patient') {
-                    errorEl.textContent = `ID exists but is not registered as patient. Try ${user.role}.`;
-                    errorEl.style.display = 'block';
-                    return;
-                }
-
-                if (user.password !== password) {
-                    errorEl.textContent = "Invalid password. Ensure your password meets the requirements below.";
-                    errorEl.style.display = 'block';
-                    // Highlight unmet requirements
-                    const rules = checkPasswordRules(password);
-                    updateRequirementUI(rules, true);
-                    return;
-                }
-
-                console.log("Redirecting to Patient Dashboard");
-                localStorage.setItem('currentUser', userId);
-                localStorage.setItem('currentPatientId', userId);
-                localStorage.setItem('currentRole', 'patient');
-                window.location.href = 'patient_dashboard.html?v=' + new Date().getTime();
-                return;
-            }
-
-            // STAFF/ADMIN/DOCTOR FLOW
             if (!password) {
-                errorEl.textContent = "Please enter credentials.";
+                errorEl.textContent = 'Please enter your password.';
                 errorEl.style.display = 'block';
                 return;
             }
 
-            // Retrieve users
-            const users = JSON.parse(localStorage.getItem('ppa_users') || '{}');
-            const user = users[userId];
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
 
-            if (!user) {
-                errorEl.textContent = "User ID not found. Please sign up.";
+            try {
+                const resp = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, password })
+                });
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    errorEl.textContent = data.detail || 'Invalid credentials. Please try again.';
+                    errorEl.style.display = 'block';
+                    return;
+                }
+
+                if (data.role !== role) {
+                    errorEl.textContent = `This account has role '${data.role}', not '${role}'. Please select the correct role.`;
+                    errorEl.style.display = 'block';
+                    return;
+                }
+
+                sessionStorage.setItem('authToken',    data.token);
+                sessionStorage.setItem('currentUser',  data.user_id);
+                sessionStorage.setItem('currentRole',  data.role);
+                sessionStorage.setItem('currentName',  data.name || data.user_id);
+
+                if (role === 'staff') sessionStorage.setItem('currentDept', dept);
+
+                sessionStorage.setItem('_loginRedirect', '1');
+
+                if (data.role === 'patient') {
+                    sessionStorage.setItem('currentPatientId', data.user_id);
+                    window.location.href = 'patient_dashboard.html';
+                } else {
+                    window.location.href = 'index.html';
+                }
+
+            } catch (err) {
+                errorEl.textContent = 'Unable to connect to server. Please try again.';
                 errorEl.style.display = 'block';
-                return;
+            } finally {
+                btn.disabled = false;
+                const role2 = document.getElementById('role-select').value;
+                btn.innerHTML = role2 === 'patient'
+                    ? '<i class="fas fa-search"></i> Track Status'
+                    : '<i class="fas fa-sign-in-alt"></i> Sign In';
             }
-
-            if (user.role !== role) {
-                errorEl.textContent = `ID exists but is not registered as ${role}. Try ${user.role}.`;
-                errorEl.style.display = 'block';
-                return;
-            }
-
-            if (user.password !== password) {
-                errorEl.textContent = "Invalid password. Ensure your password meets the requirements below.";
-                errorEl.style.display = 'block';
-                // Highlight unmet requirements
-                const rules = checkPasswordRules(password);
-                updateRequirementUI(rules, true);
-                return;
-            }
-
-            // Success
-            localStorage.setItem('currentRole', role);
-            localStorage.setItem('currentUser', userId); // Track who is logged in
-
-            // Save Department if Staff
-            if (role === 'staff') {
-                localStorage.setItem('currentDept', deptSelect.value);
-            } else {
-                localStorage.removeItem('currentDept');
-            }
-
-            window.location.href = 'index.html';
         }
 
-        // Init labels logic
         updateLabels();
     </script>
 </body>
-
 </html>

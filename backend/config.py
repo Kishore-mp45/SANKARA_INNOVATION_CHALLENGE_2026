@@ -33,7 +33,7 @@ class Settings:
     APP_NAME: str = "PatientPath AI"
     APP_VERSION: str = "1.0.0"
     APP_DESCRIPTION: str = "Healthcare Analytics Platform - Real-time patient flow tracking and analytics"
-    DEBUG: bool = os.getenv("DEBUG", "True").lower() == "true"
+    DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
     
     # Server Configuration
     HOST: str = os.getenv("HOST", "0.0.0.0")
@@ -58,9 +58,10 @@ class Settings:
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://localhost:5173",
+        "http://localhost:8000",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
-        "*"  # Allow all for development
+        "http://127.0.0.1:8000",
     ]
     
     # Alert Thresholds

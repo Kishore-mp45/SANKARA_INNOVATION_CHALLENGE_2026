@@ -17,9 +17,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database import get_db
 from services.analytics_service import AnalyticsService
 from utils.logger import get_logger
+from auth import require_role
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/export", tags=["Export"])
+
+# Shared auth dependency — all export endpoints require admin or staff role
+_export_auth = Depends(require_role("admin", "staff"))
 
 
 @router.get(
@@ -32,7 +36,8 @@ async def export_occupancy_csv(
     start_time: Optional[datetime] = Query(None, description="Start time"),
     end_time: Optional[datetime] = Query(None, description="End time"),
     hours: int = Query(24, ge=1, le=720, description="Hours to export (if no start_time)"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user: dict = _export_auth
 ):
     """
     Export occupancy data to CSV.
@@ -77,7 +82,8 @@ async def export_patients_csv(
     include_exited: bool = Query(True, description="Include exited patients"),
     start_time: Optional[datetime] = Query(None, description="Entry time start"),
     end_time: Optional[datetime] = Query(None, description="Entry time end"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user: dict = _export_auth
 ):
     """
     Export patient data to CSV.
@@ -114,7 +120,8 @@ async def export_metrics_csv(
     zone_name: Optional[str] = Query(None, description="Filter by zone"),
     start_time: Optional[datetime] = Query(None, description="Start time"),
     end_time: Optional[datetime] = Query(None, description="End time"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user: dict = _export_auth
 ):
     """
     Export metrics data to CSV.

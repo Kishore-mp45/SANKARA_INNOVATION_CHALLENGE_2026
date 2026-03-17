@@ -4,12 +4,15 @@ PatientPath AI - Prediction Router
 API endpoints for AI forecasting.
 """
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from services.prediction_service import PredictionService
 from services.staff_allocation_service import StaffAllocationService
 from services.activity_service import ActivityService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/prediction", tags=["Prediction"])
 
@@ -221,8 +224,8 @@ async def get_all_staff_recommendations(db: Session = Depends(get_db)):
                         "message": f"{rec['deficit']} staff member{'s' if rec['deficit'] > 1 else ''} needed in {rec['department']}."
                     }
                 }, message_type="alerts")
-    except Exception:
-        pass
+    except Exception as _ws_err:
+        logger.debug("WebSocket broadcast skipped: %s", _ws_err)
 
     return {"departments": results}
 
@@ -265,7 +268,7 @@ async def staff_checkin(department_name: str, db: Session = Depends(get_db)):
                 "is_bottleneck": result["is_bottleneck"]
             }
         }, message_type="alerts")
-    except Exception:
-        pass
+    except Exception as _ws_err:
+        logger.debug("WebSocket broadcast skipped: %s", _ws_err)
 
     return result

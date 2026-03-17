@@ -65,14 +65,6 @@ async def update_occupancy(
     }
     ```
     """
-    import inspect
-    try:
-        print(f"DEBUG: Service imported from: {inspect.getfile(OccupancyService)}")
-        print(f"DEBUG: OccupancyService class: {OccupancyService}")
-        print(f"DEBUG: OccupancyService init: {OccupancyService.__init__}")
-    except Exception as e:
-        print(f"DEBUG: Inspection failed: {e}")
-        
     occupancy_service = OccupancyService(db)
     zone_service = ZoneService(db)
     alert_service = AlertService(db)

@@ -191,6 +191,7 @@
             <!-- Manually added Active Dashboard Item for Patient Context -->
             <li><a href="patient_dashboard.html" class="nav-item active"><span class="step-badge">3</span> My
                     Dashboard</a></li>
+            <li><a href="navigation.html" class="nav-item"><span class="step-badge">N</span> 3D Navigation</a></li>
         </ul>
     </div>
 
@@ -250,6 +251,25 @@
                     <i class="fas fa-spinner fa-spin" style="font-size: 1.2rem; -webkit-text-fill-color: var(--text-muted);"></i>
                 </div>
                 <div id="ai-wait-label" style="font-size: 0.8rem; color: var(--text-muted);">Estimated by AI Model</div>
+            </div>
+
+            <!-- 3D Navigation Button -->
+            <div style="margin-bottom: 1.5rem;">
+                <a href="navigation.html"
+                   style="display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1.5rem;
+                          background: linear-gradient(135deg, #3b82f6, #10b981); color: white; border: none;
+                          border-radius: 12px; font-size: 0.95rem; font-weight: 700; cursor: pointer;
+                          text-decoration: none; transition: transform 0.15s, box-shadow 0.15s;
+                          box-shadow: 0 4px 15px rgba(59,130,246,0.3);"
+                   onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(59,130,246,0.4)';"
+                   onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 15px rgba(59,130,246,0.3)';">
+                    <i class="fas fa-map-marked-alt" style="font-size: 1.1rem;"></i>
+                    Find My Department
+                    <i class="fas fa-arrow-right" style="font-size: 0.8rem; opacity: 0.7;"></i>
+                </a>
+                <span style="font-size: 0.78rem; color: var(--text-muted); margin-left: 0.75rem;">
+                    3D Indoor Navigation Map
+                </span>
             </div>
 
             <!-- Patient Journey Tracker -->

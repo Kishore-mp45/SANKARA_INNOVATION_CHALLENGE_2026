@@ -43,6 +43,19 @@ class CacheManager:
         with self._lock:
             self._cache.clear()
 
+    @property
+    def stats(self) -> dict:
+        """Return cache statistics."""
+        with self._lock:
+            now = datetime.now()
+            active = sum(1 for _, expires_at in self._cache.values() if now < expires_at)
+            total = len(self._cache)
+            return {
+                "total_keys": total,
+                "active_keys": active,
+                "expired_keys": total - active,
+            }
+
 
 # Global cache instance
 cache_manager = CacheManager()

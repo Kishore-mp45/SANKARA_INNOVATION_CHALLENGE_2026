@@ -1,8 +1,10 @@
 """Staff Allocation Service - AI-powered staff recommendation using XGBRegressor model."""
 
 import os
+import json
 import pickle
 import math
+import threading
 import pandas as pd
 from datetime import datetime
 from typing import Dict, Any, List
@@ -12,6 +14,8 @@ from models.patient import Patient, PatientStatus
 
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_STAFF_STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "staff_state.json")
+_model_load_lock = threading.Lock()
 
 class StaffAllocationService:
     _model = None
@@ -38,8 +42,8 @@ class StaffAllocationService:
         "billing_insurance": "Billing & Insurance",
     }
 
-    # Default current staff per department (in-memory tracking)
-    _current_staff: Dict[str, int] = {
+    # Default current staff per department
+    _DEFAULT_STAFF: Dict[str, int] = {
         "registration": 2,
         "vision_lab": 2,
         "dilation_hall": 1,
@@ -48,20 +52,49 @@ class StaffAllocationService:
         "pharmacy": 2,
         "billing_insurance": 1,
     }
+    _current_staff: Dict[str, int] = {}
+
+    @classmethod
+    def _load_staff_state(cls):
+        """Load staff counts from JSON file (persists across restarts)."""
+        try:
+            if os.path.exists(_STAFF_STATE_FILE):
+                with open(_STAFF_STATE_FILE, "r") as f:
+                    saved = json.load(f)
+                # Merge with defaults — only keep known departments
+                cls._current_staff = {
+                    k: saved.get(k, v) for k, v in cls._DEFAULT_STAFF.items()
+                }
+                return
+        except Exception:
+            pass
+        cls._current_staff = dict(cls._DEFAULT_STAFF)
+
+    @classmethod
+    def _save_staff_state(cls):
+        """Persist current staff counts to JSON file."""
+        try:
+            with open(_STAFF_STATE_FILE, "w") as f:
+                json.dump(cls._current_staff, f)
+        except Exception:
+            pass
 
     @classmethod
     def _load_model(cls):
-        """Load the staff allocation model if not already loaded."""
+        """Load the staff allocation model if not already loaded (thread-safe)."""
         if cls._model is None:
-            if os.path.exists(cls._model_path):
-                try:
-                    with open(cls._model_path, "rb") as f:
-                        cls._model = pickle.load(f)
-                    print(f"Loaded staff allocation model from {cls._model_path}")
-                except Exception as e:
-                    print(f"Error loading staff allocation model: {e}")
-            else:
-                print(f"Staff allocation model not found at {cls._model_path}")
+            with _model_load_lock:
+                if cls._model is None:  # double-checked locking
+                    if os.path.exists(cls._model_path):
+                        try:
+                            with open(cls._model_path, "rb") as f:
+                                cls._model = pickle.load(f)
+                        except Exception as e:
+                            import logging
+                            logging.getLogger(__name__).error("Error loading staff allocation model: %s", e)
+                    else:
+                        import logging
+                        logging.getLogger(__name__).warning("Staff allocation model not found at %s", cls._model_path)
         return cls._model
 
     @classmethod
@@ -75,6 +108,8 @@ class StaffAllocationService:
     @classmethod
     def get_current_staff(cls, zone_name: str) -> int:
         """Get current staff count for a department."""
+        if not cls._current_staff:
+            cls._load_staff_state()
         return max(0, cls._current_staff.get(zone_name, 1))
 
     @classmethod
@@ -155,6 +190,7 @@ class StaffAllocationService:
             return {"error": f"Unknown department: {zone_name}"}
 
         cls._current_staff[zone_name] = cls.get_current_staff(zone_name) + 1
+        cls._save_staff_state()  # Persist immediately
 
         # Recalculate with updated staff count
         result = cls.predict_optimal_staff(db, zone_name)

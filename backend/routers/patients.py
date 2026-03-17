@@ -38,9 +38,10 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/patient", tags=["Patients"])
 
 # In-memory trend storage: { patient_tracking_id: [ {time, waiting_time, department}, ... ] }
-# Keeps last 20 data points per patient.
+# Keeps last 20 data points per patient. Capped at 500 unique patients to prevent unbounded growth.
 _waiting_trends: Dict[str, list] = defaultdict(list)
 _TREND_MAX_POINTS = 20
+_TREND_MAX_PATIENTS = 500
 
 WORKFLOW_SEQUENCE = [
     "registration", "vision_lab", "dilation_hall",
@@ -91,9 +92,9 @@ async def patient_enter(
     }
     ```
     """
-    # Verify zone exists
-    zone_service = ZoneService(db)
-    zone = zone_service.get_zone_by_name(data.zone_name)
+    # Verify zone exists — use row-level lock to prevent race conditions
+    from models.zone import Zone as ZoneModel
+    zone = db.query(ZoneModel).filter(ZoneModel.zone_name == data.zone_name).with_for_update().first()
     if not zone:
         raise HTTPException(
             status_code=404,
@@ -103,8 +104,6 @@ async def patient_enter(
     # Check if patient already exists
     existing = PatientService.get_by_tracking_id(db, data.tracking_id)
     if existing:
-        # If exists, update entry time or just return?
-        # Let's return existing to be safe given current context
         logger.info(f"Patient {data.tracking_id} already exists, returning existing record")
         return existing
 
@@ -116,11 +115,14 @@ async def patient_enter(
         current_zone=data.zone_name
     )
     patient = PatientService.create(db, patient_create)
-    
-    # Update zone occupancy
-    if zone.current_occupancy < zone.capacity_limit * 2:
-        zone.current_occupancy += 1
-    db.commit()
+
+    # Update zone occupancy (always increment; alert system handles threshold warnings)
+    zone.current_occupancy = (zone.current_occupancy or 0) + 1
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     
     # Check for capacity alerts
     alert_service = AlertService(db)
@@ -198,13 +200,17 @@ async def patient_exit(
             detail="Patient not found"
         )
     
-    # Update zone occupancy
+    # Update zone occupancy — ensure it never goes below 0
     if patient.current_zone:
-        zone = zone_service.get_zone_by_name(patient.current_zone)
-        if zone and zone.current_occupancy > 0:
-            zone.current_occupancy -= 1
-            db.commit()
-            
+        from models.zone import Zone as ZoneModel
+        zone = db.query(ZoneModel).filter(ZoneModel.zone_name == patient.current_zone).with_for_update().first()
+        if zone:
+            zone.current_occupancy = max(0, (zone.current_occupancy or 1) - 1)
+            try:
+                db.commit()
+            except Exception:
+                db.rollback()
+
             # Check if alerts can be resolved
             alert_service = AlertService(db)
             alert_service.check_zone_thresholds(zone)
@@ -399,6 +405,11 @@ async def get_waiting_trend(
 
     now = datetime.now()
     time_label = now.strftime("%H:%M")
+
+    # Evict oldest entries if cache is too large (prevent unbounded growth)
+    if len(_waiting_trends) >= _TREND_MAX_PATIENTS and patient_id not in _waiting_trends:
+        oldest_key = next(iter(_waiting_trends))
+        del _waiting_trends[oldest_key]
 
     # If department changed, reset the patient's trend history
     history = _waiting_trends[patient_id]

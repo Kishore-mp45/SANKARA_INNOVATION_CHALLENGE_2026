@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI - 3D Hospital Navigation</title>
+    <link rel="stylesheet" href="css/style.css?v=200">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        .nav-info-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .nav-info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-info-item .label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-weight: 600;
+        }
+
+        .nav-info-item .value {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .nav-info-item .value.current {
+            color: #22c55e;
+        }
+
+        .nav-info-item .value.next {
+            color: #ef4444;
+        }
+
+        .nav-3d-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        #three-canvas {
+            width: 100%;
+            height: 520px;
+            display: block;
+        }
+
+        .nav-legend {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            padding: 0.85rem 1.25rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+        }
+
+        .nav-controls-hint {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 8px;
+            padding: 0.5rem 0.85rem;
+            font-size: 0.72rem;
+            color: #94a3b8;
+            line-height: 1.5;
+            pointer-events: none;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 1rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+        .btn-back:hover {
+            opacity: 0.85;
+        }
+
+        @media (max-width: 768px) {
+            #three-canvas {
+                height: 380px;
+            }
+
+            .nav-info-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="patient_dashboard.html" class="nav-item"><span class="step-badge">3</span> My Dashboard</a>
+            </li>
+            <li><a href="navigation.html" class="nav-item active"><span class="step-badge">N</span> 3D Navigation</a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <header>
+            <div class="header-title-container">
+                <h1>3D Hospital Navigation</h1>
+                <p class="header-subtitle">Find your way to the next department</p>
+            </div>
+        </header>
+
+        <div class="page-container fade-in">
+            <!-- Back button + info bar -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+                <a href="patient_dashboard.html" class="btn-back">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <span id="patient-id-tag"
+                    style="font-size: 0.8rem; color: var(--text-muted); background: rgba(14,165,233,0.1); padding: 0.35rem 0.75rem; border-radius: 6px; border: 1px solid rgba(14,165,233,0.2);">
+                    <i class="fas fa-id-badge"></i> Loading...
+                </span>
+            </div>
+
+            <!-- Department info bar -->
+            <div class="nav-info-bar" id="nav-info-bar">
+                <div class="nav-info-item">
+                    <i class="fas fa-map-marker-alt" style="color: #22c55e;"></i>
+                    <div>
+                        <div class="label">Current Department</div>
+                        <div class="value current" id="nav-current-dept">Loading...</div>
+                    </div>
+                </div>
+                <div class="nav-info-item">
+                    <i class="fas fa-arrow-right" style="color: var(--text-muted);"></i>
+                    <div></div>
+                </div>
+                <div class="nav-info-item">
+                    <i class="fas fa-flag-checkered" style="color: #ef4444;"></i>
+                    <div>
+                        <div class="label">Next Department</div>
+                        <div class="value next" id="nav-next-dept">Loading...</div>
+                    </div>
+                </div>
+                <div class="nav-info-item">
+                    <i class="fas fa-clock" style="color: #f59e0b;"></i>
+                    <div>
+                        <div class="label">Est. Wait</div>
+                        <div class="value" id="nav-wait-time" style="color: #f59e0b;">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3D Canvas -->
+            <div class="nav-3d-container">
+                <canvas id="three-canvas"></canvas>
+                <div class="nav-controls-hint">
+                    <i class="fas fa-mouse-pointer"></i> Left-drag: Rotate &nbsp;|&nbsp;
+                    Scroll: Zoom &nbsp;|&nbsp;
+                    Right-drag: Pan
+                </div>
+                <div class="nav-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #3b82f6;"></div> Normal Department
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #22c55e;"></div> Current (You are here)
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #ef4444;"></div> Next Department
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #eab308;"></div> Navigation Path
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #10b981;"></div> Completed
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
+    <script src="js/main.js?v=999"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="js/navigation.js?v=1"></script>
+</body>
+
+</html>

@@ -33,6 +33,12 @@
     padding: 0;
 }
 
+/* Accessible focus indicators */
+input:focus, button:focus, a:focus, select:focus, textarea:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
 
 body {
     font-family: var(--font-family);

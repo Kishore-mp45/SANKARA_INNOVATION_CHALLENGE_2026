@@ -8,23 +8,26 @@ const WS_URL = (typeof WS_BASE !== 'undefined' && WS_BASE)
     : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
 let socket = null;
 let reconnectTimer = null;
+let _reconnectAttempts = 0;
+const _MAX_RECONNECT_ATTEMPTS = 10;
+const _BASE_DELAY_MS = 3000;
 
 function connect() {
-    console.log("Connecting to WebSocket...");
     socket = new WebSocket(WS_URL);
 
     socket.onopen = () => {
         console.log("WebSocket Connected.");
-        // Check for connection lost banner and remove it if present
+        _reconnectAttempts = 0; // Reset backoff counter on successful connection
+
+        // Remove connection-lost banner if present
         const banner = document.getElementById('connection-lost-banner');
         if (banner) banner.remove();
 
         // Subscribe to topics
-        const subscribeMsg = {
+        socket.send(JSON.stringify({
             command: "subscribe",
             topics: ["occupancy", "alerts", "metrics"]
-        };
-        socket.send(JSON.stringify(subscribeMsg));
+        }));
     };
 
     socket.onmessage = (event) => {
@@ -37,14 +40,21 @@ function connect() {
     };
 
     socket.onclose = () => {
-        console.warn("WebSocket Disconnected. Reconnecting in 3s...");
-        showConnectionLost();
         socket = null;
-        if (!reconnectTimer) {
-            reconnectTimer = setTimeout(() => {
-                reconnectTimer = null;
-                connect();
-            }, 3000);
+        if (_reconnectAttempts < _MAX_RECONNECT_ATTEMPTS) {
+            const delay = Math.min(_BASE_DELAY_MS * Math.pow(1.5, _reconnectAttempts), 30000);
+            _reconnectAttempts++;
+            console.warn(`WebSocket disconnected. Reconnecting in ${Math.round(delay / 1000)}s (attempt ${_reconnectAttempts}/${_MAX_RECONNECT_ATTEMPTS})...`);
+            showConnectionLost(false);
+            if (!reconnectTimer) {
+                reconnectTimer = setTimeout(() => {
+                    reconnectTimer = null;
+                    connect();
+                }, delay);
+            }
+        } else {
+            console.error("WebSocket: max reconnect attempts reached. Server may be offline.");
+            showConnectionLost(true);
         }
     };
 
@@ -69,22 +79,19 @@ function handleMessage(msg) {
     }
 }
 
-function showConnectionLost() {
-    if (document.getElementById('connection-lost-banner')) return;
-
-    const banner = document.createElement('div');
-    banner.id = 'connection-lost-banner';
-    banner.style.position = 'fixed';
-    banner.style.top = '0';
-    banner.style.left = '0';
-    banner.style.width = '100%';
-    banner.style.background = '#ef4444';
-    banner.style.color = 'white';
-    banner.style.textAlign = 'center';
-    banner.style.padding = '0.5rem';
-    banner.style.zIndex = '9999';
-    banner.textContent = 'Realtime Connection Lost. Reconnecting...';
-    document.body.prepend(banner);
+function showConnectionLost(permanent) {
+    let banner = document.getElementById('connection-lost-banner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'connection-lost-banner';
+        banner.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#ef4444;color:white;text-align:center;padding:0.5rem;z-index:9999;font-size:0.9rem;';
+        document.body.prepend(banner);
+    }
+    if (permanent) {
+        banner.textContent = 'Server offline — realtime updates unavailable. Please refresh the page.';
+    } else {
+        banner.textContent = 'Realtime Connection Lost. Reconnecting...';
+    }
 }
 
 // Start connection on load

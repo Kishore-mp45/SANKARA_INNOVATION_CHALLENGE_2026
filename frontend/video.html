@@ -294,8 +294,8 @@
 
                 <!-- Video Frame (raw mp4 mode) -->
                 <div class="video-frame" id="raw-video-frame">
-                    <video id="dept-video" autoplay loop muted playsinline>
-                        <source id="video-source" src="assets/videos/registration.mp4" type="video/mp4">
+                    <video id="dept-video" autoplay loop muted playsinline
+                           src="assets/videos/registration.mp4">
                     </video>
                     <div class="video-label" id="video-label">Registration</div>
                 </div>
@@ -357,7 +357,6 @@
         // ---- DOM refs ----
         const deptSelect = document.getElementById('dept-select');
         const videoEl = document.getElementById('dept-video');
-        const videoSource = document.getElementById('video-source');
         const videoLabel = document.getElementById('video-label');
         const detectionToggle = document.getElementById('detection-toggle');
         const rawFrame = document.getElementById('raw-video-frame');
@@ -371,13 +370,13 @@
         const statConfidence = document.getElementById('stat-confidence');
 
         const DEPT_MAP = {
-            registration: { video: 'registration.mp4', name: 'Registration' },
-            vision_lab: { video: 'vision_lab.mp4', name: 'Vision Lab' },
-            dilation_hall: { video: 'dilation_hall.mp4', name: 'Dilation Hall' },
-            diagnostics: { video: 'diagnostics.mp4', name: 'Diagnostics' },
-            consultation: { video: 'doctor_consult.mp4', name: 'Doctor Consult' },
-            pharmacy: { video: 'pharmacy.mp4', name: 'Pharmacy' },
-            billing_insurance: { video: 'billing.mp4', name: 'Billing & Insurance' },
+            registration:     { video: 'registration.mp4',   name: 'Registration' },
+            vision_lab:       { video: 'vision_lab.mp4',     name: 'Vision Lab' },
+            dilation_hall:    { video: 'dilation_hall.mp4',  name: 'Dilation Hall' },
+            diagnostics:      { video: 'diagnostics.mp4',    name: 'Diagnostics' },
+            consultation:     { video: 'doctor_consult.mp4', name: 'Doctor Consult' },
+            pharmacy:         { video: 'pharmacy.mp4',       name: 'Pharmacy' },
+            billing_insurance:{ video: 'billing.mp4',        name: 'Billing & Insurance' },
         };
 
         var _currentZone = 'registration';
@@ -385,9 +384,9 @@
         var _statsInterval = null;
 
         // Doctor role: lock to consultation only, hide dropdown
-        var _isDoctor = (localStorage.getItem('currentRole') === 'doctor');
-        var _isStaff = (localStorage.getItem('currentRole') === 'staff');
-        var _userDept = localStorage.getItem('currentDept');
+        var _isDoctor = (sessionStorage.getItem('currentRole') === 'doctor');
+        var _isStaff  = (sessionStorage.getItem('currentRole') === 'staff');
+        var _userDept = sessionStorage.getItem('currentDept');
 
         if (_isDoctor) {
             deptSelect.innerHTML = '<option value="consultation">5. Doctor Consult</option>';
@@ -423,11 +422,12 @@
             const dept = DEPT_MAP[zone];
             if (!dept) return;
             _currentZone = zone;
-            videoSource.src = 'assets/videos/' + dept.video;
-            videoLabel.textContent = dept.name;
+            // Set src directly on the video element (more reliable than swapping <source>)
+            videoEl.src = 'assets/videos/' + dept.video;
             videoEl.load();
-            videoEl.play();
-            try { localStorage.setItem('pp_selected_dept', zone); } catch (e) { }
+            videoEl.play().catch(function () {});
+            videoLabel.textContent = dept.name;
+            try { sessionStorage.setItem('pp_selected_dept', zone); } catch (e) { }
         }
 
         // ---- Detection stream mode ----
@@ -530,7 +530,7 @@
             if (_isDoctor || _isStaff) {
                 switchVideo(_currentZone);
             } else {
-                var saved = localStorage.getItem('pp_selected_dept');
+                var saved = sessionStorage.getItem('pp_selected_dept');
                 if (saved && DEPT_MAP[saved]) {
                     deptSelect.value = saved;
                     _currentZone = saved;
@@ -539,7 +539,7 @@
                     switchVideo(deptSelect.value);
                 }
             }
-        } catch (e) { }
+        } catch (e) { switchVideo('registration'); }
     </script>
 </body>
 

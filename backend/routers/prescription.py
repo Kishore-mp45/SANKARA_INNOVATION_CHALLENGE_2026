@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.prescription import Prescription
 from services.activity_service import ActivityService
+from auth import require_role
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
@@ -28,7 +29,8 @@ class SavePrescriptionRequest(BaseModel):
 
 
 @router.post("/doctor/save-prescription", summary="Save a prescription")
-def save_prescription(body: SavePrescriptionRequest, db: Session = Depends(get_db)):
+def save_prescription(body: SavePrescriptionRequest, db: Session = Depends(get_db),
+                      _user: dict = Depends(require_role("doctor", "admin"))):
     ts = datetime.now()
     if body.timestamp:
         try:

@@ -16,3 +16,6 @@ const API_BASE = PRODUCTION_API_URL || "";
 const WS_BASE = PRODUCTION_API_URL
     ? PRODUCTION_API_URL.replace(/^http/, 'ws')
     : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
+
+// Global timeout for all API fetch calls (10 seconds)
+const API_TIMEOUT_MS = 10000;

@@ -42,6 +42,7 @@ from utils.middleware import (
 )
 
 # Import routers
+from routers.auth import router as auth_router
 from routers.system import router as system_router
 from routers.patients import router as patients_router
 from routers.zones import router as zones_router
@@ -68,13 +69,22 @@ async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
     logger.info(f"Debug mode: {settings.DEBUG}")
     
-    # Initialize database
+    # Initialize database — fall back to SQLite if MySQL is unavailable
     try:
         init_db()
         logger.info("Database initialized successfully")
     except Exception as e:
-        logger.error(f"Database initialization failed: {e}")
-        raise
+        logger.warning(f"MySQL unavailable ({e.__class__.__name__}), falling back to SQLite")
+        # Switch to SQLite
+        import database.database as db_mod
+        from sqlalchemy import create_engine
+        db_path = os.path.join(backend_dir, "patientpath.db")
+        sqlite_url = f"sqlite:///{db_path}"
+        settings.DATABASE_URL = sqlite_url
+        db_mod.engine = create_engine(sqlite_url, connect_args={"check_same_thread": False})
+        db_mod.SessionLocal.configure(bind=db_mod.engine)
+        init_db()
+        logger.info("Database initialized with SQLite fallback")
     
     # Seed initial data if needed
     try:
@@ -138,8 +148,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
     expose_headers=["X-Request-ID", "X-Response-Time"]
 )
 
@@ -204,6 +214,9 @@ async def internal_error_handler(request: Request, exc):
 # ROUTER REGISTRATION
 # =============================================================================
 
+# Auth routes — must be first so login/logout work without token
+app.include_router(auth_router)
+
 # System routes (health check, root)
 app.include_router(system_router)
 
@@ -253,6 +266,10 @@ app.include_router(staff_router)
 # Prescription routes
 from routers.prescription import router as prescription_router
 app.include_router(prescription_router)
+
+# Management report routes
+from routers.reports import router as reports_router
+app.include_router(reports_router)
 
 # Serve frontend static files
 frontend_dir = os.path.join(os.path.dirname(backend_dir), "frontend")

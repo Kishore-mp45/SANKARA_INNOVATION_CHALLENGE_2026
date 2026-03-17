@@ -6,9 +6,12 @@ import asyncio
 import sys
 import os
 
+import logging
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database import get_db
 from services.staff_allocation_service import StaffAllocationService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/analytics", tags=["Staff Allocation"])
 
@@ -43,8 +46,8 @@ async def get_all_staff_recommendations(db: Session = Depends(get_db)):
                         "message": f"{rec['deficit']} staff member{'s' if rec['deficit'] > 1 else ''} needed in {rec['department']}."
                     }
                 }, message_type="alerts")
-    except Exception:
-        pass  # WebSocket broadcast is best-effort
+    except Exception as _ws_err:
+        logger.debug("WebSocket broadcast skipped: %s", _ws_err)
 
     return {"departments": results}
 

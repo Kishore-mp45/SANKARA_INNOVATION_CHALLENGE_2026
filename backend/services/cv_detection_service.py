@@ -70,6 +70,7 @@ class CVDetectionService:
         self._running = False
         self._captures: Dict[str, cv2.VideoCapture] = {}
         self._latest: Dict[str, dict] = {}
+        self._annotated_frames: Dict[str, bytes] = {}  # cached JPEG bytes per zone
         self._lock = threading.Lock()
         self._model_lock = threading.Lock()
         self._interval = 5  # seconds between detection cycles
@@ -154,66 +155,31 @@ class CVDetectionService:
             return
 
         zone_display = ZONE_DISPLAY_NAMES.get(zone_name, zone_name)
-        logger.info("Stream started for zone: %s", zone_name)
+        logger.info("Stream started for zone: %s (serving cached frames)", zone_name)
 
+        # Stream serves the last annotated frame produced by the detection loop.
+        # This eliminates duplicate inference and removes the model-lock bottleneck.
         try:
             while self._running:
-                ret, frame = cap.read()
-                if not ret:
-                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                with self._lock:
+                    frame_bytes = self._annotated_frames.get(zone_name)
+
+                if frame_bytes:
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+                else:
+                    # Detection hasn't run yet; serve a placeholder frame from video
                     ret, frame = cap.read()
                     if not ret:
-                        break
-
-                # Run YOLOv8 inference with model lock for thread safety
-                people_count = 0
-                try:
-                    with self._model_lock:
-                        results = self.model(frame, classes=[PERSON_CLASS_ID], verbose=False)
-                    boxes = results[0].boxes
-                    people_count = len(boxes)
-
-                    # Draw bounding boxes (green, no unique IDs)
-                    for box in boxes:
-                        x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-                        conf = float(box.conf[0])
-
-                        # Green bounding box
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-
-                        # Confidence label (no ID)
-                        label = f"{conf:.0%}"
-                        (tw, th), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-                        cv2.rectangle(frame, (x1, y1 - th - 8), (x1 + tw + 6, y1), (0, 255, 0), -1)
-                        cv2.putText(frame, label, (x1 + 3, y1 - 5),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
-
-                except Exception as e:
-                    logger.error("Stream inference error for %s: %s", zone_name, e)
-
-                # Top overlay bar - zone name + count
-                h, w = frame.shape[:2]
-                overlay = frame.copy()
-                cv2.rectangle(overlay, (0, 0), (w, 40), (0, 0, 0), -1)
-                cv2.addWeighted(overlay, 0.7, frame, 0.3, 0, frame)
-
-                cv2.putText(frame, f"{zone_display}", (10, 28),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2, cv2.LINE_AA)
-
-                count_text = f"Detected: {people_count}"
-                (ctw, _), _ = cv2.getTextSize(count_text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
-                cv2.putText(frame, count_text, (w - ctw - 10, 28),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2, cv2.LINE_AA)
-
-                # LIVE indicator
-                cv2.circle(frame, (w - 15, 55), 6, (0, 0, 255), -1)
-                cv2.putText(frame, "LIVE", (w - 60, 60),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
-
-                # Encode frame to JPEG
-                _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+                        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                        ret, frame = cap.read()
+                    if ret:
+                        h, w = frame.shape[:2]
+                        cv2.putText(frame, f"{zone_display} — Loading...", (10, 28),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 200, 200), 2)
+                        _, buf = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
+                        yield (b'--frame\r\n'
+                               b'Content-Type: image/jpeg\r\n\r\n' + buf.tobytes() + b'\r\n')
 
                 time.sleep(1 / 12)  # ~12 FPS
 
@@ -249,18 +215,49 @@ class CVDetectionService:
                     # Run YOLOv8 inference with model lock
                     with self._model_lock:
                         results = self.model(frame, classes=[PERSON_CLASS_ID], verbose=False)
-                    boxes = results[0].boxes
+                    all_boxes = results[0].boxes
+
+                    # Filter detections by minimum confidence threshold
+                    MIN_CONFIDENCE = 0.50
+                    boxes = [b for b in all_boxes if float(b.conf[0]) >= MIN_CONFIDENCE] if all_boxes is not None else []
 
                     people_count = len(boxes)
-                    avg_confidence = float(boxes.conf.mean()) if people_count > 0 else 0.0
+                    avg_confidence = float(sum(float(b.conf[0]) for b in boxes) / people_count) if people_count > 0 else 0.0
 
-                    # Store latest result
+                    # Annotate frame for streaming (draw boxes)
+                    annotated = frame.copy()
+                    for b in boxes:
+                        x1, y1, x2, y2 = map(int, b.xyxy[0].tolist())
+                        conf = float(b.conf[0])
+                        cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                        label = f"{conf:.0%}"
+                        (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+                        cv2.rectangle(annotated, (x1, y1 - th - 8), (x1 + tw + 6, y1), (0, 255, 0), -1)
+                        cv2.putText(annotated, label, (x1 + 3, y1 - 5),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                    # Overlay zone info
+                    h, w = annotated.shape[:2]
+                    cv2.rectangle(annotated, (0, 0), (w, 40), (0, 0, 0), -1)
+                    zone_display = ZONE_DISPLAY_NAMES.get(zone_name, zone_name)
+                    cv2.putText(annotated, zone_display, (10, 28),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2, cv2.LINE_AA)
+                    count_text = f"Detected: {people_count}"
+                    (ctw, _2), _ = cv2.getTextSize(count_text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
+                    cv2.putText(annotated, count_text, (w - ctw - 10, 28),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2, cv2.LINE_AA)
+                    cv2.circle(annotated, (w - 15, 55), 6, (0, 0, 255), -1)
+                    cv2.putText(annotated, "LIVE", (w - 60, 60),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+                    _, buf = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 75])
+
+                    # Store latest result + cached frame
                     with self._lock:
                         self._latest[zone_name] = {
                             "count": people_count,
                             "confidence": round(avg_confidence, 3),
                             "timestamp": datetime.now().isoformat(),
                         }
+                        self._annotated_frames[zone_name] = buf.tobytes()
 
                     # Update database
                     self._update_zone_occupancy(zone_name, people_count, avg_confidence)

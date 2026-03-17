@@ -41,12 +41,16 @@ class RiskEngine:
     MAX_STAFF_DEFICIT = 5.0
     MAX_EXIT_RATE = 25.0       # patients/hour
 
-    # Risk score weights
-    W_WAITING   = 0.30
+    # Risk score weights (must sum to 1.0)
+    W_WAITING    = 0.30
     W_BOTTLENECK = 0.25
-    W_ARRIVAL   = 0.20
-    W_STAFF     = 0.15
-    W_EXIT      = 0.10
+    W_ARRIVAL    = 0.15  # reduced to give more weight to exit slowdown
+    W_STAFF      = 0.15
+    W_EXIT       = 0.15  # increased: a zone with 0 exits is a strong risk signal
+
+    # Hysteresis state — prevent alert flapping on small value changes
+    _last_severity: Dict[str, str] = {}
+    _severity_streak: Dict[str, int] = {}
 
     # Severity icons
     SEVERITY_ICONS = {
@@ -182,6 +186,7 @@ class RiskEngine:
             staff_deficit=staff_deficit,
             predicted_arrival_rate=predicted_arrival_rate,
             bn_class_id=bn_class_id,
+            zone_name=zone_name,
         )
 
         # ---- Compute risk score (0 – 100) ----
@@ -212,7 +217,7 @@ class RiskEngine:
         }
 
     @classmethod
-    def _classify_severity(
+    def _raw_classify_severity(
         cls,
         bottleneck_prob: float,
         predicted_waiting: float,
@@ -221,20 +226,7 @@ class RiskEngine:
         predicted_arrival_rate: float,
         bn_class_id: int,
     ) -> str:
-        """
-        CRITICAL (🔴):
-            bottleneck probability > 0.8
-            OR waiting time very high (above department threshold)
-            AND staff deficit >= 2
-
-        WARNING (🟡):
-            arrival rate increasing (> 50% of max)
-            OR moderate waiting time (> 70% of threshold)
-            OR staff deficit = 1
-
-        INFO (🔵):
-            system operating normally
-        """
+        """Raw severity classification without hysteresis."""
         # --- CRITICAL conditions ---
         if bottleneck_prob > 0.8 and staff_deficit >= 2:
             return "CRITICAL"
@@ -242,7 +234,6 @@ class RiskEngine:
             return "CRITICAL"
         if bn_class_id == 2 and staff_deficit >= 2:
             return "CRITICAL"
-        # Also critical if bottleneck severe regardless of staff but very high wait
         if bn_class_id == 2 and predicted_waiting > wait_threshold:
             return "CRITICAL"
 
@@ -258,6 +249,45 @@ class RiskEngine:
 
         # --- INFO ---
         return "INFO"
+
+    @classmethod
+    def _classify_severity(
+        cls,
+        bottleneck_prob: float,
+        predicted_waiting: float,
+        wait_threshold: float,
+        staff_deficit: int,
+        predicted_arrival_rate: float,
+        bn_class_id: int,
+        zone_name: str = "",
+    ) -> str:
+        """
+        Severity classification with hysteresis to prevent alert flapping.
+        A new severity level is only adopted after 2 consecutive identical readings.
+
+        CRITICAL (🔴): severe bottleneck + staff shortage, or very high wait + no staff
+        WARNING  (🟡): elevated load, high arrivals, or mild staff deficit
+        INFO     (🔵): operating normally
+        """
+        new_severity = cls._raw_classify_severity(
+            bottleneck_prob, predicted_waiting, wait_threshold,
+            staff_deficit, predicted_arrival_rate, bn_class_id
+        )
+
+        if not zone_name:
+            return new_severity
+
+        last = cls._last_severity.get(zone_name, new_severity)
+        if new_severity == last:
+            cls._severity_streak[zone_name] = cls._severity_streak.get(zone_name, 0) + 1
+        else:
+            cls._severity_streak[zone_name] = 1
+
+        # Adopt new severity only after 2 consecutive identical readings (hysteresis)
+        if cls._severity_streak.get(zone_name, 0) >= 2:
+            cls._last_severity[zone_name] = new_severity
+
+        return cls._last_severity.get(zone_name, new_severity)
 
     @classmethod
     def _compute_risk_score(

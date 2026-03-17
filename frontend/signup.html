@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+<!-- PatientPath AI — Demo Credentials -->
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PatientPath AI - Sign Up</title>
-    <link rel="stylesheet" href="css/style.css?v=4.0">
+    <title>PatientPath AI - Demo Accounts</title>
+    <script src="js/theme.js?v=2"></script>
+    <link rel="stylesheet" href="css/style.css?v=2">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
@@ -14,355 +16,229 @@
             justify-content: center;
             min-height: 100vh;
             background: var(--bg-color);
-            margin: 0;
+            overflow: auto;
+            flex-direction: column;
         }
 
-        .login-card {
+        .signup-card {
             background: var(--card-bg);
-            padding: 2.5rem;
-            border-radius: 1rem;
             border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
             width: 100%;
-            max-width: 400px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            text-align: center;
+            max-width: 520px;
+            overflow: hidden;
+            margin: 1.5rem;
         }
 
-        .brand-logo {
-            margin-bottom: 2rem;
-            color: var(--text-color);
+        .card-header {
+            background: var(--primary-color);
+            padding: 1.75rem 2rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 0.875rem;
+        }
+
+        .card-header-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .card-header h1 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 0.15rem;
+        }
+
+        .card-header p {
+            font-size: 0.82rem;
+            opacity: 0.8;
+            color: white;
+        }
+
+        .card-body {
+            padding: 1.75rem 2rem 2rem;
+        }
+
+        .info-note {
+            background: rgba(14,165,233,0.08);
+            border: 1px solid rgba(14,165,233,0.2);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.83rem;
+            color: var(--primary-color);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .creds-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+            margin-bottom: 1.75rem;
+        }
+
+        .creds-table thead tr {
+            background: var(--hover-bg, rgba(255,255,255,0.05));
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .creds-table th {
+            padding: 0.625rem 0.875rem;
+            text-align: left;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .creds-table td {
+            padding: 0.7rem 0.875rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        .creds-table tbody tr:last-child td { border-bottom: none; }
+
+        .creds-table tbody tr:hover { background: var(--hover-bg, rgba(255,255,255,0.04)); }
+
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .role-badge.admin   { background: rgba(14,165,233,0.15);  color: #0ea5e9; }
+        .role-badge.staff   { background: rgba(168,85,247,0.15);  color: #a855f7; }
+        .role-badge.doctor  { background: rgba(34,197,94,0.15);   color: #22c55e; }
+        .role-badge.patient { background: rgba(251,191,36,0.15);  color: #f59e0b; }
+
+        .code-text {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            background: var(--hover-bg, rgba(255,255,255,0.07));
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-go-login {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
-
-        .form-group {
-            margin-bottom: 1.25rem;
-            text-align: left;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-
-        select,
-        input {
             width: 100%;
-            padding: 0.75rem;
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            color: var(--text-color);
-            font-size: 1rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        select:focus,
-        input:focus {
-            border-color: var(--primary-color);
-        }
-
-        .btn-auth {
-            width: 100%;
-            padding: 0.75rem;
+            padding: 0.7rem;
             background: var(--primary-color);
             color: white;
             border: none;
             border-radius: 0.5rem;
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
-            transition: opacity 0.2s;
-            margin-top: 1rem;
-        }
-
-        .btn-auth:hover {
-            opacity: 0.9;
-        }
-
-        .auth-link {
-            margin-top: 1.5rem;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        .auth-link a {
-            color: var(--primary-color);
             text-decoration: none;
-            font-weight: 500;
+            transition: background 0.2s;
+            font-family: inherit;
         }
 
-        .auth-link a:hover {
-            text-decoration: underline;
-        }
+        .btn-go-login:hover { background: var(--primary-hover, #0284c7); }
 
-        .error-msg {
-            color: #ef4444;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-            display: none;
-        }
-
-        .success-msg {
-            color: #10b981;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-            display: none;
-        }
-
-        /* Password wrapper for eye toggle */
-        .pw-wrapper {
-            position: relative;
-        }
-
-        .pw-wrapper input {
-            padding-right: 2.75rem;
-        }
-
-        .pw-toggle {
-            position: absolute;
-            right: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 0;
-            font-size: 1rem;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-        }
-
-        .pw-toggle:hover {
-            color: var(--primary-color);
-        }
-
-        /* Password requirements */
-        .pw-requirements {
-            margin-top: 0.6rem;
-            padding: 0;
-            list-style: none;
-        }
-
-        .pw-req-item {
-            font-size: 0.78rem;
-            padding: 0.15rem 0;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            color: var(--text-muted);
-            transition: color 0.2s;
-        }
-
-        .pw-req-item i {
-            font-size: 0.7rem;
-            width: 14px;
+        .back-link {
             text-align: center;
+            margin-top: 1rem;
+            font-size: 0.83rem;
+            color: var(--text-muted);
         }
 
-        .pw-req-item.met {
-            color: #10b981;
+        .back-link a {
+            color: var(--primary-color);
+            font-weight: 600;
+            text-decoration: none;
         }
 
-        .pw-req-item.unmet {
-            color: #ef4444;
-        }
+        .back-link a:hover { text-decoration: underline; }
     </style>
 </head>
 
 <body>
-
-    <div class="login-card fade-in">
-        <div class="brand-logo">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
-            <span>PatientPath AI</span>
-        </div>
-
-        <h3 style="margin-bottom: 1.5rem; color: var(--text-color);">Create Account</h3>
-
-        <div class="form-group">
-            <label for="role-select">Select Role</label>
-            <select id="role-select" onchange="updateLabels()">
-                <option value="admin">Admin</option>
-                <option value="doctor">Doctor</option>
-                <option value="staff">Staff</option>
-                <option value="patient">Patient</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label id="id-label" for="user-id">Admin ID</label>
-            <input type="text" id="user-id" placeholder="Enter ID (e.g., ADM001)">
-        </div>
-
-        <div class="form-group">
-            <label for="password">Password</label>
-            <div class="pw-wrapper">
-                <input type="password" id="password" placeholder="Create a password" oninput="validatePasswordLive()">
-                <button type="button" class="pw-toggle" onclick="togglePassword()" title="Show/Hide password">
-                    <i class="fas fa-eye" id="pw-eye-icon"></i>
-                </button>
+    <div class="signup-card fade-in">
+        <div class="card-header">
+            <div class="card-header-icon">
+                <i class="fas fa-user-shield"></i>
             </div>
-            <ul class="pw-requirements" id="pw-requirements">
-                <li class="pw-req-item" id="req-length"><i class="fas fa-circle"></i> Minimum 8 characters</li>
-                <li class="pw-req-item" id="req-upper"><i class="fas fa-circle"></i> At least one uppercase letter (A-Z)</li>
-                <li class="pw-req-item" id="req-lower"><i class="fas fa-circle"></i> At least one lowercase letter (a-z)</li>
-                <li class="pw-req-item" id="req-number"><i class="fas fa-circle"></i> At least one number (0-9)</li>
-                <li class="pw-req-item" id="req-symbol"><i class="fas fa-circle"></i> At least one symbol (!@#$%&*)</li>
-            </ul>
+            <div>
+                <h1>Demo Accounts</h1>
+                <p>PatientPath AI — Available credentials</p>
+            </div>
         </div>
 
-        <button class="btn-auth" onclick="handleSignup()">Sign Up</button>
+        <div class="card-body">
+            <div class="info-note">
+                <i class="fas fa-info-circle" style="margin-top:1px; flex-shrink:0;"></i>
+                <span>
+                    PatientPath AI uses pre-configured demo accounts for evaluation.
+                    Select any account below and use its credentials on the login screen.
+                </span>
+            </div>
 
-        <div id="message-area" style="min-height: 20px;">
-            <p class="error-msg" id="error-text"></p>
-            <p class="success-msg" id="success-text"></p>
-        </div>
+            <table class="creds-table">
+                <thead>
+                    <tr>
+                        <th>Role</th>
+                        <th>User ID</th>
+                        <th>Password</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="role-badge admin"><i class="fas fa-crown" style="font-size:0.65rem;"></i> Admin</span></td>
+                        <td><span class="code-text">admin001</span></td>
+                        <td><span class="code-text">Admin@123</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="role-badge staff"><i class="fas fa-id-badge" style="font-size:0.65rem;"></i> Staff</span></td>
+                        <td><span class="code-text">staff001</span></td>
+                        <td><span class="code-text">Staff@123</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="role-badge doctor"><i class="fas fa-stethoscope" style="font-size:0.65rem;"></i> Doctor</span></td>
+                        <td><span class="code-text">doctor001</span></td>
+                        <td><span class="code-text">Doctor@123</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="role-badge patient"><i class="fas fa-user" style="font-size:0.65rem;"></i> Patient</span></td>
+                        <td><span class="code-text">patient001</span></td>
+                        <td><span class="code-text">Patient@123</span></td>
+                    </tr>
+                </tbody>
+            </table>
 
-        <div class="auth-link">
-            Already have an account? <a href="login.html">Login here</a>
+            <a href="login.html" class="btn-go-login">
+                <i class="fas fa-sign-in-alt"></i> Go to Login
+            </a>
+
+            <p class="back-link">
+                Already have your credentials? <a href="login.html">Sign in here</a>
+            </p>
         </div>
     </div>
-
-    <script src="js/theme.js?v=999"></script>
-    <script>
-        function updateLabels() {
-            const role = document.getElementById('role-select').value;
-            const label = document.getElementById('id-label');
-            const placeholder = document.getElementById('user-id');
-
-            const config = {
-                admin: { label: 'Admin ID', ph: 'Enter Admin ID' },
-                doctor: { label: 'Doctor ID', ph: 'Enter Doctor ID' },
-                staff: { label: 'Staff ID', ph: 'Enter Staff ID' },
-                patient: { label: 'Patient ID', ph: 'Enter Patient ID' }
-            };
-
-            label.textContent = config[role].label;
-            placeholder.placeholder = config[role].ph;
-        }
-
-        function togglePassword() {
-            const pwInput = document.getElementById('password');
-            const eyeIcon = document.getElementById('pw-eye-icon');
-            if (pwInput.type === 'password') {
-                pwInput.type = 'text';
-                eyeIcon.classList.remove('fa-eye');
-                eyeIcon.classList.add('fa-eye-slash');
-            } else {
-                pwInput.type = 'password';
-                eyeIcon.classList.remove('fa-eye-slash');
-                eyeIcon.classList.add('fa-eye');
-            }
-        }
-
-        function checkPasswordRules(password) {
-            return {
-                length: password.length >= 8,
-                upper: /[A-Z]/.test(password),
-                lower: /[a-z]/.test(password),
-                number: /[0-9]/.test(password),
-                symbol: /[^A-Za-z0-9]/.test(password)
-            };
-        }
-
-        function updateRequirementUI(rules, highlight) {
-            const map = {
-                length: 'req-length',
-                upper: 'req-upper',
-                lower: 'req-lower',
-                number: 'req-number',
-                symbol: 'req-symbol'
-            };
-            for (const [key, elId] of Object.entries(map)) {
-                const el = document.getElementById(elId);
-                const icon = el.querySelector('i');
-                el.classList.remove('met', 'unmet');
-                if (rules[key]) {
-                    el.classList.add('met');
-                    icon.className = 'fas fa-check-circle';
-                } else if (highlight) {
-                    el.classList.add('unmet');
-                    icon.className = 'fas fa-times-circle';
-                } else {
-                    icon.className = 'fas fa-circle';
-                }
-            }
-        }
-
-        function validatePasswordLive() {
-            const password = document.getElementById('password').value;
-            const rules = checkPasswordRules(password);
-            // Show green checks as user types, but don't show red until they try to submit
-            updateRequirementUI(rules, false);
-        }
-
-        function handleSignup() {
-            const role = document.getElementById('role-select').value;
-            const userId = document.getElementById('user-id').value.trim();
-            const password = document.getElementById('password').value.trim();
-            const errorEl = document.getElementById('error-text');
-            const successEl = document.getElementById('success-text');
-
-            errorEl.style.display = 'none';
-            successEl.style.display = 'none';
-
-            if (!userId || !password) {
-                errorEl.textContent = "Please fill in all fields.";
-                errorEl.style.display = 'block';
-                return;
-            }
-
-            // Validate password strength
-            const rules = checkPasswordRules(password);
-            const allMet = Object.values(rules).every(v => v);
-            updateRequirementUI(rules, true); // Highlight unmet in red
-
-            if (!allMet) {
-                errorEl.textContent = "Password does not meet the requirements.";
-                errorEl.style.display = 'block';
-                return;
-            }
-
-            // Get existing users
-            const users = JSON.parse(localStorage.getItem('ppa_users') || '{}');
-
-            // Check if ID already exists
-            if (users[userId]) {
-                errorEl.textContent = "ID already registered. Please login.";
-                errorEl.style.display = 'block';
-                return;
-            }
-
-            // Save user
-            users[userId] = {
-                role: role,
-                password: password
-            };
-            localStorage.setItem('ppa_users', JSON.stringify(users));
-
-            successEl.textContent = "Account created successfully! Redirecting...";
-            successEl.style.display = 'block';
-
-            setTimeout(() => {
-                window.location.href = 'login.html';
-            }, 1000);
-        }
-
-        // Initialize
-        updateLabels();
-    </script>
 </body>
 
 </html>
