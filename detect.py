@@ -32,10 +32,10 @@ SEND_INTERVAL = 5  # seconds between backend updates
 # Department definitions (press 1-7 to switch)
 DEPARTMENTS = [
     {"name": "Registration",        "zone": "registration",      "video": "registration.mp4"},
-    {"name": "Vision Lab",          "zone": "vision_lab",        "video": "vision.mp4"},
-    {"name": "Dilation Hall",       "zone": "dilation_hall",     "video": "dilation.mp4"},
+    {"name": "Vision Lab",          "zone": "vision_lab",        "video": "vision_lab.mp4"},
+    {"name": "Dilation Hall",       "zone": "dilation_hall",     "video": "dilation_hall.mp4"},
     {"name": "Diagnostics",         "zone": "diagnostics",       "video": "diagnostics.mp4"},
-    {"name": "Doctor Consult",      "zone": "consultation",      "video": "consultation.mp4"},
+    {"name": "Doctor Consult",      "zone": "consultation",      "video": "doctor_consult.mp4"},
     {"name": "Pharmacy",            "zone": "pharmacy",          "video": "pharmacy.mp4"},
     {"name": "Billing & Insurance", "zone": "billing_insurance", "video": "billing.mp4"},
 ]
@@ -185,7 +185,8 @@ def main():
                     break
                 print(f"[LIVE] {DEPARTMENTS[current_dept]['name']}")
 
-    cap.release()
+    if cap is not None:
+        cap.release()
     cv2.destroyAllWindows()
     print("\n[STOPPED] Detection tracker closed.")
 

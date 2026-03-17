@@ -175,60 +175,41 @@
             ], { duration: 300 });
         }
 
-        // Store latest zone data (merged from HTTP + WebSocket)
-        let latestZoneData = {};
-
-        // Buffer WebSocket updates into latestZoneData
+        // Direct WebSocket updates
         document.addEventListener('occupancy-update', (e) => {
             const data = e.detail;
             if (zones.includes(data.zone)) {
-                latestZoneData[data.zone] = { count: data.count, timestamp: data.timestamp };
+                // Instantly update the card when WebSocket event fires
+                createZoneCard(data.zone, data.count, data.timestamp || 'Now');
             }
         });
 
         renderInitialZones();
 
-        // Continuous sequential updater - walks through departments one-by-one
-        let currentIndex = 0;
-        let stepTimer = null;
-
-        function stepNext() {
-            const zone = zones[currentIndex];
-            if (latestZoneData[zone]) {
-                createZoneCard(zone, latestZoneData[zone].count, latestZoneData[zone].timestamp || 'Now');
-            }
-            // Move to next department, loop back to first after last
-            currentIndex = (currentIndex + 1) % zones.length;
-            stepTimer = setTimeout(stepNext, 2000);
-        }
-
-        // Fetch fresh data from backend and restart sequence from Registration
-        async function fetchAndRestart() {
+        // Fetch fresh data from backend and update all zones instantly
+        async function fetchAllZones() {
             try {
                 const res = await fetch(API_BASE + '/detection/latest');
                 if (res.ok) {
                     const data = await res.json();
                     const fetchedZones = data.zones || {};
-                    // Merge fetched data into latestZoneData
-                    for (const zone in fetchedZones) {
-                        latestZoneData[zone] = fetchedZones[zone];
+                    // Update all zones simultaneously
+                    for (const zone of zones) {
+                        if (fetchedZones[zone]) {
+                            createZoneCard(zone, fetchedZones[zone].count, fetchedZones[zone].timestamp || 'Now');
+                        }
                     }
                 }
             } catch (e) {
                 console.warn('Could not fetch detection data:', e);
             }
-
-            // Restart sequence from Registration
-            currentIndex = 0;
-            if (stepTimer) clearTimeout(stepTimer);
-            stepNext();
         }
 
-        // Initial fetch and start
-        fetchAndRestart();
+        // Initial fetch
+        fetchAllZones();
 
-        // Re-fetch fresh data every 14 seconds and restart sequence from front
-        setInterval(fetchAndRestart, 14000);
+        // Re-fetch fresh data every 5 seconds
+        setInterval(fetchAllZones, 5000);
     </script>
 </body>
 

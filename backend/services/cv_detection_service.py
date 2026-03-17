@@ -31,10 +31,10 @@ except ImportError:
 # Zone name -> video filename mapping
 ZONE_VIDEO_MAP = {
     "registration": "registration.mp4",
-    "consultation": "consultation.mp4",
+    "consultation": "doctor_consult.mp4",
     "diagnostics": "diagnostics.mp4",
-    "vision_lab": "vision.mp4",
-    "dilation_hall": "dilation.mp4",
+    "vision_lab": "vision_lab.mp4",
+    "dilation_hall": "dilation_hall.mp4",
     "pharmacy": "pharmacy.mp4",
     "billing_insurance": "billing.mp4",
 }
