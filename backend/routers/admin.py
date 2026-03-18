@@ -334,3 +334,82 @@ async def get_staff_activity_logs(
 
     all_logs.sort(key=lambda x: x["timestamp"], reverse=True)
     return {"logs": all_logs[:limit]}
+
+@router.get("/resources/status")
+async def get_resource_status():
+    """
+    Returns realistic, deterministic resource allocation data.
+    Instead of jumping randomly every second, this uses the current hour 
+    and a 15-minute bucket as a seed to generate stable numbers that trend slowly.
+    """
+    now = datetime.now()
+    # Create a stable seed based on the current 15-minute interval
+    seed_val = now.day * 100 + now.hour * 10 + (now.minute // 15)
+    
+    # Use standard library random with a seed for stable dummy data
+    import random
+    rng = random.Random(seed_val)
+    
+    totalBeds = 120
+    # Base beds trend down during the day, up at night (rough simulation)
+    base_beds = 40 if now.hour < 8 or now.hour > 20 else 20
+    availBeds = base_beds + rng.randint(-10, 10)
+    availBeds = max(5, min(availBeds, totalBeds))
+
+    totalRooms = 25
+    base_rooms = 5 if now.hour < 8 or now.hour > 20 else 18
+    busyRooms = base_rooms + rng.randint(-3, 3)
+    busyRooms = max(0, min(busyRooms, totalRooms))
+
+    totalDoctors = 18
+    base_docs = 14 if now.hour > 8 and now.hour < 18 else 4
+    freeDoctors = base_docs + rng.randint(-2, 2)
+    freeDoctors = max(0, min(freeDoctors, totalDoctors))
+
+    totalStaff = 35
+    base_staff = 25 if now.hour > 8 and now.hour < 18 else 10
+    freeStaff = base_staff + rng.randint(-4, 4)
+    freeStaff = max(0, min(freeStaff, totalStaff))
+
+    totalEquip = 40
+    base_equip = 30 if now.hour > 8 and now.hour < 18 else 15
+    activeEquip = base_equip + rng.randint(-5, 5)
+    activeEquip = max(0, min(activeEquip, totalEquip))
+    equipUsage = int((activeEquip / totalEquip) * 100)
+    
+    # Generate 10 previous data points for the frontend sparklines
+    # by simulating the previous 10 15-minute intervals
+    trend_beds = []
+    trend_rooms = []
+    trend_staff = []
+    
+    # helper for historical simulation
+    def get_hist_val(h, m, base_val, variation):
+        seed = now.day * 100 + h * 10 + (m // 15)
+        r = random.Random(seed)
+        return max(0, base_val + r.randint(-variation, variation))
+        
+    for i in range(10, 0, -1):
+        hist_time = now - timedelta(minutes=15 * i)
+        th = hist_time.hour
+        tm = hist_time.minute
+        
+        hb = 40 if th < 8 or th > 20 else 20
+        hr = 5 if th < 8 or th > 20 else 18
+        hs = 25 if th > 8 and th < 18 else 10
+        
+        trend_beds.append(get_hist_val(th, tm, hb, 10))
+        trend_rooms.append(get_hist_val(th, tm, hr, 3))
+        trend_staff.append(get_hist_val(th, tm, hs, 4))
+        
+    trend_beds.append(availBeds)
+    trend_rooms.append(busyRooms)
+    trend_staff.append(freeStaff)
+
+    return {
+        "beds": {"available": availBeds, "total": totalBeds, "trend": trend_beds},
+        "rooms": {"busy": busyRooms, "total": totalRooms, "trend": trend_rooms},
+        "doctors": {"free": freeDoctors, "total": totalDoctors},
+        "staff": {"free": freeStaff, "total": totalStaff, "trend": trend_staff},
+        "equipment": {"usage_percent": equipUsage, "active": activeEquip, "total": totalEquip}
+    }

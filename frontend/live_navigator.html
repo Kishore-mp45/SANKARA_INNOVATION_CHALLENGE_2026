@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientPath AI – Clinical Navigator</title>
+    <link rel="stylesheet" href="css/style.css?v=999">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; margin: 0; background: #0f172a; color: white; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* ── Container ── */
+        .map-viewport {
+            width: 100%; height: 100%;
+            position: relative; overflow: hidden;
+            background: #dbe4e4; /* Aesthetic light grey-green matches ref */
+        }
+
+        /* ── Floating Overlays (UI) ── */
+        .floating-layer {
+            position: absolute; inset: 0; pointer-events: none; z-index: 100;
+            padding: 2rem; display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        .overlay-panel {
+            pointer-events: auto; background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            padding: 1.5rem; color: #334155;
+        }
+
+        .top-section { display: flex; flex-direction: column; gap: 1rem; align-items: flex-start; }
+        .title-area h1 { font-size: 1.6rem; color: #1e293b; margin: 0 0 0.2rem 0; font-weight: 700; }
+        .title-area p { font-size: 1rem; color: #475569; margin: 0; font-weight: 500; }
+
+        .nav-card { min-width: 300px; }
+        .timeline-step { position: relative; padding-left: 1.8rem; margin-bottom: 1.2rem; }
+        .timeline-step:last-child { margin-bottom: 0; }
+        .timeline-dot { position: absolute; left: 0; top: 5px; width: 12px; height: 12px; border-radius: 50%; }
+        .dot-blue { background: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+        .dot-green { background: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
+        .timeline-connector { position: absolute; left: 5px; top: 22px; bottom: -15px; width: 2px;
+            background: repeating-linear-gradient(to bottom, #cbd5e1 0, #cbd5e1 3px, transparent 3px, transparent 6px); }
+        .step-label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; margin-bottom: 0.2rem; }
+        .step-title { font-size: 1.1rem; font-weight: 600; color: #1e293b; }
+
+        .legend-card { display: flex; flex-direction: column; gap: 0.6rem; min-width: 180px; }
+        .legend-item { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; font-weight: 500; }
+        .legend-swatch { width: 18px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.1); }
+
+        /* ── Isometric Map ── */
+        .map-relative-container {
+            position: absolute; width: 1000px; height: 1000px;
+            left: 50%; top: 50%; margin-left: -500px; margin-top: -500px;
+            pointer-events: auto;
+        }
+
+        .isometric-wrapper {
+            position: absolute; inset: 0;
+            transform: scale(0.7) scaleY(0.5) rotateZ(-45deg); /* 2D isometric */
+            transition: transform 0.3s;
+            transform-origin: center center;
+        }
+
+        @media (max-width: 1200px) { .isometric-wrapper { transform: scale(0.55) scaleY(0.5) rotateZ(-45deg); } }
+        @media (max-width: 900px) { .isometric-wrapper { transform: scale(0.4) scaleY(0.5) rotateZ(-45deg); } }
+
+        /* The Ground Floor Base */
+        .floor-base {
+            position: absolute; inset: 0; background: #e2e8e3;
+            border-radius: 20px; border: 3px solid #cbd5e1;
+            /* Thin floor shadow */
+            box-shadow: 
+                -1px 1px 0 #94a3b8, -2px 2px 0 #94a3b8, -3px 3px 0 #94a3b8, 
+                -10px 10px 20px rgba(0,0,0,0.1);
+            background-image: linear-gradient(#cbd5e1 1px, transparent 1px), linear-gradient(90deg, #cbd5e1 1px, transparent 1px);
+            background-size: 50px 50px; /* Floor tiles */
+        }
+
+        /* ── 3D Reconstructed Rooms ── */
+        .room {
+            position: absolute;
+            border-radius: 6px;
+            border-top: 2px solid rgba(255,255,255,0.7);
+            border-left: 2px solid rgba(255,255,255,0.7);
+            border-bottom: 2px solid rgba(0,0,0,0.05);
+            border-right: 2px solid rgba(0,0,0,0.05);
+            /* Massive shadow builds the 3D 'walls' */
+            box-shadow: 
+                -1px 1px 0 var(--wall), -2px 2px 0 var(--wall), -3px 3px 0 var(--wall),
+                -4px 4px 0 var(--wall), -5px 5px 0 var(--wall), -6px 6px 0 var(--wall),
+                -7px 7px 0 var(--wall), -8px 8px 0 var(--wall), -9px 9px 0 var(--wall),
+                -10px 10px 0 var(--wall), -11px 11px 0 var(--wall), -12px 12px 0 var(--wall),
+                -13px 13px 0 var(--wall), -14px 14px 0 var(--wall), -15px 15px 0 var(--wall),
+                -16px 16px 0 var(--wall), -17px 17px 0 var(--wall), -18px 18px 0 var(--wall),
+                -19px 19px 0 var(--wall), -20px 20px 0 var(--wall), -21px 21px 0 var(--wall),
+                -25px 25px 15px rgba(0,0,0,0.15);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Department Palettes - matching the aesthetic */
+        .dept-registration { --wall: #bae6fd; background: #e0f2fe; } /* Blueish */
+        .dept-vision { --wall: #bbf7d0; background: #dcfce7; } /* Greenish */
+        .dept-dilation { --wall: #fde68a; background: #fef3c7; } /* Yellowish */
+        .dept-diagnostics { --wall: #ddd6fe; background: #ede9fe; } /* Purpleish */
+        .dept-consultation { --wall: #fbcfe8; background: #fce7f3; } /* Pinkish */
+        .dept-pharmacy { --wall: #fed7aa; background: #ffedd5; } /* Orange */
+        .dept-billing { --wall: #99f6e4; background: #ccfbf1; } /* Teal */
+
+        /* Placing the 7 rooms on the 1000x1000 map. 100px corridors logic */
+        #room-consultation { left: 50px; top: 50px; width: 400px; height: 350px; }
+        #room-diagnostics { left: 550px; top: 50px; width: 400px; height: 350px; }
+        #room-pharmacy { left: 50px; top: 500px; width: 300px; height: 200px; }
+        #room-dilation_hall { left: 450px; top: 500px; width: 500px; height: 200px; }
+        #room-billing_insurance { left: 50px; top: 800px; width: 300px; height: 150px; }
+        #room-registration { left: 450px; top: 800px; width: 200px; height: 150px; }
+        #room-vision_lab { left: 750px; top: 800px; width: 200px; height: 150px; }
+
+        /* Un-tilting text labels to face the screen. Inverse of parent transform. */
+        .untilt-label {
+            position: absolute;
+            /* Inverse rotation and scale to stand perfectly straight up */
+            transform: rotateZ(45deg) scaleY(2);
+            /* Style */
+            background: rgba(255,255,255,0.9);
+            padding: 0.3rem 0.8rem;
+            border-radius: 99px;
+            font-size: 0.8rem; font-weight: 700; color: #1e293b;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            white-space: nowrap; pointer-events: none;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .untilt-label span { font-size: 0.65rem; color: #64748b; margin-top: 1px; }
+
+        /* SVG Path overlays the rooms */
+        .path-layer { position: absolute; inset: 0; width: 1000px; height: 1000px; pointer-events: none; z-index: 50; }
+        .dynamic-path {
+            stroke: #3b82f6; stroke-width: 6; stroke-dasharray: 12 12; fill: none; stroke-linecap: round;
+            animation: dash-march 1s linear infinite;
+        }
+        @keyframes dash-march { to { stroke-dashoffset: -24; } }
+
+        /* Patient Marker (Using the untilt trick on a specific absolute position) */
+        .patient-marker {
+            position: absolute;
+            left: 0; top: 0; z-index: 60;
+            transition: left 0.8s ease, top 0.8s ease;
+            transform: rotateZ(45deg) scaleY(2); /* Untilt! */
+        }
+        .marker-body {
+            position: absolute; margin-left: -20px; margin-top: -60px; /* Offset to point */
+            display: flex; flex-direction: column; align-items: center; pointer-events: none;
+        }
+        .marker-bubble {
+            background: #1e3a8a; color: white; padding: 0.3rem 0.6rem; border-radius: 6px;
+            font-size: 0.75rem; font-weight: 600; margin-bottom: 5px; box-shadow: 0 4px 15px rgba(30,58,138,0.4);
+        }
+        .marker-person {
+            width: 34px; height: 34px; background: rgba(59,130,246,0.15); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; border: 2px solid #3b82f6;
+            color: #2563eb; font-size: 1rem; animation: pulse-floor 2s infinite;
+        }
+        @keyframes pulse-floor {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
+            <li><a href="patient_dashboard.html" class="nav-item"><span class="step-badge">2</span> My Dashboard</a></li>
+            <li><a href="live_navigator.html" class="nav-item active"><span class="step-badge">3</span> Live Navigator</a></li>
+            <li><a href="patient_activity.html" class="nav-item"><span class="step-badge">4</span> Activity History</a></li>
+            <li><a href="hospital_load_status.html" class="nav-item"><span class="step-badge">5</span> Hospital Load</a></li>
+            <li><a href="waiting_time_trend.html" class="nav-item"><span class="step-badge">6</span> Waiting Trend</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="map-viewport">
+            
+            <div class="map-relative-container">
+                <div class="isometric-wrapper">
+                    <div class="floor-base"></div> <!-- The 1000x1000 campus tile -->
+
+                    <!-- The 7 Project Departments (CSS extruded divs) -->
+                    <div class="room dept-consultation" id="room-consultation">
+                        <div class="untilt-label">Doctor Consult <span id="load-consultation">--</span></div>
+                    </div>
+
+                    <div class="room dept-diagnostics" id="room-diagnostics">
+                        <div class="untilt-label">Diagnostics <span id="load-diagnostics">--</span></div>
+                    </div>
+
+                    <div class="room dept-pharmacy" id="room-pharmacy">
+                        <div class="untilt-label">Pharmacy <span id="load-pharmacy">--</span></div>
+                    </div>
+
+                    <div class="room dept-dilation" id="room-dilation_hall">
+                        <div class="untilt-label">Dilation Hall <span id="load-dilation_hall">--</span></div>
+                    </div>
+
+                    <div class="room dept-billing" id="room-billing_insurance">
+                        <div class="untilt-label">Billing &amp; Insurance <span id="load-billing_insurance">--</span></div>
+                    </div>
+
+                    <div class="room dept-registration" id="room-registration">
+                        <div class="untilt-label">Registration <span id="load-registration">--</span></div>
+                    </div>
+
+                    <div class="room dept-vision" id="room-vision_lab">
+                        <div class="untilt-label">Vision Lab <span id="load-vision_lab">--</span></div>
+                    </div>
+
+                    <!-- Dynamic Navigation Path layered loosely over the rooms -->
+                    <svg class="path-layer" viewBox="0 0 1000 1000">
+                        <path id="nav-line" class="dynamic-path" d=""></path>
+                    </svg>
+
+                    <!-- Untilted Marker traversing the 1000x1000 isometric grid -->
+                    <div class="patient-marker" id="patient-marker" style="display:none;">
+                        <div class="marker-body">
+                            <div class="marker-bubble">You Are Here</div>
+                            <div class="marker-person"><i class="fas fa-user"></i></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Dashboard Overlays -->
+            <div class="floating-layer">
+                
+                <!-- Current status card -->
+                <div class="top-section">
+                    <div class="title-area">
+                        <h1>Sankara Eye Hospital – Tracker</h1>
+                        <p>Patient Navigation Map</p>
+                    </div>
+
+                    <div class="overlay-panel nav-card fade-in">
+                        <div class="timeline-step">
+                            <div class="timeline-dot dot-blue"></div>
+                            <div class="timeline-connector"></div>
+                            <div class="step-label">Current Location</div>
+                            <div class="step-title" id="nav-current-dept">Loading...</div>
+                        </div>
+                        <div class="timeline-step">
+                            <div class="timeline-dot dot-green"></div>
+                            <div class="step-label">Next Step</div>
+                            <div class="step-title" id="nav-next-dept">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer legend -->
+                <div class="overlay-panel legend-card fade-in" style="width: max-content;">
+                    <div class="legend-item"><div class="legend-swatch dept-registration"></div> Registration</div>
+                    <div class="legend-item"><div class="legend-swatch dept-vision"></div> Vision Lab</div>
+                    <div class="legend-item"><div class="legend-swatch dept-dilation"></div> Dilation Hall</div>
+                    <div class="legend-item"><div class="legend-swatch dept-diagnostics"></div> Diagnostics</div>
+                    <div class="legend-item"><div class="legend-swatch dept-consultation"></div> Doctor Consultation</div>
+                    <div class="legend-item"><div class="legend-swatch dept-billing"></div> Billing &amp; Insurance</div>
+                    <div class="legend-item"><div class="legend-swatch dept-pharmacy"></div> Pharmacy</div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/theme.js?v=999"></script>
+    <script src="js/config.js?v=999"></script>
+    <script src="js/main.js?v=999"></script>
+
+    <script>
+        const NAV_API = API_BASE;
+        let navPatientId = localStorage.getItem('currentPatientId') || localStorage.getItem('currentUser');
+        let navPollTimer = null;
+
+        // X, Y map to the center of each room inside the 1000x1000 CSS grid
+        const DEPT_COORDS = {
+            consultation:     { x: 250, y: 225 },
+            diagnostics:      { x: 750, y: 225 },
+            pharmacy:         { x: 200, y: 600 },
+            dilation_hall:    { x: 700, y: 600 },
+            billing_insurance:{ x: 200, y: 875 },
+            registration:     { x: 550, y: 875 },
+            vision_lab:       { x: 850, y: 875 }
+        };
+
+        window.addEventListener('load', () => {
+            if (!navPatientId) { window.location.href = 'login.html'; return; }
+            fetchNavigatorData();
+            navPollTimer = setInterval(fetchNavigatorData, 4000);
+        });
+
+        async function fetchNavigatorData() {
+            try {
+                const res = await fetch(`${NAV_API}/patient/current-status/${navPatientId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    updateNavigator(data);
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function updateNavigator(data) {
+            const current = data.current_department;
+            const next = data.next_department;
+            const isCompleted = data.is_completed;
+
+            document.getElementById('nav-current-dept').textContent = isCompleted ? 'Completed' : (data.current_department_display || '--');
+            document.getElementById('nav-next-dept').textContent = isCompleted ? 'Exit' : (data.next_department_display || '--');
+
+            const marker = document.getElementById('patient-marker');
+            if (current && DEPT_COORDS[current] && !isCompleted) {
+                marker.style.display = 'block';
+                marker.style.left = DEPT_COORDS[current].x + 'px';
+                // Move it down slightly so the person points cleanly over the thick room shadow wall
+                marker.style.top = DEPT_COORDS[current].y + 'px';
+            } else { marker.style.display = 'none'; }
+
+            const line = document.getElementById('nav-line');
+            if (current && next && DEPT_COORDS[current] && DEPT_COORDS[next] && !isCompleted) {
+                const p1 = DEPT_COORDS[current];
+                const p2 = DEPT_COORDS[next];
+                // Subtract 10 from Y so line flies nicely above the floor blocks
+                line.setAttribute('d', `M ${p1.x} ${p1.y - 15} L ${p2.x} ${p2.y - 15}`);
+                line.style.opacity = '1';
+            } else { line.style.opacity = '0'; }
+
+            if (data.department_loads) {
+                Object.keys(DEPT_COORDS).forEach(key => {
+                    const lc = document.getElementById('load-' + key);
+                    if (lc && data.department_loads[key]) {
+                        const lvl = data.department_loads[key].level;
+                        lc.textContent = `(Load: ${lvl})`;
+                        lc.style.color = lvl === 'High' ? '#ef4444' : lvl === 'Medium' ? '#f59e0b' : '#10b981';
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

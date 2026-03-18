@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="css/style.css?v=300">
     <link rel="stylesheet" href="css/admin.css?v=300">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         /* ============================================================
            Resource Allocation Panel — Scoped Styles
@@ -189,6 +190,14 @@
 
         .resource-card.status-red:hover {
             border-color: #ef4444;
+        }
+        
+        /* Sparkline Containers */
+        .sparkline-container {
+            width: 100%;
+            height: 45px;
+            margin-top: 1rem;
+            position: relative;
         }
 
         /* Card Icon */
@@ -482,6 +491,7 @@
                         <div class="resource-label">Available Beds</div>
                         <div class="resource-sublabel">Out of <span id="total-beds">--</span> total</div>
                         <div class="resource-status-pill" id="pill-beds">Loading</div>
+                        <div class="sparkline-container"><canvas id="spark-beds"></canvas></div>
                     </div>
 
                     <!-- 2. Busy Rooms -->
@@ -496,6 +506,7 @@
                         <div class="resource-label">Busy Rooms</div>
                         <div class="resource-sublabel">Out of <span id="total-rooms">--</span> total</div>
                         <div class="resource-status-pill" id="pill-rooms">Loading</div>
+                        <div class="sparkline-container"><canvas id="spark-rooms"></canvas></div>
                     </div>
 
                     <!-- 3. Free Doctors -->
@@ -524,6 +535,7 @@
                                 <div class="resource-label">Free Staff</div>
                                 <div class="resource-sublabel">Out of <span id="total-staff">--</span> on shift</div>
                                 <div class="resource-status-pill" id="pill-staff">Loading</div>
+                                <div class="sparkline-container"><canvas id="spark-staff"></canvas></div>
                             </div>
 
                             <!-- 5. Equipment Usage -->
@@ -624,11 +636,11 @@
                     // ---- Fetch Data (tries API first, falls back to dummy) ----
                     async function fetchResourceData() {
                         try {
-                            // Attempt real API (future integration)
-                            const res = await fetch(`${RESOURCE_API_BASE}/resources/status`, { signal: AbortSignal.timeout(2000) });
+                            // Attempt real API
+                            const res = await fetch(`${RESOURCE_API_BASE}/admin/resources/status`, { signal: AbortSignal.timeout(5000) });
                             if (res.ok) return await res.json();
                         } catch (e) {
-                            // API not available — use dummy data
+                            console.warn("API not available, using dummy data");
                         }
                         return generateDummyData();
                     }
@@ -712,17 +724,53 @@
                         pill.textContent = statusLabels[status];
                     }
 
+                    // ---- Sparkline Charts ----
+                    const staticSparklineOptions = {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                        scales: { x: { display: false }, y: { display: false, min: 0 } },
+                        elements: { point: { radius: 0 } },
+                        animation: { duration: 0 }
+                    };
+                    
+                    let sparkBeds, sparkRooms, sparkStaff;
+
+                    function initOrUpdateSparkline(canvasId, chartInst, dataArray, color) {
+                        const ctx = document.getElementById(canvasId).getContext('2d');
+                        if (chartInst) {
+                            chartInst.data.datasets[0].data = dataArray || [];
+                            chartInst.update();
+                            return chartInst;
+                        }
+                        return new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: new Array((dataArray || []).length).fill(''),
+                                datasets: [{
+                                    data: dataArray || [],
+                                    borderColor: color,
+                                    borderWidth: 2,
+                                    tension: 0.4
+                                }]
+                            },
+                            options: staticSparklineOptions
+                        });
+                    }
+
                     // ---- Render All Metrics ----
                     function renderMetrics(data) {
                         // 1. Beds
                         animateValue(document.getElementById('val-beds'), data.beds.available);
                         document.getElementById('total-beds').textContent = data.beds.total;
                         applyCardStatus('card-beds', getBedsStatus(data.beds.available));
+                        sparkBeds = initOrUpdateSparkline('spark-beds', sparkBeds, data.beds.trend, '#60a5fa');
 
                         // 2. Rooms
                         animateValue(document.getElementById('val-rooms'), data.rooms.busy);
                         document.getElementById('total-rooms').textContent = data.rooms.total;
                         applyCardStatus('card-rooms', getRoomsStatus(data.rooms.busy));
+                        sparkRooms = initOrUpdateSparkline('spark-rooms', sparkRooms, data.rooms.trend, '#f59e0b');
 
                         // 3. Doctors
                         animateValue(document.getElementById('val-doctors'), data.doctors.free);
@@ -733,6 +781,7 @@
                         animateValue(document.getElementById('val-staff'), data.staff.free);
                         document.getElementById('total-staff').textContent = data.staff.total;
                         applyCardStatus('card-staff', getStaffStatus(data.staff.free));
+                        sparkStaff = initOrUpdateSparkline('spark-staff', sparkStaff, data.staff.trend, '#8b5cf6');
 
                         // 5. Equipment
                         animateValue(document.getElementById('val-equip'), data.equipment.usage_percent, '%');

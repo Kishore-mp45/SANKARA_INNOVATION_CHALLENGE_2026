@@ -323,24 +323,7 @@
                 </div>
             </div>
 
-            <!-- Total Hospital Occupancy Chart -->
-            <div class="alloc-panel" style="margin-bottom: 1.5rem;">
-                <div class="alloc-panel-header">
-                    <h2 class="alloc-panel-title">
-                        <i class="fas fa-chart-bar" style="font-size: 1.1rem;"></i>
-                        Total Hospital Patient Occupancy (All Departments)
-                    </h2>
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <span style="font-size: 0.78rem; color: var(--text-muted);">Last 5 hours &bull; 30-min intervals</span>
-                        <button onclick="fetchHourlyOccupancy()" class="btn-sm"><i class="fas fa-sync-alt"></i></button>
-                    </div>
-                </div>
-                <div style="position: relative; height: 320px; width: 100%;">
-                    <canvas id="occupancyChart"></canvas>
-                </div>
-            </div>
 
-        </div>
     </div>
 
     <script src="js/theme.js?v=999"></script>
@@ -375,12 +358,10 @@
             fetchPeakHours();
             fetchCVStatus();
             fetchStaffAllocation();
-            fetchHourlyOccupancy();
 
             setInterval(fetchStats, 10000);
             setInterval(fetchCVStatus, 5000);
             setInterval(fetchStaffAllocation, 15000);
-            setInterval(fetchHourlyOccupancy, 30000);
         });
 
         async function fetchStats() {
@@ -548,77 +529,6 @@
             btn.disabled = true;
             await fetchStaffAllocation();
             setTimeout(() => { btn.classList.remove('spinning'); btn.disabled = false; }, 600);
-        }
-
-        // ---- Hourly Occupancy Chart ----
-        let occupancyChartInst = null;
-
-        async function fetchHourlyOccupancy() {
-            try {
-                const res = await fetch(`${API_BASE_URL}/admin/hourly-occupancy`);
-                if (!res.ok) return;
-                const data = await res.json();
-                const trend = data.occupancy_trend || [];
-                const labels = trend.map(p => p.time);
-                const values = trend.map(p => p.avg_occupancy);
-
-                if (occupancyChartInst) {
-                    occupancyChartInst.data.labels = labels;
-                    occupancyChartInst.data.datasets[0].data = values;
-                    occupancyChartInst.update();
-                    return;
-                }
-
-                const ctx = document.getElementById('occupancyChart').getContext('2d');
-                occupancyChartInst = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Total Occupancy',
-                            data: values,
-                            backgroundColor: 'rgba(59,130,246,0.6)',
-                            borderColor: '#3b82f6',
-                            borderWidth: 1,
-                            borderRadius: 6,
-                            hoverBackgroundColor: 'rgba(59,130,246,0.85)',
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        animation: { duration: 600 },
-                        scales: {
-                            x: {
-                                grid: { color: 'rgba(255,255,255,0.05)' },
-                                ticks: { color: '#94a3b8', font: { size: 11 } },
-                                title: { display: true, text: 'Time (30-min intervals)', color: '#94a3b8', font: { size: 11 } }
-                            },
-                            y: {
-                                beginAtZero: true,
-                                grid: { color: 'rgba(255,255,255,0.05)' },
-                                ticks: { color: '#94a3b8', stepSize: 1 },
-                                title: { display: true, text: 'Total Persons (All Depts)', color: '#94a3b8', font: { size: 11 } }
-                            }
-                        },
-                        plugins: {
-                            legend: { labels: { color: '#e2e8f0' } },
-                            tooltip: {
-                                backgroundColor: 'rgba(15,23,42,0.95)',
-                                titleColor: '#e2e8f0',
-                                bodyColor: '#e2e8f0',
-                                cornerRadius: 8,
-                                padding: 10,
-                                callbacks: {
-                                    label: function(ctx) { return 'Occupancy: ' + ctx.parsed.y + ' persons'; }
-                                }
-                            }
-                        }
-                    }
-                });
-            } catch (e) {
-                console.error('Hourly occupancy fetch error:', e);
-            }
         }
     </script>
 </body>

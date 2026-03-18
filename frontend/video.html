@@ -282,14 +282,7 @@
                         <option value="billing_insurance">7. Billing & Insurance</option>
                     </select>
 
-                    <!-- Detection mode toggle -->
-                    <div class="mode-toggle">
-                        <label for="detection-toggle">Detection</label>
-                        <span class="toggle-switch">
-                            <input type="checkbox" id="detection-toggle">
-                            <span class="toggle-slider"></span>
-                        </span>
-                    </div>
+
                 </div>
 
                 <!-- Video Frame (raw mp4 mode) -->
@@ -337,8 +330,7 @@
 
                 <!-- Info Note -->
                 <div class="video-note">
-                    Toggle <strong>Detection</strong> to enable live YOLOv8 bounding-box tracking on department video
-                    feeds.
+                    <strong>Live AI Surveillance Feed:</strong> Continuous monitoring of hospital department flow and patient queues powered by real-time computer vision.
                 </div>
 
             </div>
@@ -359,7 +351,6 @@
         const videoEl = document.getElementById('dept-video');
         const videoSource = document.getElementById('video-source');
         const videoLabel = document.getElementById('video-label');
-        const detectionToggle = document.getElementById('detection-toggle');
         const rawFrame = document.getElementById('raw-video-frame');
         const detFrame = document.getElementById('detection-video-frame');
         const detStream = document.getElementById('detection-stream');
@@ -510,9 +501,6 @@
         }
 
         // ---- Event listeners ----
-        detectionToggle.addEventListener('change', function () {
-            setDetectionMode(this.checked);
-        });
 
         deptSelect.addEventListener('change', function (e) {
             _currentZone = e.target.value;

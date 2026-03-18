@@ -23,7 +23,7 @@ const USER_ROLES = {
         label: 'Hospital Staff'
     },
     patient: {
-        allowed_pages: ['index.html', 'patient_dashboard.html', 'patient_activity.html', 'hospital_load_status.html', 'waiting_time_trend.html'],
+        allowed_pages: ['index.html', 'patient_dashboard.html', 'live_navigator.html', 'patient_activity.html', 'hospital_load_status.html', 'waiting_time_trend.html'],
         label: 'Patient'
     }
 };
@@ -106,9 +106,14 @@ function applyRoleBasedAccess(role) {
             li.innerHTML = '<a href="patient_dashboard.html" class="nav-item"><span class="step-badge">3</span> My Dashboard</a>';
             navMenu.appendChild(li);
         }
+        if (navMenu && !navMenu.querySelector('a[href="live_navigator.html"]')) {
+            const liNav = document.createElement('li');
+            liNav.innerHTML = '<a href="live_navigator.html" class="nav-item"><span class="step-badge">4</span> Live Navigator</a>';
+            navMenu.appendChild(liNav);
+        }
         if (navMenu && !navMenu.querySelector('a[href="patient_activity.html"]')) {
             const li2 = document.createElement('li');
-            li2.innerHTML = '<a href="patient_activity.html" class="nav-item"><span class="step-badge">4</span> Activity History</a>';
+            li2.innerHTML = '<a href="patient_activity.html" class="nav-item"><span class="step-badge">5</span> Activity History</a>';
             navMenu.appendChild(li2);
         }
         if (navMenu && !navMenu.querySelector('a[href="hospital_load_status.html"]')) {

@@ -362,13 +362,13 @@
     <script>
         // Hospital sequential department flow
         const DEPT_ORDER = [
-            { key: 'registration',      name: 'Registration',        step: 1, capacity: 15 },
+            { key: 'registration',      name: 'Registration',        step: 1, capacity: 20 },
             { key: 'vision_lab',        name: 'Vision Lab',          step: 2, capacity: 12 },
             { key: 'dilation_hall',     name: 'Dilation Hall',       step: 3, capacity: 20 },
             { key: 'diagnostics',       name: 'Diagnostics',         step: 4, capacity: 15 },
-            { key: 'consultation',      name: 'Doctor Consult',      step: 5, capacity: 10 },
+            { key: 'consultation',      name: 'Doctor Consult',      step: 5, capacity: 12 },
             { key: 'pharmacy',          name: 'Pharmacy',            step: 6, capacity: 12 },
-            { key: 'billing_insurance', name: 'Billing & Insurance', step: 7, capacity: 10 },
+            { key: 'billing_insurance', name: 'Billing & Insurance', step: 7, capacity: 15 },
         ];
 
         const deptSelect = document.getElementById('occ-dept-select');

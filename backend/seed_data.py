@@ -56,7 +56,7 @@ SAMPLE_ZONES = [
         "zone_name": "billing_insurance",
         "display_name": "Billing & Insurance",
         "description": "Financial services",
-        "capacity_limit": 10,
+        "capacity_limit": 15,
         "zone_type": "service",
         "floor_number": 1,
         "building": "Main Building"
@@ -65,7 +65,7 @@ SAMPLE_ZONES = [
         "zone_name": "registration",
         "display_name": "Registration",
         "description": "New patient registration",
-        "capacity_limit": 15,
+        "capacity_limit": 20,
         "zone_type": "service",
         "floor_number": 1,
         "building": "Main Building"
@@ -74,7 +74,7 @@ SAMPLE_ZONES = [
         "zone_name": "consultation",
         "display_name": "Consultation",
         "description": "Doctor consultation rooms",
-        "capacity_limit": 10,
+        "capacity_limit": 12,
         "zone_type": "examination",
         "floor_number": 1,
         "building": "Main Building"
