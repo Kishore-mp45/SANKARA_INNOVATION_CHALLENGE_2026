@@ -4,26 +4,32 @@
 
 window.logout = function () {
     localStorage.removeItem('currentRole');
-    window.location.href = 'login.html';
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('currentDept');
+    window.location.href = 'index.html';
 }
 
 
 // RBAC: Role Definitions
 const USER_ROLES = {
     admin: {
-        allowed_pages: ['index.html', 'occupancy.html', 'heatmap.html', 'metrics.html', 'alerts.html', 'charts.html', 'prediction.html', 'video.html', 'admin_dashboard.html', 'notification_center.html', 'escalation_reports.html', 'resource_allocation.html'],
+        allowed_pages: ['occupancy.html', 'heatmap.html', 'metrics.html', 'alerts.html', 'charts.html', 'prediction.html', 'video.html', 'admin_dashboard.html', 'notification_center.html', 'escalation_reports.html', 'resource_allocation.html'],
+        default_dashboard: 'admin_dashboard.html',
         label: 'Administrator'
     },
     doctor: {
-        allowed_pages: ['index.html', 'occupancy.html', 'alerts.html', 'video.html', 'doctor_dashboard.html', 'doctor_workload.html', 'doctor_activity.html', 'doctor_dept_insights.html', 'doctor_escalate.html'],
+        allowed_pages: ['occupancy.html', 'alerts.html', 'video.html', 'doctor_dashboard.html', 'doctor_workload.html', 'doctor_activity.html', 'doctor_dept_insights.html', 'doctor_escalate.html'],
+        default_dashboard: 'doctor_dashboard.html',
         label: 'Doctor'
     },
     staff: {
-        allowed_pages: ['index.html', 'occupancy.html', 'staff_panel.html', 'staff_activity.html', 'staff_allocation.html', 'bottleneck_warnings.html', 'patient_search.html', 'escalate_issue.html', 'department_performance.html', 'department_insights.html'],
+        allowed_pages: ['occupancy.html', 'staff_panel.html', 'staff_activity.html', 'staff_allocation.html', 'bottleneck_warnings.html', 'patient_search.html', 'escalate_issue.html', 'department_performance.html', 'department_insights.html'],
+        default_dashboard: 'staff_panel.html',
         label: 'Hospital Staff'
     },
     patient: {
-        allowed_pages: ['index.html', 'patient_dashboard.html', 'live_navigator.html', 'patient_activity.html', 'hospital_load_status.html', 'waiting_time_trend.html'],
+        allowed_pages: ['patient_dashboard.html', 'live_navigator.html', 'patient_activity.html', 'hospital_load_status.html', 'waiting_time_trend.html'],
+        default_dashboard: 'patient_dashboard.html',
         label: 'Patient'
     }
 };
@@ -33,8 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentRole = localStorage.getItem('currentRole');
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 
-    // Skip check for login page
-    if (currentPage === 'login.html') return;
+    // Skip check for login, signup, and landing pages
+    if (currentPage === 'login.html' || currentPage === 'signup.html' || currentPage === 'index.html') return;
 
     if (!currentRole) {
         window.location.href = 'login.html';
@@ -45,23 +51,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Redirect if role is invalid or page is not allowed
     if (!roleConfig || !roleConfig.allowed_pages.includes(currentPage)) {
-        // Build a safe redirect
-        if (roleConfig && roleConfig.allowed_pages.length > 0) {
-            // Redirect to their first allowed page (usually index.html)
-            // But prevent infinite loops if index is allowed
-            if (currentPage !== 'index.html') {
-                window.location.href = 'index.html';
-            } else {
-                // If they are blocked from index, send to login
-                if (!roleConfig.allowed_pages.includes('index.html')) {
-                    window.location.href = 'login.html';
-                }
-            }
+        if (roleConfig && roleConfig.default_dashboard) {
+            window.location.href = roleConfig.default_dashboard;
         } else {
-            localStorage.removeItem('currentRole'); // Invalid role
+            localStorage.removeItem('currentRole');
             window.location.href = 'login.html';
-            return;
         }
+        return;
     }
 
     // 2. Apply UI Changes (Sidebar, Buttons)
@@ -260,16 +256,7 @@ function setupHeaderControls(role, label) {
     controls.id = 'rbac-controls';
     controls.style.cssText = 'position: absolute; top: 1rem; right: 2rem; display: flex; align-items: center; gap: 1rem;';
 
-    // Determine current theme icon
-    const isLight = document.documentElement.classList.contains('light-theme');
-    const themeIcon = isLight ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
-    const themeTitle = isLight ? 'Switch to dark mode' : 'Switch to light mode';
-
-    // SVG now has pointer-events: none to prevent click swallowing
     controls.innerHTML = `
-        <button id="theme-toggle-btn" onclick="toggleTheme()" title="${themeTitle}">
-            ${themeIcon}
-        </button>
         <div style="text-align: right;">
             <div style="font-size: 0.8rem; color: var(--text-muted);">Current Role</div>
             <div style="font-weight: 600; color: var(--primary-color);">${label}</div>

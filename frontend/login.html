@@ -1,15 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- PatientPath AI Login V4.0 -->
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PatientPath AI - Login v4.0</title>
-    <script src="js/theme.js?v=999"></script>
+    <title>Login – Sankara Eye Foundation | PatientPathAI</title>
+    <meta name="description" content="Login to PatientPathAI – Sankara Eye Foundation's AI-powered hospital operations platform.">
+    <script src="js/theme.js?v=1000"></script>
     <script>
-        console.log("Login Page Loaded v4.0");
-
+        console.log("Login Page Loaded v5.0");
         // Clear any existing session to prevent confusion on load
         window.onload = function () {
             localStorage.removeItem('currentUser');
@@ -18,197 +17,120 @@
             console.log("Session cleared for fresh login.");
         };
     </script>
-    <link rel="stylesheet" href="css/style.css?v=4.0">
+    <link rel="stylesheet" href="css/auth.css?v=5.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background: var(--bg-color);
-            margin: 0;
-        }
-
-        .login-card {
-            background: var(--card-bg);
-            padding: 2.5rem;
-            border-radius: 1rem;
-            border: 1px solid var(--border-color);
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            text-align: center;
-        }
-
-        .brand-logo {
-            margin-bottom: 2rem;
-            color: var(--text-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-            text-align: left;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-
-        select,
-        input {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            color: var(--text-color);
-            font-size: 1rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        select:focus,
-        input:focus {
-            border-color: var(--primary-color);
-        }
-
-        .btn-login {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 0.5rem;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: opacity 0.2s;
-            margin-top: 1rem;
-        }
-
-        .btn-login:hover {
-            opacity: 0.9;
-        }
-
-        /* Password wrapper for eye toggle */
-        .pw-wrapper {
-            position: relative;
-        }
-
-        .pw-wrapper input {
-            padding-right: 2.75rem;
-        }
-
-        .pw-toggle {
-            position: absolute;
-            right: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 0;
-            font-size: 1rem;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-        }
-
-        .pw-toggle:hover {
-            color: var(--primary-color);
-        }
-
-        /* Password requirements */
-        .pw-requirements {
-            margin-top: 0.6rem;
-            padding: 0;
-            list-style: none;
-        }
-
-        .pw-req-item {
-            font-size: 0.78rem;
-            padding: 0.15rem 0;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            color: var(--text-muted);
-            transition: color 0.2s;
-        }
-
-        .pw-req-item i {
-            font-size: 0.7rem;
-            width: 14px;
-            text-align: center;
-        }
-
-        .pw-req-item.met {
-            color: #10b981;
-        }
-
-        .pw-req-item.unmet {
-            color: #ef4444;
-        }
-    </style>
 </head>
 
 <body>
-    <div class="login-card fade-in">
-        <div class="brand-logo"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg><span>PatientPath AI</span></div>
-        <h3 style="margin-bottom: 1.5rem; color: var(--text-color);">Welcome Back</h3>
-        <div class="form-group"><label for="role-select">Select Access Role</label><select id="role-select"
-                onchange="updateLabels()">
-                <option value="admin">Admin</option>
-                <option value="doctor">Doctor</option>
-                <option value="staff">Staff</option>
-                <option value="patient">Patient</option>
-            </select></div>
-        <div class="form-group" id="dept-group" style="display: none;"><label for="dept-select">Select
-                Department</label><select id="dept-select">
-                <option value="registration">Registration</option>
-                <option value="vision_lab">Vision Lab</option>
-                <option value="dilation_hall">Dilation Hall</option>
-                <option value="diagnostics">Diagnostics</option>
-                <option value="pharmacy">Pharmacy</option>
-                <option value="billing_insurance">Billing & Insurance</option>
-            </select></div>
-        <div class="form-group"><label id="id-label" for="user-id">Admin ID</label><input type="text" id="user-id"
-                placeholder="Enter ID"></div>
-        <div class="form-group" id="password-group">
-            <label for="password">Password</label>
-            <div class="pw-wrapper">
-                <input type="password" id="password" placeholder="Enter Password" oninput="validatePasswordLive()">
-                <button type="button" class="pw-toggle" onclick="togglePassword()" title="Show/Hide password">
-                    <i class="fas fa-eye" id="pw-eye-icon"></i>
-                </button>
+    <div class="auth-container">
+
+        <!-- ── LEFT PANEL ── -->
+        <div class="auth-left">
+            <img src="assets/doctor_hero.png" alt="Doctor" class="auth-left-img">
+            <div class="auth-left-overlay"></div>
+            <div class="auth-left-content">
+                <div class="auth-left-logo">
+                    <svg class="logo-icon" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="60" cy="50" rx="28" ry="28" fill="#E88A1A"/>
+                        <polygon points="5,50 32,30 32,70" fill="#E88A1A"/>
+                        <polygon points="115,50 88,30 88,70" fill="#E88A1A"/>
+                        <circle cx="60" cy="50" r="18" fill="#F5A623" opacity="0.7"/>
+                        <circle cx="60" cy="50" r="10" fill="#FFC857" opacity="0.5"/>
+                    </svg>
+                    <span>PatientPathAI</span>
+                </div>
+                <div class="auth-left-welcome">Welcome to<br>Sankara Eye Foundation</div>
+                <p class="auth-left-sub">AI-powered patient flow management system with centralized, role-based dashboards.</p>
             </div>
-            <ul class="pw-requirements" id="pw-requirements">
-                <li class="pw-req-item" id="req-length"><i class="fas fa-circle"></i> Minimum 8 characters</li>
-                <li class="pw-req-item" id="req-upper"><i class="fas fa-circle"></i> At least one uppercase letter (A-Z)</li>
-                <li class="pw-req-item" id="req-lower"><i class="fas fa-circle"></i> At least one lowercase letter (a-z)</li>
-                <li class="pw-req-item" id="req-number"><i class="fas fa-circle"></i> At least one number (0-9)</li>
-                <li class="pw-req-item" id="req-symbol"><i class="fas fa-circle"></i> At least one symbol (!@#$%&*)</li>
-            </ul>
         </div>
-        <button class="btn-login" onclick="handleLogin()">Login</button>
-        <p id="error-msg" style="color: #ef4444; font-size: 0.9rem; margin-top: 1rem; display: none;"></p>
-        <div style="margin-top: 1.5rem; font-size: 0.9rem; color: var(--text-muted);">New User? <a href="signup.html"
-                style="color: var(--primary-color); text-decoration: none; font-weight: 500;">Sign up here</a></div>
+
+        <!-- ── RIGHT PANEL (Login Form) ── -->
+        <div class="auth-right">
+            <div class="auth-brand-top">
+                <svg class="logo-icon" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="60" cy="50" rx="28" ry="28" fill="#E88A1A"/>
+                    <polygon points="5,50 32,30 32,70" fill="#E88A1A"/>
+                    <polygon points="115,50 88,30 88,70" fill="#E88A1A"/>
+                    <circle cx="60" cy="50" r="18" fill="#F5A623" opacity="0.7"/>
+                    <circle cx="60" cy="50" r="10" fill="#FFC857" opacity="0.5"/>
+                </svg>
+                <span class="brand-label">PatientPathAI</span>
+            </div>
+
+            <h2 class="auth-heading">Login</h2>
+            <p class="auth-subheading">Enter your credentials to access your account</p>
+
+            <div class="auth-form">
+                <!-- Role Select -->
+                <div class="form-group">
+                    <label for="role-select">Select Access Role</label>
+                    <select id="role-select" onchange="updateLabels()">
+                        <option value="admin">Admin</option>
+                        <option value="doctor">Doctor</option>
+                        <option value="staff">Staff</option>
+                        <option value="patient">Patient</option>
+                    </select>
+                </div>
+
+                <!-- Department (staff only) -->
+                <div class="form-group" id="dept-group" style="display: none;">
+                    <label for="dept-select">Select Department</label>
+                    <select id="dept-select">
+                        <option value="registration">Registration</option>
+                        <option value="vision_lab">Vision Lab</option>
+                        <option value="dilation_hall">Dilation Hall</option>
+                        <option value="diagnostics">Diagnostics</option>
+                        <option value="pharmacy">Pharmacy</option>
+                        <option value="billing_insurance">Billing & Insurance</option>
+                    </select>
+                </div>
+
+                <!-- User ID -->
+                <div class="form-group">
+                    <label id="id-label" for="user-id">Admin ID</label>
+                    <input type="text" id="user-id" placeholder="Enter ID">
+                </div>
+
+                <!-- Password -->
+                <div class="form-group" id="password-group">
+                    <label for="password">Password</label>
+                    <div class="pw-wrapper">
+                        <input type="password" id="password" placeholder="Enter Password" oninput="validatePasswordLive()">
+                        <button type="button" class="pw-toggle" onclick="togglePassword()" title="Show/Hide password">
+                            <i class="fas fa-eye" id="pw-eye-icon"></i>
+                        </button>
+                    </div>
+                    <ul class="pw-requirements" id="pw-requirements">
+                        <li class="pw-req-item" id="req-length"><i class="fas fa-circle"></i> Minimum 8 characters</li>
+                        <li class="pw-req-item" id="req-upper"><i class="fas fa-circle"></i> At least one uppercase letter (A-Z)</li>
+                        <li class="pw-req-item" id="req-lower"><i class="fas fa-circle"></i> At least one lowercase letter (a-z)</li>
+                        <li class="pw-req-item" id="req-number"><i class="fas fa-circle"></i> At least one number (0-9)</li>
+                        <li class="pw-req-item" id="req-symbol"><i class="fas fa-circle"></i> At least one symbol (!@#$%&*)</li>
+                    </ul>
+                </div>
+
+                <!-- Sign In -->
+                <button class="btn-auth-submit" onclick="handleLogin()">Sign In</button>
+
+                <!-- Error Message -->
+                <p id="error-msg" class="auth-error"></p>
+
+                <!-- Links -->
+                <div class="auth-link-row">
+                    <a href="#">Forgot Password?</a>
+                </div>
+
+                <div class="auth-footer-link">
+                    Don't have an account? <a href="signup.html">Sign Up</a>
+                </div>
+            </div>
+        </div>
+
     </div>
 
+    <!-- ═══════════════════════════════════════ -->
+    <!-- EXISTING LOGIN LOGIC (PRESERVED)       -->
+    <!-- ═══════════════════════════════════════ -->
     <script>
         function togglePassword() {
             const pwInput = document.getElementById('password');
@@ -270,13 +192,13 @@
             const placeholder = document.getElementById('user-id');
             const deptGroup = document.getElementById('dept-group');
             const passwordGroup = document.getElementById('password-group');
-            const loginBtn = document.querySelector('.btn-login');
+            const loginBtn = document.querySelector('.btn-auth-submit');
 
             const config = {
-                admin: { label: 'Admin ID', ph: 'Enter Admin ID', btn: 'Login' },
-                doctor: { label: 'Doctor ID', ph: 'Enter Doctor ID', btn: 'Login' },
-                staff: { label: 'Staff ID', ph: 'Enter Staff ID', btn: 'Login' },
-                patient: { label: 'Patient Tracking ID', ph: 'Enter Patient ID (e.g. CV-12345)', btn: 'Track Status' }
+                admin: { label: 'Admin ID', ph: 'Enter Admin ID', btn: 'Sign In' },
+                doctor: { label: 'Doctor ID', ph: 'Enter Doctor ID', btn: 'Sign In' },
+                staff: { label: 'Staff ID', ph: 'Enter Staff ID', btn: 'Sign In' },
+                patient: { label: 'Patient Tracking ID', ph: 'Enter Patient ID (e.g. CV-12345)', btn: 'Login' }
             };
 
             label.textContent = config[role].label;
@@ -345,7 +267,6 @@
                 if (user.password !== password) {
                     errorEl.textContent = "Invalid password. Ensure your password meets the requirements below.";
                     errorEl.style.display = 'block';
-                    // Highlight unmet requirements
                     const rules = checkPasswordRules(password);
                     updateRequirementUI(rules, true);
                     return;
@@ -366,7 +287,6 @@
                 return;
             }
 
-            // Retrieve users
             const users = JSON.parse(localStorage.getItem('ppa_users') || '{}');
             const user = users[userId];
 
@@ -385,7 +305,6 @@
             if (user.password !== password) {
                 errorEl.textContent = "Invalid password. Ensure your password meets the requirements below.";
                 errorEl.style.display = 'block';
-                // Highlight unmet requirements
                 const rules = checkPasswordRules(password);
                 updateRequirementUI(rules, true);
                 return;
@@ -393,16 +312,21 @@
 
             // Success
             localStorage.setItem('currentRole', role);
-            localStorage.setItem('currentUser', userId); // Track who is logged in
+            localStorage.setItem('currentUser', userId);
 
-            // Save Department if Staff
             if (role === 'staff') {
                 localStorage.setItem('currentDept', deptSelect.value);
             } else {
                 localStorage.removeItem('currentDept');
             }
 
-            window.location.href = 'index.html';
+            // Redirect to role-specific dashboard
+            const dashboards = {
+                admin: 'admin_dashboard.html',
+                doctor: 'doctor_dashboard.html',
+                staff: 'staff_panel.html'
+            };
+            window.location.href = dashboards[role] || 'occupancy.html';
         }
 
         // Init labels logic

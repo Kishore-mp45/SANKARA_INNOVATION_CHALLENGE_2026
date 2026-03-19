@@ -4,243 +4,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PatientPath AI - Sign Up</title>
-    <link rel="stylesheet" href="css/style.css?v=4.0">
+    <title>Register – Sankara Eye Foundation | PatientPathAI</title>
+    <meta name="description" content="Create your account on PatientPathAI – Sankara Eye Foundation's AI-powered hospital operations platform.">
+    <link rel="stylesheet" href="css/auth.css?v=5.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background: var(--bg-color);
-            margin: 0;
-        }
-
-        .login-card {
-            background: var(--card-bg);
-            padding: 2.5rem;
-            border-radius: 1rem;
-            border: 1px solid var(--border-color);
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            text-align: center;
-        }
-
-        .brand-logo {
-            margin-bottom: 2rem;
-            color: var(--text-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
-
-        .form-group {
-            margin-bottom: 1.25rem;
-            text-align: left;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-
-        select,
-        input {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            color: var(--text-color);
-            font-size: 1rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        select:focus,
-        input:focus {
-            border-color: var(--primary-color);
-        }
-
-        .btn-auth {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 0.5rem;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: opacity 0.2s;
-            margin-top: 1rem;
-        }
-
-        .btn-auth:hover {
-            opacity: 0.9;
-        }
-
-        .auth-link {
-            margin-top: 1.5rem;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        .auth-link a {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .auth-link a:hover {
-            text-decoration: underline;
-        }
-
-        .error-msg {
-            color: #ef4444;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-            display: none;
-        }
-
-        .success-msg {
-            color: #10b981;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-            display: none;
-        }
-
-        /* Password wrapper for eye toggle */
-        .pw-wrapper {
-            position: relative;
-        }
-
-        .pw-wrapper input {
-            padding-right: 2.75rem;
-        }
-
-        .pw-toggle {
-            position: absolute;
-            right: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 0;
-            font-size: 1rem;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-        }
-
-        .pw-toggle:hover {
-            color: var(--primary-color);
-        }
-
-        /* Password requirements */
-        .pw-requirements {
-            margin-top: 0.6rem;
-            padding: 0;
-            list-style: none;
-        }
-
-        .pw-req-item {
-            font-size: 0.78rem;
-            padding: 0.15rem 0;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            color: var(--text-muted);
-            transition: color 0.2s;
-        }
-
-        .pw-req-item i {
-            font-size: 0.7rem;
-            width: 14px;
-            text-align: center;
-        }
-
-        .pw-req-item.met {
-            color: #10b981;
-        }
-
-        .pw-req-item.unmet {
-            color: #ef4444;
-        }
-    </style>
 </head>
 
 <body>
+    <div class="auth-container">
 
-    <div class="login-card fade-in">
-        <div class="brand-logo">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
-            <span>PatientPath AI</span>
-        </div>
-
-        <h3 style="margin-bottom: 1.5rem; color: var(--text-color);">Create Account</h3>
-
-        <div class="form-group">
-            <label for="role-select">Select Role</label>
-            <select id="role-select" onchange="updateLabels()">
-                <option value="admin">Admin</option>
-                <option value="doctor">Doctor</option>
-                <option value="staff">Staff</option>
-                <option value="patient">Patient</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label id="id-label" for="user-id">Admin ID</label>
-            <input type="text" id="user-id" placeholder="Enter ID (e.g., ADM001)">
-        </div>
-
-        <div class="form-group">
-            <label for="password">Password</label>
-            <div class="pw-wrapper">
-                <input type="password" id="password" placeholder="Create a password" oninput="validatePasswordLive()">
-                <button type="button" class="pw-toggle" onclick="togglePassword()" title="Show/Hide password">
-                    <i class="fas fa-eye" id="pw-eye-icon"></i>
-                </button>
+        <!-- ── LEFT PANEL ── -->
+        <div class="auth-left">
+            <img src="assets/doctor_hero.png" alt="Doctor" class="auth-left-img">
+            <div class="auth-left-overlay"></div>
+            <div class="auth-left-content">
+                <div class="auth-left-logo">
+                    <svg class="logo-icon" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="60" cy="50" rx="28" ry="28" fill="#E88A1A"/>
+                        <polygon points="5,50 32,30 32,70" fill="#E88A1A"/>
+                        <polygon points="115,50 88,30 88,70" fill="#E88A1A"/>
+                        <circle cx="60" cy="50" r="18" fill="#F5A623" opacity="0.7"/>
+                        <circle cx="60" cy="50" r="10" fill="#FFC857" opacity="0.5"/>
+                    </svg>
+                    <span>PatientPathAI</span>
+                </div>
+                <div class="auth-left-welcome">Join<br>Sankara Eye Foundation</div>
+                <p class="auth-left-sub">Create your account to access AI-powered patient flow management and hospital operations.</p>
             </div>
-            <ul class="pw-requirements" id="pw-requirements">
-                <li class="pw-req-item" id="req-length"><i class="fas fa-circle"></i> Minimum 8 characters</li>
-                <li class="pw-req-item" id="req-upper"><i class="fas fa-circle"></i> At least one uppercase letter (A-Z)</li>
-                <li class="pw-req-item" id="req-lower"><i class="fas fa-circle"></i> At least one lowercase letter (a-z)</li>
-                <li class="pw-req-item" id="req-number"><i class="fas fa-circle"></i> At least one number (0-9)</li>
-                <li class="pw-req-item" id="req-symbol"><i class="fas fa-circle"></i> At least one symbol (!@#$%&*)</li>
-            </ul>
         </div>
 
-        <button class="btn-auth" onclick="handleSignup()">Sign Up</button>
+        <!-- ── RIGHT PANEL (Register Form) ── -->
+        <div class="auth-right">
+            <div class="auth-brand-top">
+                <svg class="logo-icon" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="60" cy="50" rx="28" ry="28" fill="#E88A1A"/>
+                    <polygon points="5,50 32,30 32,70" fill="#E88A1A"/>
+                    <polygon points="115,50 88,30 88,70" fill="#E88A1A"/>
+                    <circle cx="60" cy="50" r="18" fill="#F5A623" opacity="0.7"/>
+                    <circle cx="60" cy="50" r="10" fill="#FFC857" opacity="0.5"/>
+                </svg>
+                <span class="brand-label">PatientPathAI</span>
+            </div>
 
-        <div id="message-area" style="min-height: 20px;">
-            <p class="error-msg" id="error-text"></p>
-            <p class="success-msg" id="success-text"></p>
+            <h2 class="auth-heading">Create Account</h2>
+            <p class="auth-subheading">Fill in your details to register</p>
+
+            <div class="auth-form">
+                <!-- Role Select -->
+                <div class="form-group">
+                    <label for="role-select">Select Role</label>
+                    <select id="role-select" onchange="updateLabels()">
+                        <option value="patient">Patient</option>
+                        <option value="staff">Staff</option>
+                        <option value="doctor">Doctor</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+
+                <!-- Department (staff only) -->
+                <div class="form-group" id="dept-group" style="display: none;">
+                    <label for="dept-select">Select Department</label>
+                    <select id="dept-select">
+                        <option value="registration">Registration</option>
+                        <option value="vision_lab">Vision Lab</option>
+                        <option value="dilation_hall">Dilation Hall</option>
+                        <option value="diagnostics">Diagnostics</option>
+                        <option value="pharmacy">Pharmacy</option>
+                        <option value="billing_insurance">Billing & Insurance</option>
+                    </select>
+                </div>
+
+                <!-- Name -->
+                <div class="form-group">
+                    <label for="user-name">Full Name</label>
+                    <input type="text" id="user-name" placeholder="Enter your full name">
+                </div>
+
+                <!-- User ID -->
+                <div class="form-group">
+                    <label id="id-label" for="user-id">Patient ID</label>
+                    <input type="text" id="user-id" placeholder="Enter Patient ID">
+                </div>
+
+                <!-- Password -->
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="pw-wrapper">
+                        <input type="password" id="password" placeholder="Create a password" oninput="validatePasswordLive()">
+                        <button type="button" class="pw-toggle" onclick="togglePassword()" title="Show/Hide password">
+                            <i class="fas fa-eye" id="pw-eye-icon"></i>
+                        </button>
+                    </div>
+                    <ul class="pw-requirements" id="pw-requirements">
+                        <li class="pw-req-item" id="req-length"><i class="fas fa-circle"></i> Minimum 8 characters</li>
+                        <li class="pw-req-item" id="req-upper"><i class="fas fa-circle"></i> At least one uppercase letter (A-Z)</li>
+                        <li class="pw-req-item" id="req-lower"><i class="fas fa-circle"></i> At least one lowercase letter (a-z)</li>
+                        <li class="pw-req-item" id="req-number"><i class="fas fa-circle"></i> At least one number (0-9)</li>
+                        <li class="pw-req-item" id="req-symbol"><i class="fas fa-circle"></i> At least one symbol (!@#$%&*)</li>
+                    </ul>
+                </div>
+
+                <!-- Register Button -->
+                <button class="btn-auth-submit" onclick="handleSignup()">Register</button>
+
+                <!-- Messages -->
+                <p class="auth-error" id="error-text"></p>
+                <p class="auth-success" id="success-text"></p>
+
+                <div class="auth-footer-link">
+                    Already have an account? <a href="login.html">Login here</a>
+                </div>
+            </div>
         </div>
 
-        <div class="auth-link">
-            Already have an account? <a href="login.html">Login here</a>
-        </div>
     </div>
 
-    <script src="js/theme.js?v=999"></script>
+    <!-- Theme (force light) -->
+    <script src="js/theme.js?v=1000"></script>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- EXISTING SIGNUP LOGIC (PRESERVED)      -->
+    <!-- ═══════════════════════════════════════ -->
     <script>
         function updateLabels() {
             const role = document.getElementById('role-select').value;
             const label = document.getElementById('id-label');
             const placeholder = document.getElementById('user-id');
+            const deptGroup = document.getElementById('dept-group');
 
             const config = {
                 admin: { label: 'Admin ID', ph: 'Enter Admin ID' },
@@ -251,6 +141,13 @@
 
             label.textContent = config[role].label;
             placeholder.placeholder = config[role].ph;
+
+            // Show department dropdown only for staff
+            if (role === 'staff') {
+                deptGroup.style.display = 'block';
+            } else {
+                deptGroup.style.display = 'none';
+            }
         }
 
         function togglePassword() {
@@ -304,7 +201,6 @@
         function validatePasswordLive() {
             const password = document.getElementById('password').value;
             const rules = checkPasswordRules(password);
-            // Show green checks as user types, but don't show red until they try to submit
             updateRequirementUI(rules, false);
         }
 
@@ -327,7 +223,7 @@
             // Validate password strength
             const rules = checkPasswordRules(password);
             const allMet = Object.values(rules).every(v => v);
-            updateRequirementUI(rules, true); // Highlight unmet in red
+            updateRequirementUI(rules, true);
 
             if (!allMet) {
                 errorEl.textContent = "Password does not meet the requirements.";

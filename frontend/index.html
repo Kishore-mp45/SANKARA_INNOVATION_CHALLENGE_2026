@@ -4,526 +4,311 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PatientPath AI - Home</title>
-    <link rel="stylesheet" href="css/style.css?v=100">
+    <title>Sankara Eye Foundation – PatientPathAI</title>
+    <meta name="description" content="Advanced eye care with smart patient navigation. AI-powered digital twin for real-time hospital operations by Sankara Eye Foundation.">
+    <link rel="stylesheet" href="css/landing.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* ── Landing Page Scoped Styles ── */
-
-        /* Section Heading */
-        .section-heading {
-            text-align: center;
-            margin-bottom: 0.75rem;
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--text-main);
-        }
-
-        .section-subheading {
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 0.95rem;
-            margin-bottom: 2.5rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            line-height: 1.6;
-        }
-
-        /* Features Grid */
-        .features-grid {
-            display: grid;
-            gap: 1.5rem;
-            grid-template-columns: 1fr;
-            margin-top: 0;
-        }
-
-        @media (min-width: 768px) {
-            .features-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (min-width: 1024px) {
-            .features-grid {
-                grid-template-columns: repeat(4, 1fr);
-            }
-            .features-grid.three-col {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
-        .feature-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 1.75rem;
-            border-radius: 1rem;
-            transition: all 0.3s ease;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
-            border-color: var(--primary-color);
-        }
-
-        .feature-icon {
-            font-size: 1.4rem;
-            margin-bottom: 1rem;
-            width: 48px;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 12px;
-            color: #fff;
-        }
-
-        .feature-icon.blue {
-            background: rgba(14, 165, 233, 0.15);
-            color: var(--primary-color);
-        }
-
-        .feature-icon.green {
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--accent-color);
-        }
-
-        .feature-icon.amber {
-            background: rgba(245, 158, 11, 0.15);
-            color: var(--warning-color);
-        }
-
-        .feature-icon.purple {
-            background: rgba(139, 92, 246, 0.15);
-            color: #8b5cf6;
-        }
-
-        .feature-icon.rose {
-            background: rgba(244, 63, 94, 0.15);
-            color: #f43f5e;
-        }
-
-        .feature-icon.cyan {
-            background: rgba(6, 182, 212, 0.15);
-            color: #06b6d4;
-        }
-
-        .feature-title {
-            font-weight: 700;
-            font-size: 1.05rem;
-            margin-bottom: 0.5rem;
-            color: var(--text-main);
-        }
-
-        .feature-desc {
-            font-size: 0.88rem;
-            color: var(--text-muted);
-            line-height: 1.6;
-        }
-
-        /* How It Works Cards */
-        .hiw-grid {
-            display: grid;
-            gap: 1.5rem;
-            grid-template-columns: 1fr;
-        }
-
-        @media (min-width: 768px) {
-            .hiw-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (min-width: 1024px) {
-            .hiw-grid {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
-
-        .hiw-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 1.75rem;
-            border-radius: 1rem;
-            text-align: center;
-            position: relative;
-            transition: all 0.3s ease;
-        }
-
-        .hiw-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
-            border-color: var(--primary-color);
-        }
-
-        .hiw-step-num {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: var(--primary-color);
-            color: #fff;
-            font-weight: 700;
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-        }
-
-        .hiw-title {
-            font-weight: 700;
-            font-size: 1rem;
-            margin-bottom: 0.5rem;
-            color: var(--text-main);
-        }
-
-        .hiw-desc {
-            font-size: 0.88rem;
-            color: var(--text-muted);
-            line-height: 1.6;
-        }
-
-        /* Impact Cards */
-        .impact-grid {
-            display: grid;
-            gap: 1.5rem;
-            grid-template-columns: 1fr;
-        }
-
-        @media (min-width: 768px) {
-            .impact-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (min-width: 1024px) {
-            .impact-grid {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
-
-        .impact-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 1.75rem;
-            border-radius: 1rem;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .impact-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
-            border-color: var(--accent-color);
-        }
-
-        .impact-icon {
-            font-size: 1.6rem;
-            margin-bottom: 0.75rem;
-            color: var(--accent-color);
-        }
-
-        .impact-value {
-            font-size: 1.5rem;
-            font-weight: 800;
-            margin-bottom: 0.25rem;
-            background: linear-gradient(135deg, #10b981, #06b6d4);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .impact-label {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        .impact-desc {
-            font-size: 0.82rem;
-            color: var(--text-muted);
-            line-height: 1.5;
-            margin-top: 0.5rem;
-            opacity: 0.8;
-        }
-
-        /* Hero Button Glow */
-        .btn-hero {
-            padding: 1rem 2.5rem;
-            font-size: 1.1rem;
-            border-radius: 2rem;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.4s ease;
-        }
-
-        .btn-hero:hover {
-            box-shadow: 0 0 30px rgba(14, 165, 233, 0.5), 0 0 60px rgba(14, 165, 233, 0.2);
-            transform: translateY(-3px);
-        }
-
-        .btn-hero::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
-            opacity: 0;
-            transition: opacity 0.4s ease;
-        }
-
-        .btn-hero:hover::after {
-            opacity: 1;
-        }
-
-        /* Section Divider */
-        .landing-section {
-            margin-top: 4rem;
-        }
-
-        /* Fade-in animation for cards */
-        .fade-up {
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeUp 0.6s ease forwards;
-        }
-
-        @keyframes fadeUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .fade-up:nth-child(1) { animation-delay: 0.05s; }
-        .fade-up:nth-child(2) { animation-delay: 0.1s; }
-        .fade-up:nth-child(3) { animation-delay: 0.15s; }
-        .fade-up:nth-child(4) { animation-delay: 0.2s; }
-        .fade-up:nth-child(5) { animation-delay: 0.25s; }
-        .fade-up:nth-child(6) { animation-delay: 0.3s; }
-
-        /* Tag / Badge */
-        .hero-tag {
-            display: inline-block;
-            padding: 0.35rem 1rem;
-            border-radius: 2rem;
-            font-size: 0.8rem;
-            font-weight: 600;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            background: rgba(14, 165, 233, 0.12);
-            color: var(--primary-color);
-            border: 1px solid rgba(14, 165, 233, 0.25);
-            margin-bottom: 1.5rem;
-        }
-
-        /* Divider line between sections */
-        .section-divider {
-            border: none;
-            border-top: 1px solid var(--border-color);
-            margin: 4rem auto 0;
-            max-width: 200px;
-            opacity: 0.5;
-        }
-    </style>
 </head>
 
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="brand">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
-            <span>PatientPath AI</span>
-        </div>
-        <ul class="nav-menu">
-            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
-            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
-            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
-            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
-            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
-            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
-            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
-            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
-            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
-            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">9</span> Staff Panel</a></li>
-            <li><a href="patient_dashboard.html" class="nav-item"><span class="step-badge">3</span> My Dashboard</a>
-            </li>
-        </ul>
-    </div>
 
-    <!-- Main Content -->
-    <div class="main-content">
-        <header>
-            <div class="header-title-container">
-                <h1>PatientPath AI</h1>
-                <p class="header-subtitle">Intelligent Hospital Operations</p>
+    <!-- ═══════════════════════════════════════ -->
+    <!-- NAVBAR                                  -->
+    <!-- ═══════════════════════════════════════ -->
+    <nav class="landing-navbar" id="landing-navbar">
+        <div class="navbar-inner">
+            <a href="index.html" class="navbar-brand">
+                <!-- Sankara Eye Foundation Logo (inline SVG) -->
+                <svg class="logo-icon" viewBox="0 0 200 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Eye outer shape -->
+                    <path d="M10,70 Q50,15 100,15 Q150,15 190,70 Q150,125 100,125 Q50,125 10,70 Z" fill="#E88A1A"/>
+                    <!-- Inner circle -->
+                    <circle cx="100" cy="70" r="42" fill="#F5A623"/>
+                    <!-- Sun rays -->
+                    <g fill="#E88A1A" opacity="0.9">
+                        <rect x="97" y="22" width="6" height="18" rx="3"/>
+                        <rect x="97" y="100" width="6" height="18" rx="3"/>
+                        <rect x="60" y="32" width="6" height="16" rx="3" transform="rotate(-45 63 40)"/>
+                        <rect x="134" y="32" width="6" height="16" rx="3" transform="rotate(45 137 40)"/>
+                        <rect x="134" y="92" width="6" height="16" rx="3" transform="rotate(-45 137 100)"/>
+                        <rect x="60" y="92" width="6" height="16" rx="3" transform="rotate(45 63 100)"/>
+                        <rect x="50" y="67" width="16" height="6" rx="3"/>
+                        <rect x="134" y="67" width="16" height="6" rx="3"/>
+                    </g>
+                    <!-- Center bright circle -->
+                    <circle cx="100" cy="70" r="28" fill="#FFC857" opacity="0.6"/>
+                    <!-- Family silhouettes -->
+                    <g fill="white" opacity="0.95">
+                        <!-- Adult left -->
+                        <circle cx="90" cy="56" r="5"/>
+                        <path d="M85,63 Q87,61 90,61 Q93,61 95,63 L96,78 Q93,80 90,80 Q87,80 84,78 Z"/>
+                        <!-- Adult right -->
+                        <circle cx="110" cy="56" r="5"/>
+                        <path d="M105,63 Q107,61 110,61 Q113,61 115,63 L116,78 Q113,80 110,80 Q107,80 104,78 Z"/>
+                        <!-- Child center -->
+                        <circle cx="100" cy="62" r="4"/>
+                        <path d="M96,68 Q98,66.5 100,66.5 Q102,66.5 104,68 L105,80 Q103,81.5 100,81.5 Q97,81.5 95,80 Z"/>
+                    </g>
+                    <!-- Crescent accent -->
+                    <path d="M130,42 Q150,70 130,98 Q140,70 130,42 Z" fill="white" opacity="0.2"/>
+                </svg>
+                <div class="brand-text">
+                    <span class="brand-name">Sankara Eye Foundation</span>
+                    <span class="product-name">PatientPathAI</span>
+                </div>
+            </a>
+            <div class="navbar-actions">
+                <a href="#about-section" class="btn-about" title="About"><i class="fas fa-info-circle"></i></a>
+                <a href="login.html" class="btn-nav btn-nav-outline">Login</a>
+                <a href="signup.html" class="btn-nav btn-nav-solid">Register</a>
             </div>
-            <!-- RBAC Controls will be injected here by main.js -->
-        </header>
+        </div>
+    </nav>
 
-        <div class="page-container fade-in" style="max-width: 1200px; padding-bottom: 4rem;">
-
-            <!-- ═══════════════════════════════════════ -->
-            <!-- HERO SECTION                            -->
-            <!-- ═══════════════════════════════════════ -->
-            <div class="hero-section text-center" style="padding: 4rem 1rem 2rem; max-width: 820px; margin: 0 auto;">
-                <h1
-                    style="font-size: 3.5rem; margin-bottom: 1rem; background: linear-gradient(135deg, #38bdf8 0%, #3b82f6 50%, #10b981 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.05em; line-height: 1.15; font-weight: 800;">
-                    PatientPath AI
+    <!-- ═══════════════════════════════════════ -->
+    <!-- HERO SECTION                            -->
+    <!-- ═══════════════════════════════════════ -->
+    <section class="hero-section">
+        <div class="hero-inner">
+            <div class="hero-content">
+                <div class="hero-badge"><i class="fas fa-sparkles"></i> AI-Powered Digital Twin Platform</div>
+                <h1 class="hero-title">
+                    <span class="highlight">Advanced Eye Care</span> with Smart Patient Navigation
                 </h1>
-                <div class="hero-tag" style="margin-bottom: 1.5rem;">Digital Twin Platform</div>
-                <p style="font-size: 1.2rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.75rem; line-height: 1.4;">
-                    AI-Powered Digital Twin for Real-Time Hospital Operations
+                <p class="hero-desc">
+                    Combining computer vision, event-driven workflow automation, and predictive analytics to
+                    optimize patient flow and hospital resources — powered by Sankara Eye Foundation.
                 </p>
-                <p style="font-size: 1.1rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 2.5rem; max-width: 680px; margin-left: auto; margin-right: auto;">
-                    Combining computer vision, event-driven workflow automation, and predictive analytics to optimize
-                    patient flow and hospital resources — without additional hardware dependency.
-                </p>
-                <a href="occupancy.html" class="btn btn-primary btn-hero">
-                    Get Started
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-                        style="margin-left: 0.5rem;">
-                        <path d="M5 12h14M12 5l7 7-7 7" />
-                    </svg>
-                </a>
-            </div>
-
-            <hr class="section-divider">
-
-            <!-- ═══════════════════════════════════════ -->
-            <!-- HOW IT WORKS                            -->
-            <!-- ═══════════════════════════════════════ -->
-            <div class="landing-section">
-                <h2 class="section-heading">How It Works</h2>
-                <p class="section-subheading">Four integrated layers that transform raw hospital data into actionable operational intelligence.</p>
-
-                <div class="hiw-grid">
-                    <div class="hiw-card fade-up">
-                        <div class="hiw-step-num">1</div>
-                        <div class="hiw-title">Computer Vision Detection</div>
-                        <p class="hiw-desc">Existing CCTV feeds are processed by AI models to detect and count people across hospital zones in real time.</p>
+                <div class="hero-search-wrapper">
+                    <div class="hero-search">
+                        <input type="text" placeholder="Search departments..." id="hero-search-input" autocomplete="off">
+                        <button class="hero-search-btn" title="Search"><i class="fas fa-search"></i></button>
                     </div>
-                    <div class="hiw-card fade-up">
-                        <div class="hiw-step-num">2</div>
-                        <div class="hiw-title">Event-Driven Workflow Updates</div>
-                        <p class="hiw-desc">Patient stage transitions and department actions trigger automated workflow updates across the system instantly.</p>
-                    </div>
-                    <div class="hiw-card fade-up">
-                        <div class="hiw-step-num">3</div>
-                        <div class="hiw-title">Real-Time Dashboard Sync</div>
-                        <p class="hiw-desc">Occupancy data, alerts, and patient status synchronize across all role-based dashboards via live polling.</p>
-                    </div>
-                    <div class="hiw-card fade-up">
-                        <div class="hiw-step-num">4</div>
-                        <div class="hiw-title">Predictive Intelligence</div>
-                        <p class="hiw-desc">Machine learning models forecast admission spikes, wait times, and bottlenecks to enable proactive resource allocation.</p>
-                    </div>
+                    <ul class="search-dropdown" id="search-dropdown"></ul>
                 </div>
             </div>
-
-            <hr class="section-divider">
-
-            <!-- ═══════════════════════════════════════ -->
-            <!-- CORE FUNCTIONALITIES                    -->
-            <!-- ═══════════════════════════════════════ -->
-            <div class="landing-section">
-                <h2 class="section-heading">Core Functionalities</h2>
-                <p class="section-subheading">Purpose-built modules designed to address critical operational challenges in hospital environments.</p>
-
-                <div class="features-grid three-col">
-                    <!-- Feature 1 -->
-                    <div class="feature-card fade-up">
-                        <div class="feature-icon blue"><i class="fas fa-chart-bar"></i></div>
-                        <div class="feature-title">Live Occupancy Monitoring</div>
-                        <p class="feature-desc">Track real-time person counts and density levels across every hospital department to prevent overcrowding and optimize patient distribution.</p>
-                    </div>
-                    <!-- Feature 2 -->
-                    <div class="feature-card fade-up">
-                        <div class="feature-icon amber"><i class="fas fa-fire"></i></div>
-                        <div class="feature-title">Zone Heatmaps</div>
-                        <p class="feature-desc">Visualize congestion patterns through color-coded intensity maps, enabling staff to identify bottlenecks and redirect patient flow proactively.</p>
-                    </div>
-                    <!-- Feature 3 -->
-                    <div class="feature-card fade-up">
-                        <div class="feature-icon purple"><i class="fas fa-brain"></i></div>
-                        <div class="feature-title">Predictive Analytics</div>
-                        <p class="feature-desc">AI-driven forecasts for peak hours, admission surges, and wait times using trained models on historical operational data.</p>
-                    </div>
-                    <!-- Feature 4 -->
-                    <div class="feature-card fade-up">
-                        <div class="feature-icon green"><i class="fas fa-bed"></i></div>
-                        <div class="feature-title">Resource Allocation</div>
-                        <p class="feature-desc">Monitor bed availability, staffing levels, and departmental capacity to make data-driven resource decisions that reduce patient wait times.</p>
-                    </div>
-                    <!-- Feature 5 -->
-                    <div class="feature-card fade-up">
-                        <div class="feature-icon rose"><i class="fas fa-shield-alt"></i></div>
-                        <div class="feature-title">Role-Based Access Control</div>
-                        <p class="feature-desc">Secure, purpose-built views for Administrators, Doctors, Staff, and Patients — each seeing only what is relevant to their role.</p>
-                    </div>
-                    <!-- Feature 6 -->
-                    <div class="feature-card fade-up">
-                        <div class="feature-icon cyan"><i class="fas fa-video"></i></div>
-                        <div class="feature-title">Live Camera Feeds</div>
-                        <p class="feature-desc">Low-latency video streams from hospital departments provide direct visual oversight for real-time situational awareness.</p>
-                    </div>
+            <div class="hero-visual">
+                <img src="assets/doctor_hero.png" alt="Sankara Eye Foundation Doctor" class="hero-img-main">
+                <img src="assets/eye_closeup.png" alt="Eye Care" class="hero-img-float">
+                <div class="hero-stat-badge">
+                    <div class="stat-num">550+</div>
+                    <div class="stat-label">Successful<br>Eye Surgeries</div>
                 </div>
             </div>
-
-            <hr class="section-divider">
-
-            <!-- ═══════════════════════════════════════ -->
-            <!-- IMPACT & BENEFITS                       -->
-            <!-- ═══════════════════════════════════════ -->
-            <div class="landing-section">
-                <h2 class="section-heading">Impact & Benefits</h2>
-                <p class="section-subheading">Measurable outcomes that demonstrate the value of an AI-powered hospital operations platform.</p>
-
-                <div class="impact-grid">
-                    <div class="impact-card fade-up">
-                        <div class="impact-icon"><i class="fas fa-clock"></i></div>
-                        <div class="impact-value">Reduced</div>
-                        <div class="impact-label">Patient Waiting Time</div>
-                        <p class="impact-desc">Automated workflow tracking and predictive routing minimize idle time between departments.</p>
-                    </div>
-                    <div class="impact-card fade-up">
-                        <div class="impact-icon"><i class="fas fa-cubes"></i></div>
-                        <div class="impact-value">Optimized</div>
-                        <div class="impact-label">Resource Utilization</div>
-                        <p class="impact-desc">Data-driven allocation of beds, staff, and equipment based on real-time demand signals.</p>
-                    </div>
-                    <div class="impact-card fade-up">
-                        <div class="impact-icon"><i class="fas fa-eye"></i></div>
-                        <div class="impact-value">Complete</div>
-                        <div class="impact-label">Operational Transparency</div>
-                        <p class="impact-desc">End-to-end visibility across every department, patient journey, and resource metric in one platform.</p>
-                    </div>
-                    <div class="impact-card fade-up">
-                        <div class="impact-icon"><i class="fas fa-bolt"></i></div>
-                        <div class="impact-value">Faster</div>
-                        <div class="impact-label">Decision-Making</div>
-                        <p class="impact-desc">Real-time alerts and predictive insights empower administrators to act before problems escalate.</p>
-                    </div>
-                </div>
-            </div>
-
         </div>
-    </div>
+    </section>
 
-    <script src="js/theme.js?v=999"></script>
-    <script src="js/config.js?v=999"></script>
-    <script src="js/main.js?v=999"></script>
+    <!-- ═══════════════════════════════════════ -->
+    <!-- ABOUT SECTION (anchored)                -->
+    <!-- ═══════════════════════════════════════ -->
+    <div id="about-section"></div>
+
+    <!-- How It Works -->
+    <section class="landing-section alt-bg">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">How It Works</div>
+                <h2 class="section-title">Four Layers of Intelligence</h2>
+                <p class="section-desc">Integrated layers that transform raw hospital data into actionable operational intelligence.</p>
+            </div>
+            <div class="hiw-grid">
+                <div class="hiw-card fade-up">
+                    <div class="hiw-num">1</div>
+                    <div class="hiw-card-title">Computer Vision Detection</div>
+                    <p class="hiw-card-desc">Existing CCTV feeds are processed by AI models to detect and count people across hospital zones in real time.</p>
+                </div>
+                <div class="hiw-card fade-up">
+                    <div class="hiw-num">2</div>
+                    <div class="hiw-card-title">Event-Driven Workflow Updates</div>
+                    <p class="hiw-card-desc">Patient stage transitions and department actions trigger automated workflow updates across the system instantly.</p>
+                </div>
+                <div class="hiw-card fade-up">
+                    <div class="hiw-num">3</div>
+                    <div class="hiw-card-title">Real-Time Dashboard Sync</div>
+                    <p class="hiw-card-desc">Occupancy data, alerts, and patient status synchronize across all role-based dashboards via live polling.</p>
+                </div>
+                <div class="hiw-card fade-up">
+                    <div class="hiw-num">4</div>
+                    <div class="hiw-card-title">Predictive Intelligence</div>
+                    <p class="hiw-card-desc">Machine learning models forecast admission spikes, wait times, and bottlenecks to enable proactive resource allocation.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Core Functionalities -->
+    <section class="landing-section">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Core Functionalities</div>
+                <h2 class="section-title">Purpose-Built Modules</h2>
+                <p class="section-desc">Designed to address critical operational challenges in hospital environments.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card fade-up">
+                    <div class="feature-icon-wrap blue"><i class="fas fa-chart-bar"></i></div>
+                    <div class="feature-card-title">Live Occupancy Monitoring</div>
+                    <p class="feature-card-desc">Track real-time person counts and density levels across every hospital department to prevent overcrowding.</p>
+                </div>
+                <div class="feature-card fade-up">
+                    <div class="feature-icon-wrap amber"><i class="fas fa-fire"></i></div>
+                    <div class="feature-card-title">Zone Heatmaps</div>
+                    <p class="feature-card-desc">Visualize congestion patterns through color-coded intensity maps, enabling staff to identify bottlenecks proactively.</p>
+                </div>
+                <div class="feature-card fade-up">
+                    <div class="feature-icon-wrap purple"><i class="fas fa-brain"></i></div>
+                    <div class="feature-card-title">Predictive Analytics</div>
+                    <p class="feature-card-desc">AI-driven forecasts for peak hours, admission surges, and wait times using trained models on historical data.</p>
+                </div>
+                <div class="feature-card fade-up">
+                    <div class="feature-icon-wrap green"><i class="fas fa-bed"></i></div>
+                    <div class="feature-card-title">Resource Allocation</div>
+                    <p class="feature-card-desc">Monitor bed availability, staffing levels, and departmental capacity to make data-driven resource decisions.</p>
+                </div>
+                <div class="feature-card fade-up">
+                    <div class="feature-icon-wrap rose"><i class="fas fa-shield-alt"></i></div>
+                    <div class="feature-card-title">Role-Based Access Control</div>
+                    <p class="feature-card-desc">Secure, purpose-built views for Administrators, Doctors, Staff, and Patients — each seeing only what's relevant.</p>
+                </div>
+                <div class="feature-card fade-up">
+                    <div class="feature-icon-wrap cyan"><i class="fas fa-video"></i></div>
+                    <div class="feature-card-title">Live Camera Feeds</div>
+                    <p class="feature-card-desc">Low-latency video streams from hospital departments provide direct visual oversight for situational awareness.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Impact & Benefits -->
+    <section class="landing-section alt-bg">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Impact & Benefits</div>
+                <h2 class="section-title">Measurable Outcomes</h2>
+                <p class="section-desc">Demonstrating the value of an AI-powered hospital operations platform.</p>
+            </div>
+            <div class="impact-grid">
+                <div class="impact-card fade-up">
+                    <div class="impact-icon"><i class="fas fa-clock"></i></div>
+                    <div class="impact-value">Reduced</div>
+                    <div class="impact-label">Patient Waiting Time</div>
+                    <p class="impact-desc">Automated workflow tracking and predictive routing minimize idle time between departments.</p>
+                </div>
+                <div class="impact-card fade-up">
+                    <div class="impact-icon"><i class="fas fa-cubes"></i></div>
+                    <div class="impact-value">Optimized</div>
+                    <div class="impact-label">Resource Utilization</div>
+                    <p class="impact-desc">Data-driven allocation of beds, staff, and equipment based on real-time demand signals.</p>
+                </div>
+                <div class="impact-card fade-up">
+                    <div class="impact-icon"><i class="fas fa-eye"></i></div>
+                    <div class="impact-value">Complete</div>
+                    <div class="impact-label">Operational Transparency</div>
+                    <p class="impact-desc">End-to-end visibility across every department, patient journey, and resource metric.</p>
+                </div>
+                <div class="impact-card fade-up">
+                    <div class="impact-icon"><i class="fas fa-bolt"></i></div>
+                    <div class="impact-value">Faster</div>
+                    <div class="impact-label">Decision-Making</div>
+                    <p class="impact-desc">Real-time alerts and predictive insights empower administrators to act before problems escalate.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+        <strong>Sankara Eye Foundation</strong> &mdash; PatientPathAI &copy; 2026. All rights reserved.
+    </footer>
+
+    <!-- Theme (force light) -->
+    <script src="js/theme.js?v=1000"></script>
+
+    <!-- Scroll animations, navbar shadow, & search autocomplete -->
+    <script>
+        // Navbar scroll shadow
+        window.addEventListener('scroll', function () {
+            const nav = document.getElementById('landing-navbar');
+            if (window.scrollY > 10) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
+        // Fade-up on scroll (Intersection Observer)
+        const observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.15 });
+
+        document.querySelectorAll('.fade-up').forEach(function (el) {
+            observer.observe(el);
+        });
+
+        // ── Search Autocomplete ──
+        (function () {
+            const departments = [
+                { name: 'Registration', icon: 'fa-clipboard-list' },
+                { name: 'Vision Lab', icon: 'fa-eye' },
+                { name: 'Dilation Hall', icon: 'fa-droplet' },
+                { name: 'Diagnostics', icon: 'fa-stethoscope' },
+                { name: 'Doctor Consultation', icon: 'fa-user-doctor' },
+                { name: 'Pharmacy', icon: 'fa-pills' },
+                { name: 'Billing & Insurance', icon: 'fa-file-invoice-dollar' }
+            ];
+
+            const input = document.getElementById('hero-search-input');
+            const dropdown = document.getElementById('search-dropdown');
+
+            function renderDropdown(matches) {
+                dropdown.innerHTML = '';
+                if (matches.length === 0) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+                matches.forEach(function (dept) {
+                    const li = document.createElement('li');
+                    li.className = 'search-item';
+                    li.innerHTML = '<i class="fas ' + dept.icon + '"></i>' +
+                        '<span>' + dept.name + '</span>' +
+                        '<small>Login to navigate</small>';
+                    li.addEventListener('click', function () {
+                        window.location.href = 'login.html';
+                    });
+                    dropdown.appendChild(li);
+                });
+                dropdown.style.display = 'block';
+            }
+
+            input.addEventListener('input', function () {
+                const query = this.value.trim().toLowerCase();
+                if (query.length === 0) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+                var matches = departments.filter(function (d) {
+                    return d.name.toLowerCase().indexOf(query) !== -1;
+                });
+                renderDropdown(matches);
+            });
+
+            input.addEventListener('focus', function () {
+                if (this.value.trim().length > 0) {
+                    input.dispatchEvent(new Event('input'));
+                }
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('.hero-search-wrapper')) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        })();
+    </script>
 </body>
 
 </html>
