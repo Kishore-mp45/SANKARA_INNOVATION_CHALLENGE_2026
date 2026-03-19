@@ -6,178 +6,123 @@
     <title>PatientPath AI – Clinical Navigator</title>
     <link rel="stylesheet" href="css/style.css?v=999">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; margin: 0; background: #0f172a; color: white; display: flex; height: 100vh; overflow: hidden; }
-        
-        /* ── Container ── */
-        .map-viewport {
-            width: 100%; height: 100%;
-            position: relative; overflow: hidden;
-            background: #dbe4e4; /* Aesthetic light grey-green matches ref */
+        body{font-family:'Inter',sans-serif;margin:0;background:#0f172a;color:#fff;display:flex;height:100vh;overflow:hidden}
+        .map-viewport{width:100%;height:100%;position:relative;overflow:hidden;background:linear-gradient(135deg,#e8eff7,#d1dce8,#c8d8e8)}
+
+        /* ── Info Panel (draggable + collapsible) ── */
+        .info-panel{position:absolute;top:16px;left:16px;z-index:300;pointer-events:auto;width:280px;
+            background:rgba(255,255,255,0.94);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.5);
+            border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.10);color:#334155;overflow:hidden;
+            transition:box-shadow .3s;cursor:default;user-select:none}
+        .info-panel:hover{box-shadow:0 12px 40px rgba(0,0,0,0.14)}
+        .panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;
+            background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;cursor:grab;user-select:none}
+        .panel-header:active{cursor:grabbing}
+        .panel-header h2{font-size:.85rem;font-weight:700;margin:0;display:flex;align-items:center;gap:6px}
+        .panel-btns{display:flex;gap:4px}
+        .panel-btns button{background:rgba(255,255,255,0.2);border:none;color:#fff;width:24px;height:24px;
+            border-radius:6px;cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;
+            transition:background .2s}
+        .panel-btns button:hover{background:rgba(255,255,255,0.35)}
+        .panel-body{padding:14px 16px;transition:max-height .35s ease,padding .35s ease,opacity .25s ease;
+            max-height:500px;opacity:1;overflow:hidden}
+        .panel-body.collapsed{max-height:0;padding:0 16px;opacity:0}
+
+        .timeline-step{position:relative;padding-left:1.6rem;margin-bottom:.9rem}
+        .timeline-step:last-child{margin-bottom:0}
+        .timeline-dot{position:absolute;left:0;top:5px;width:11px;height:11px;border-radius:50%}
+        .dot-blue{background:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.25)}
+        .dot-green{background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.25)}
+        .timeline-connector{position:absolute;left:5px;top:20px;bottom:-10px;width:2px;
+            background:repeating-linear-gradient(to bottom,#cbd5e1 0,#cbd5e1 3px,transparent 3px,transparent 6px)}
+        .step-label{font-size:.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;font-weight:600}
+        .step-title{font-size:1rem;font-weight:700;color:#1e293b}
+        .eta-card{margin-top:.5rem;padding:.55rem .8rem;background:linear-gradient(135deg,#eff6ff,#dbeafe);
+            border-radius:8px;border:1px solid #bfdbfe}
+        .eta-label{font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+        .eta-value{font-size:1.3rem;font-weight:800;color:#1e40af;margin-top:1px}
+        .journey-bar-wrapper{margin-top:.6rem}
+        .journey-bar-track{width:100%;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden}
+        .journey-bar-fill{height:100%;background:linear-gradient(90deg,#3b82f6,#10b981);border-radius:3px;transition:width .6s ease}
+        .journey-bar-label{font-size:.65rem;color:#64748b;margin-top:3px;font-weight:600}
+
+        /* ── Legend (bottom-left) ── */
+        .legend-panel{position:absolute;bottom:16px;left:16px;z-index:300;pointer-events:auto;
+            background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.5);
+            border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.06);padding:10px 14px;
+            display:flex;flex-wrap:wrap;gap:4px 14px}
+        .legend-item{display:flex;align-items:center;gap:5px;font-size:.72rem;font-weight:600;color:#475569}
+        .legend-swatch{width:14px;height:10px;border-radius:2px;border:1px solid rgba(0,0,0,0.06)}
+        .sw-registration{background:#93c5fd}.sw-vision{background:#86efac}.sw-dilation{background:#fcd34d}
+        .sw-diagnostics{background:#c4b5fd}.sw-consultation{background:#f9a8d4}.sw-pharmacy{background:#fdba74}
+        .sw-billing{background:#5eead4}
+
+        /* ── Zoom Controls (bottom-right) ── */
+        .zoom-controls{position:absolute;bottom:16px;right:16px;z-index:300;pointer-events:auto;
+            display:flex;flex-direction:column;gap:4px}
+        .zoom-controls button{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,0.5);
+            background:rgba(255,255,255,0.92);backdrop-filter:blur(10px);color:#334155;font-size:1rem;
+            cursor:pointer;display:flex;align-items:center;justify-content:center;
+            box-shadow:0 2px 8px rgba(0,0,0,0.06);transition:all .2s}
+        .zoom-controls button:hover{background:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+
+        /* ── SVG Map ── */
+        .map-svg-container{position:absolute;inset:0;overflow:hidden;cursor:grab}
+        .map-svg-container.panning{cursor:grabbing}
+        .map-inner{transform-origin:0 0;transition:transform .15s ease-out}
+        #hospital-map{width:100%;height:100%;display:block}
+
+        /* SVG Styles */
+        .room-fill{transition:all .4s ease}
+        .room-wall{fill:none;stroke:#64748b;stroke-width:2.5;stroke-linejoin:round}
+        .room-wall-outer{fill:none;stroke:#94a3b8;stroke-width:4;stroke-linejoin:round;opacity:.3}
+        .room-label{font-family:'Inter',sans-serif;font-size:13px;font-weight:700;fill:#1e293b;text-anchor:middle;pointer-events:none}
+        .room-sublabel{font-family:'Inter',sans-serif;font-size:9px;font-weight:600;fill:#64748b;text-anchor:middle;pointer-events:none}
+        .room-icon{font-family:'Font Awesome 6 Free';font-weight:900;font-size:16px;fill:#94a3b8;text-anchor:middle;pointer-events:none}
+        .corridor-fill{fill:#f1f5f9}
+        .corridor-line{stroke:#cbd5e1;stroke-width:1;stroke-dasharray:4 3;fill:none}
+        .corridor-wall{fill:none;stroke:#cbd5e1;stroke-width:1.5}
+        .door-marker{fill:#f8fafc;stroke:#94a3b8;stroke-width:1.5}
+        .building-floor{fill:#f8fafc;stroke:#94a3b8;stroke-width:3;rx:12}
+        .floor-grid{stroke:#e8edf3;stroke-width:.5}
+        .room-active .room-fill{filter:url(#glow-filter)}
+        .nav-path{fill:none;stroke:url(#path-gradient);stroke-width:5;stroke-linecap:round;stroke-linejoin:round;
+            stroke-dasharray:14 10;animation:dash-march .8s linear infinite;filter:drop-shadow(0 0 4px rgba(59,130,246,.3))}
+        @keyframes dash-march{to{stroke-dashoffset:-24}}
+        .direction-arrow{fill:#3b82f6;opacity:.85;animation:arrow-pulse 1.5s ease-in-out infinite}
+        @keyframes arrow-pulse{0%,100%{opacity:.6}50%{opacity:1}}
+        .patient-marker-group{transition:transform 1.2s cubic-bezier(.25,.46,.45,.94)}
+        .marker-pulse{animation:svg-pulse 2s ease-in-out infinite}
+        @keyframes svg-pulse{0%{r:18;opacity:.5}50%{r:28;opacity:0}100%{r:18;opacity:0}}
+        .marker-ring{animation:ring-glow 2s ease-in-out infinite}
+        @keyframes ring-glow{0%,100%{stroke-opacity:.6}50%{stroke-opacity:1}}
+        .entrance-arrow{fill:#10b981;animation:entrance-bob 2s ease-in-out infinite}
+        @keyframes entrance-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+
+        /* ── Room Tooltip ── */
+        .room-tooltip{position:absolute;z-index:400;pointer-events:none;background:rgba(15,23,42,0.92);
+            color:#fff;padding:8px 12px;border-radius:8px;font-size:.75rem;font-weight:500;
+            box-shadow:0 4px 16px rgba(0,0,0,0.2);opacity:0;transition:opacity .2s;white-space:nowrap}
+        .room-tooltip.visible{opacity:1}
+        .room-tooltip .tt-name{font-weight:700;font-size:.8rem;margin-bottom:2px}
+        .room-tooltip .tt-load{color:#94a3b8}
+
+        /* ── Waiting area icons ── */
+        .waiting-icon{fill:#94a3b8;opacity:.5}
+
+        @media(max-width:900px){
+            .info-panel{width:240px;top:8px;left:8px}
+            .legend-panel{bottom:8px;left:8px;gap:3px 8px}
+            .panel-body{padding:10px 12px}
         }
-
-        /* ── Floating Overlays (UI) ── */
-        .floating-layer {
-            position: absolute; inset: 0; pointer-events: none; z-index: 100;
-            padding: 2rem; display: flex; flex-direction: column; justify-content: space-between;
-        }
-
-        .overlay-panel {
-            pointer-events: auto; background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.4);
-            border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-            padding: 1.5rem; color: #334155;
-        }
-
-        .top-section { display: flex; flex-direction: column; gap: 1rem; align-items: flex-start; }
-        .title-area h1 { font-size: 1.6rem; color: #1e293b; margin: 0 0 0.2rem 0; font-weight: 700; }
-        .title-area p { font-size: 1rem; color: #475569; margin: 0; font-weight: 500; }
-
-        .nav-card { min-width: 300px; }
-        .timeline-step { position: relative; padding-left: 1.8rem; margin-bottom: 1.2rem; }
-        .timeline-step:last-child { margin-bottom: 0; }
-        .timeline-dot { position: absolute; left: 0; top: 5px; width: 12px; height: 12px; border-radius: 50%; }
-        .dot-blue { background: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
-        .dot-green { background: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
-        .timeline-connector { position: absolute; left: 5px; top: 22px; bottom: -15px; width: 2px;
-            background: repeating-linear-gradient(to bottom, #cbd5e1 0, #cbd5e1 3px, transparent 3px, transparent 6px); }
-        .step-label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; margin-bottom: 0.2rem; }
-        .step-title { font-size: 1.1rem; font-weight: 600; color: #1e293b; }
-
-        .legend-card { display: flex; flex-direction: column; gap: 0.6rem; min-width: 180px; }
-        .legend-item { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; font-weight: 500; }
-        .legend-swatch { width: 18px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.1); }
-
-        /* ── Isometric Map ── */
-        .map-relative-container {
-            position: absolute; width: 1000px; height: 1000px;
-            left: 50%; top: 50%; margin-left: -500px; margin-top: -500px;
-            pointer-events: auto;
-        }
-
-        .isometric-wrapper {
-            position: absolute; inset: 0;
-            transform: scale(0.7) scaleY(0.5) rotateZ(-45deg); /* 2D isometric */
-            transition: transform 0.3s;
-            transform-origin: center center;
-        }
-
-        @media (max-width: 1200px) { .isometric-wrapper { transform: scale(0.55) scaleY(0.5) rotateZ(-45deg); } }
-        @media (max-width: 900px) { .isometric-wrapper { transform: scale(0.4) scaleY(0.5) rotateZ(-45deg); } }
-
-        /* The Ground Floor Base */
-        .floor-base {
-            position: absolute; inset: 0; background: #e2e8e3;
-            border-radius: 20px; border: 3px solid #cbd5e1;
-            /* Thin floor shadow */
-            box-shadow: 
-                -1px 1px 0 #94a3b8, -2px 2px 0 #94a3b8, -3px 3px 0 #94a3b8, 
-                -10px 10px 20px rgba(0,0,0,0.1);
-            background-image: linear-gradient(#cbd5e1 1px, transparent 1px), linear-gradient(90deg, #cbd5e1 1px, transparent 1px);
-            background-size: 50px 50px; /* Floor tiles */
-        }
-
-        /* ── 3D Reconstructed Rooms ── */
-        .room {
-            position: absolute;
-            border-radius: 6px;
-            border-top: 2px solid rgba(255,255,255,0.7);
-            border-left: 2px solid rgba(255,255,255,0.7);
-            border-bottom: 2px solid rgba(0,0,0,0.05);
-            border-right: 2px solid rgba(0,0,0,0.05);
-            /* Massive shadow builds the 3D 'walls' */
-            box-shadow: 
-                -1px 1px 0 var(--wall), -2px 2px 0 var(--wall), -3px 3px 0 var(--wall),
-                -4px 4px 0 var(--wall), -5px 5px 0 var(--wall), -6px 6px 0 var(--wall),
-                -7px 7px 0 var(--wall), -8px 8px 0 var(--wall), -9px 9px 0 var(--wall),
-                -10px 10px 0 var(--wall), -11px 11px 0 var(--wall), -12px 12px 0 var(--wall),
-                -13px 13px 0 var(--wall), -14px 14px 0 var(--wall), -15px 15px 0 var(--wall),
-                -16px 16px 0 var(--wall), -17px 17px 0 var(--wall), -18px 18px 0 var(--wall),
-                -19px 19px 0 var(--wall), -20px 20px 0 var(--wall), -21px 21px 0 var(--wall),
-                -25px 25px 15px rgba(0,0,0,0.15);
-            display: flex; align-items: center; justify-content: center;
-        }
-
-        /* Department Palettes - matching the aesthetic */
-        .dept-registration { --wall: #bae6fd; background: #e0f2fe; } /* Blueish */
-        .dept-vision { --wall: #bbf7d0; background: #dcfce7; } /* Greenish */
-        .dept-dilation { --wall: #fde68a; background: #fef3c7; } /* Yellowish */
-        .dept-diagnostics { --wall: #ddd6fe; background: #ede9fe; } /* Purpleish */
-        .dept-consultation { --wall: #fbcfe8; background: #fce7f3; } /* Pinkish */
-        .dept-pharmacy { --wall: #fed7aa; background: #ffedd5; } /* Orange */
-        .dept-billing { --wall: #99f6e4; background: #ccfbf1; } /* Teal */
-
-        /* Placing the 7 rooms on the 1000x1000 map. 100px corridors logic */
-        #room-consultation { left: 50px; top: 50px; width: 400px; height: 350px; }
-        #room-diagnostics { left: 550px; top: 50px; width: 400px; height: 350px; }
-        #room-pharmacy { left: 50px; top: 500px; width: 300px; height: 200px; }
-        #room-dilation_hall { left: 450px; top: 500px; width: 500px; height: 200px; }
-        #room-billing_insurance { left: 50px; top: 800px; width: 300px; height: 150px; }
-        #room-registration { left: 450px; top: 800px; width: 200px; height: 150px; }
-        #room-vision_lab { left: 750px; top: 800px; width: 200px; height: 150px; }
-
-        /* Un-tilting text labels to face the screen. Inverse of parent transform. */
-        .untilt-label {
-            position: absolute;
-            /* Inverse rotation and scale to stand perfectly straight up */
-            transform: rotateZ(45deg) scaleY(2);
-            /* Style */
-            background: rgba(255,255,255,0.9);
-            padding: 0.3rem 0.8rem;
-            border-radius: 99px;
-            font-size: 0.8rem; font-weight: 700; color: #1e293b;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            white-space: nowrap; pointer-events: none;
-            display: flex; flex-direction: column; align-items: center;
-        }
-
-        .untilt-label span { font-size: 0.65rem; color: #64748b; margin-top: 1px; }
-
-        /* SVG Path overlays the rooms */
-        .path-layer { position: absolute; inset: 0; width: 1000px; height: 1000px; pointer-events: none; z-index: 50; }
-        .dynamic-path {
-            stroke: #3b82f6; stroke-width: 6; stroke-dasharray: 12 12; fill: none; stroke-linecap: round;
-            animation: dash-march 1s linear infinite;
-        }
-        @keyframes dash-march { to { stroke-dashoffset: -24; } }
-
-        /* Patient Marker (Using the untilt trick on a specific absolute position) */
-        .patient-marker {
-            position: absolute;
-            left: 0; top: 0; z-index: 60;
-            transition: left 0.8s ease, top 0.8s ease;
-            transform: rotateZ(45deg) scaleY(2); /* Untilt! */
-        }
-        .marker-body {
-            position: absolute; margin-left: -20px; margin-top: -60px; /* Offset to point */
-            display: flex; flex-direction: column; align-items: center; pointer-events: none;
-        }
-        .marker-bubble {
-            background: #1e3a8a; color: white; padding: 0.3rem 0.6rem; border-radius: 6px;
-            font-size: 0.75rem; font-weight: 600; margin-bottom: 5px; box-shadow: 0 4px 15px rgba(30,58,138,0.4);
-        }
-        .marker-person {
-            width: 34px; height: 34px; background: rgba(59,130,246,0.15); border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; border: 2px solid #3b82f6;
-            color: #2563eb; font-size: 1rem; animation: pulse-floor 2s infinite;
-        }
-        @keyframes pulse-floor {
-            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-            70% { box-shadow: 0 0 0 20px rgba(59, 130, 246, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
-        }
-
     </style>
 </head>
 <body>
-
-    <!-- Sidebar -->
     <div class="sidebar">
         <div class="brand">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
             <span>PatientPath AI</span>
         </div>
         <ul class="nav-menu">
@@ -190,173 +135,628 @@
         </ul>
     </div>
 
-    <!-- Main Content -->
     <div class="main-content">
         <div class="map-viewport">
-            
-            <div class="map-relative-container">
-                <div class="isometric-wrapper">
-                    <div class="floor-base"></div> <!-- The 1000x1000 campus tile -->
 
-                    <!-- The 7 Project Departments (CSS extruded divs) -->
-                    <div class="room dept-consultation" id="room-consultation">
-                        <div class="untilt-label">Doctor Consult <span id="load-consultation">--</span></div>
+            <!-- Draggable + Collapsible Info Panel -->
+            <div class="info-panel" id="info-panel">
+                <div class="panel-header" id="panel-header">
+                    <h2><i class="fas fa-map-marked-alt"></i> Navigator</h2>
+                    <div class="panel-btns">
+                        <button id="btn-minimize" title="Minimize"><i class="fas fa-minus"></i></button>
+                        <button id="btn-close" title="Hide"><i class="fas fa-times"></i></button>
                     </div>
-
-                    <div class="room dept-diagnostics" id="room-diagnostics">
-                        <div class="untilt-label">Diagnostics <span id="load-diagnostics">--</span></div>
+                </div>
+                <div class="panel-body" id="panel-body">
+                    <div class="timeline-step">
+                        <div class="timeline-dot dot-blue"></div>
+                        <div class="timeline-connector"></div>
+                        <div class="step-label">Current Location</div>
+                        <div class="step-title" id="nav-current-dept">Loading...</div>
                     </div>
-
-                    <div class="room dept-pharmacy" id="room-pharmacy">
-                        <div class="untilt-label">Pharmacy <span id="load-pharmacy">--</span></div>
+                    <div class="timeline-step">
+                        <div class="timeline-dot dot-green"></div>
+                        <div class="step-label">Next Step</div>
+                        <div class="step-title" id="nav-next-dept">Loading...</div>
                     </div>
-
-                    <div class="room dept-dilation" id="room-dilation_hall">
-                        <div class="untilt-label">Dilation Hall <span id="load-dilation_hall">--</span></div>
+                    <div class="eta-card">
+                        <div class="eta-label">Est. Wait Time</div>
+                        <div class="eta-value" id="nav-eta">--</div>
                     </div>
-
-                    <div class="room dept-billing" id="room-billing_insurance">
-                        <div class="untilt-label">Billing &amp; Insurance <span id="load-billing_insurance">--</span></div>
+                    <div class="journey-bar-wrapper">
+                        <div class="journey-bar-track"><div class="journey-bar-fill" id="journey-fill" style="width:0%"></div></div>
+                        <div class="journey-bar-label" id="journey-label">Journey: 0%</div>
                     </div>
+                </div>
+            </div>
 
-                    <div class="room dept-registration" id="room-registration">
-                        <div class="untilt-label">Registration <span id="load-registration">--</span></div>
-                    </div>
+            <!-- Restore button (hidden by default) -->
+            <button id="btn-restore" title="Show Navigator Panel" style="display:none;position:absolute;top:16px;left:16px;z-index:300;
+                pointer-events:auto;width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.5);
+                background:rgba(255,255,255,.92);backdrop-filter:blur(10px);color:#1e3a8a;font-size:1rem;cursor:pointer;
+                box-shadow:0 4px 12px rgba(0,0,0,.08);display:none;align-items:center;justify-content:center">
+                <i class="fas fa-map-marked-alt"></i>
+            </button>
 
-                    <div class="room dept-vision" id="room-vision_lab">
-                        <div class="untilt-label">Vision Lab <span id="load-vision_lab">--</span></div>
-                    </div>
+            <!-- Room Tooltip -->
+            <div class="room-tooltip" id="room-tooltip">
+                <div class="tt-name" id="tt-name"></div>
+                <div class="tt-load" id="tt-load"></div>
+            </div>
 
-                    <!-- Dynamic Navigation Path layered loosely over the rooms -->
-                    <svg class="path-layer" viewBox="0 0 1000 1000">
-                        <path id="nav-line" class="dynamic-path" d=""></path>
+            <!-- SVG Map Container (pannable + zoomable) -->
+            <div class="map-svg-container" id="map-container">
+                <div class="map-inner" id="map-inner">
+                    <svg id="hospital-map" viewBox="0 0 1100 700" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <filter id="glow-filter" x="-30%" y="-30%" width="160%" height="160%">
+                                <feGaussianBlur stdDeviation="6" result="blur"/>
+                                <feFlood flood-color="#3b82f6" flood-opacity="0.3" result="color"/>
+                                <feComposite in="color" in2="blur" operator="in" result="glow"/>
+                                <feMerge><feMergeNode in="glow"/><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+                            </filter>
+                            <linearGradient id="path-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#10b981"/>
+                            </linearGradient>
+                            <filter id="room-shadow" x="-5%" y="-5%" width="110%" height="115%">
+                                <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.10"/>
+                            </filter>
+                            <!-- Room gradient fills for 3D depth -->
+                            <linearGradient id="grad-reg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#dbeafe"/><stop offset="100%" stop-color="#bfdbfe"/></linearGradient>
+                            <linearGradient id="grad-vis" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#dcfce7"/><stop offset="100%" stop-color="#bbf7d0"/></linearGradient>
+                            <linearGradient id="grad-dil" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fef3c7"/><stop offset="100%" stop-color="#fde68a"/></linearGradient>
+                            <linearGradient id="grad-dia" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ede9fe"/><stop offset="100%" stop-color="#ddd6fe"/></linearGradient>
+                            <linearGradient id="grad-con" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fce7f3"/><stop offset="100%" stop-color="#fbcfe8"/></linearGradient>
+                            <linearGradient id="grad-pha" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffedd5"/><stop offset="100%" stop-color="#fed7aa"/></linearGradient>
+                            <linearGradient id="grad-bil" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ccfbf1"/><stop offset="100%" stop-color="#99f6e4"/></linearGradient>
+                            <!-- Corridor floor pattern -->
+                            <pattern id="floor-pattern" width="20" height="20" patternUnits="userSpaceOnUse">
+                                <rect width="20" height="20" fill="#f1f5f9"/>
+                                <rect width="10" height="10" fill="#e8edf3" opacity=".4"/>
+                                <rect x="10" y="10" width="10" height="10" fill="#e8edf3" opacity=".4"/>
+                            </pattern>
+                        </defs>
+
+                        <!-- Building Floor -->
+                        <rect class="building-floor" x="20" y="20" width="1060" height="660" rx="14"/>
+                        <!-- Floor grid -->
+                        <g opacity=".4">
+                            <line class="floor-grid" x1="20" y1="120" x2="1080" y2="120"/><line class="floor-grid" x1="20" y1="220" x2="1080" y2="220"/>
+                            <line class="floor-grid" x1="20" y1="320" x2="1080" y2="320"/><line class="floor-grid" x1="20" y1="420" x2="1080" y2="420"/>
+                            <line class="floor-grid" x1="20" y1="520" x2="1080" y2="520"/><line class="floor-grid" x1="20" y1="620" x2="1080" y2="620"/>
+                            <line class="floor-grid" x1="120" y1="20" x2="120" y2="680"/><line class="floor-grid" x1="270" y1="20" x2="270" y2="680"/>
+                            <line class="floor-grid" x1="420" y1="20" x2="420" y2="680"/><line class="floor-grid" x1="570" y1="20" x2="570" y2="680"/>
+                            <line class="floor-grid" x1="720" y1="20" x2="720" y2="680"/><line class="floor-grid" x1="870" y1="20" x2="870" y2="680"/>
+                            <line class="floor-grid" x1="1020" y1="20" x2="1020" y2="680"/>
+                        </g>
+
+                        <!-- Corridors with patterned fill -->
+                        <rect fill="url(#floor-pattern)" x="40" y="300" width="1020" height="80" rx="4"/>
+                        <rect fill="url(#floor-pattern)" x="240" y="50" width="70" height="600" rx="4"/>
+                        <rect fill="url(#floor-pattern)" x="740" y="50" width="70" height="600" rx="4"/>
+                        <rect fill="url(#floor-pattern)" x="240" y="570" width="570" height="60" rx="4"/>
+                        <!-- Corridor walls (double lines) -->
+                        <line class="corridor-wall" x1="40" y1="300" x2="1060" y2="300"/>
+                        <line class="corridor-wall" x1="40" y1="380" x2="1060" y2="380"/>
+                        <line class="corridor-wall" x1="240" y1="50" x2="240" y2="650"/>
+                        <line class="corridor-wall" x1="310" y1="50" x2="310" y2="650"/>
+                        <line class="corridor-wall" x1="740" y1="50" x2="740" y2="650"/>
+                        <line class="corridor-wall" x1="810" y1="50" x2="810" y2="650"/>
+                        <!-- Corridor center dashed lines -->
+                        <line class="corridor-line" x1="50" y1="340" x2="1050" y2="340"/>
+                        <line class="corridor-line" x1="275" y1="60" x2="275" y2="640"/>
+                        <line class="corridor-line" x1="775" y1="60" x2="775" y2="640"/>
+                        <line class="corridor-line" x1="275" y1="600" x2="775" y2="600"/>
+
+                        <!-- Corridor direction arrows -->
+                        <polygon fill="#cbd5e1" opacity=".5" points="160,336 172,340 160,344"/>
+                        <polygon fill="#cbd5e1" opacity=".5" points="450,336 462,340 450,344"/>
+                        <polygon fill="#cbd5e1" opacity=".5" points="900,336 912,340 900,344"/>
+                        <polygon fill="#cbd5e1" opacity=".5" points="271,180 275,168 279,180"/>
+                        <polygon fill="#cbd5e1" opacity=".5" points="771,180 775,168 779,180"/>
+
+                        <!-- Waiting area icons (chair symbols) -->
+                        <g class="waiting-icon" transform="translate(100,330)">
+                            <rect x="0" y="4" width="6" height="8" rx="1"/><rect x="10" y="4" width="6" height="8" rx="1"/>
+                            <rect x="20" y="4" width="6" height="8" rx="1"/>
+                            <text x="13" y="-2" font-size="7" text-anchor="middle" fill="#94a3b8" font-weight="600">WAIT</text>
+                        </g>
+                        <g class="waiting-icon" transform="translate(950,330)">
+                            <rect x="0" y="4" width="6" height="8" rx="1"/><rect x="10" y="4" width="6" height="8" rx="1"/>
+                            <rect x="20" y="4" width="6" height="8" rx="1"/>
+                            <text x="13" y="-2" font-size="7" text-anchor="middle" fill="#94a3b8" font-weight="600">WAIT</text>
+                        </g>
+
+                        <!-- Entrance -->
+                        <rect x="40" y="310" width="30" height="60" rx="4" fill="#d1fae5" stroke="#10b981" stroke-width="2"/>
+                        <text x="55" y="345" font-family="Inter" font-size="9" font-weight="700" fill="#059669" text-anchor="middle">IN</text>
+                        <polygon class="entrance-arrow" points="18,340 35,330 35,350"/>
+
+                        <!-- ═══ ROOMS (with gradient fills + outer wall for depth) ═══ -->
+                        <g id="room-registration" class="room-group" filter="url(#room-shadow)" data-dept="Registration" data-key="registration">
+                            <rect class="room-wall-outer" x="48" y="398" width="184" height="124" rx="10"/>
+                            <rect class="room-fill" x="50" y="400" width="180" height="120" rx="8" fill="url(#grad-reg)"/>
+                            <rect class="room-wall" x="50" y="400" width="180" height="120" rx="8"/>
+                            <rect class="door-marker" x="150" y="395" width="30" height="10" rx="3"/>
+                            <text class="room-icon" x="140" y="445">&#xf2bb;</text>
+                            <text class="room-label" x="140" y="465">Registration</text>
+                            <text class="room-sublabel" id="load-registration" x="140" y="480">--</text>
+                        </g>
+                        <g id="room-vision_lab" class="room-group" filter="url(#room-shadow)" data-dept="Vision Lab" data-key="vision_lab">
+                            <rect class="room-wall-outer" x="48" y="98" width="184" height="154" rx="10"/>
+                            <rect class="room-fill" x="50" y="100" width="180" height="150" rx="8" fill="url(#grad-vis)"/>
+                            <rect class="room-wall" x="50" y="100" width="180" height="150" rx="8"/>
+                            <rect class="door-marker" x="175" y="245" width="30" height="10" rx="3"/>
+                            <text class="room-icon" x="140" y="162">&#xf06e;</text>
+                            <text class="room-label" x="140" y="182">Vision Lab</text>
+                            <text class="room-sublabel" id="load-vision_lab" x="140" y="197">--</text>
+                        </g>
+                        <g id="room-dilation_hall" class="room-group" filter="url(#room-shadow)" data-dept="Dilation Hall" data-key="dilation_hall">
+                            <rect class="room-wall-outer" x="318" y="58" width="204" height="184" rx="10"/>
+                            <rect class="room-fill" x="320" y="60" width="200" height="180" rx="8" fill="url(#grad-dil)"/>
+                            <rect class="room-wall" x="320" y="60" width="200" height="180" rx="8"/>
+                            <rect class="door-marker" x="390" y="235" width="30" height="10" rx="3"/>
+                            <text class="room-icon" x="420" y="137">&#xf043;</text>
+                            <text class="room-label" x="420" y="157">Dilation Hall</text>
+                            <text class="room-sublabel" id="load-dilation_hall" x="420" y="172">--</text>
+                        </g>
+                        <g id="room-diagnostics" class="room-group" filter="url(#room-shadow)" data-dept="Diagnostics" data-key="diagnostics">
+                            <rect class="room-wall-outer" x="578" y="58" width="154" height="184" rx="10"/>
+                            <rect class="room-fill" x="580" y="60" width="150" height="180" rx="8" fill="url(#grad-dia)"/>
+                            <rect class="room-wall" x="580" y="60" width="150" height="180" rx="8"/>
+                            <rect class="door-marker" x="630" y="235" width="30" height="10" rx="3"/>
+                            <text class="room-icon" x="655" y="137">&#xf0f1;</text>
+                            <text class="room-label" x="655" y="157">Diagnostics</text>
+                            <text class="room-sublabel" id="load-diagnostics" x="655" y="172">--</text>
+                        </g>
+                        <g id="room-consultation" class="room-group" filter="url(#room-shadow)" data-dept="Consultation" data-key="consultation">
+                            <rect class="room-wall-outer" x="818" y="78" width="224" height="184" rx="10"/>
+                            <rect class="room-fill" x="820" y="80" width="220" height="180" rx="8" fill="url(#grad-con)"/>
+                            <rect class="room-wall" x="820" y="80" width="220" height="180" rx="8"/>
+                            <rect class="door-marker" x="810" y="150" width="10" height="30" rx="3"/>
+                            <text class="room-icon" x="930" y="155">&#xf0fa;</text>
+                            <text class="room-label" x="930" y="175">Consultation</text>
+                            <text class="room-sublabel" id="load-consultation" x="930" y="190">--</text>
+                        </g>
+                        <g id="room-pharmacy" class="room-group" filter="url(#room-shadow)" data-dept="Pharmacy" data-key="pharmacy">
+                            <rect class="room-wall-outer" x="818" y="398" width="224" height="144" rx="10"/>
+                            <rect class="room-fill" x="820" y="400" width="220" height="140" rx="8" fill="url(#grad-pha)"/>
+                            <rect class="room-wall" x="820" y="400" width="220" height="140" rx="8"/>
+                            <rect class="door-marker" x="810" y="450" width="10" height="30" rx="3"/>
+                            <text class="room-icon" x="930" y="458">&#xf484;</text>
+                            <text class="room-label" x="930" y="478">Pharmacy</text>
+                            <text class="room-sublabel" id="load-pharmacy" x="930" y="493">--</text>
+                        </g>
+                        <g id="room-billing_insurance" class="room-group" filter="url(#room-shadow)" data-dept="Billing &amp; Insurance" data-key="billing_insurance">
+                            <rect class="room-wall-outer" x="378" y="428" width="254" height="134" rx="10"/>
+                            <rect class="room-fill" x="380" y="430" width="250" height="130" rx="8" fill="url(#grad-bil)"/>
+                            <rect class="room-wall" x="380" y="430" width="250" height="130" rx="8"/>
+                            <rect class="door-marker" x="480" y="425" width="30" height="10" rx="3"/>
+                            <text class="room-icon" x="505" y="483">&#xf53d;</text>
+                            <text class="room-label" x="505" y="503">Billing &amp; Insurance</text>
+                            <text class="room-sublabel" id="load-billing_insurance" x="505" y="518">--</text>
+                        </g>
+
+                        <!-- Exit -->
+                        <rect x="380" y="620" width="70" height="45" rx="6" fill="#fee2e2" stroke="#f87171" stroke-width="2"/>
+                        <text x="415" y="647" font-family="Inter" font-size="10" font-weight="700" fill="#dc2626" text-anchor="middle">EXIT</text>
+
+                        <!-- Corridor labels -->
+                        <text x="550" y="347" font-family="Inter" font-size="10" font-weight="600" fill="#94a3b8" text-anchor="middle" letter-spacing="2">M A I N   C O R R I D O R</text>
+                        <text x="275" y="290" font-family="Inter" font-size="9" font-weight="600" fill="#94a3b8" text-anchor="middle" transform="rotate(-90,275,290)" letter-spacing="1">WEST WING</text>
+                        <text x="775" y="290" font-family="Inter" font-size="9" font-weight="600" fill="#94a3b8" text-anchor="middle" transform="rotate(-90,775,290)" letter-spacing="1">EAST WING</text>
+                        <text x="525" y="592" font-family="Inter" font-size="8" font-weight="600" fill="#94a3b8" text-anchor="middle" letter-spacing="1">SOUTH PASSAGE</text>
+
+                        <!-- Navigation path + arrows -->
+                        <path id="nav-path" class="nav-path" d=""/>
+                        <g id="direction-arrows"></g>
+
+                        <!-- Patient marker -->
+                        <g id="patient-marker" class="patient-marker-group" style="display:none;">
+                            <circle class="marker-pulse" cx="0" cy="0" r="18" fill="none" stroke="#3b82f6" stroke-width="2"/>
+                            <circle cx="0" cy="0" r="14" fill="rgba(59,130,246,0.12)" stroke="#3b82f6" stroke-width="2.5" class="marker-ring"/>
+                            <circle cx="0" cy="-3" r="4" fill="#2563eb"/>
+                            <ellipse cx="0" cy="5" rx="6" ry="4" fill="#2563eb"/>
+                            <rect x="-42" y="-38" width="84" height="20" rx="10" fill="#1e3a8a"/>
+                            <text x="0" y="-24" font-family="Inter" font-size="9" font-weight="700" fill="white" text-anchor="middle">YOU ARE HERE</text>
+                        </g>
                     </svg>
-
-                    <!-- Untilted Marker traversing the 1000x1000 isometric grid -->
-                    <div class="patient-marker" id="patient-marker" style="display:none;">
-                        <div class="marker-body">
-                            <div class="marker-bubble">You Are Here</div>
-                            <div class="marker-person"><i class="fas fa-user"></i></div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
 
-            <!-- Dashboard Overlays -->
-            <div class="floating-layer">
-                
-                <!-- Current status card -->
-                <div class="top-section">
-                    <div class="title-area">
-                        <h1>Sankara Eye Hospital – Tracker</h1>
-                        <p>Patient Navigation Map</p>
-                    </div>
-
-                    <div class="overlay-panel nav-card fade-in">
-                        <div class="timeline-step">
-                            <div class="timeline-dot dot-blue"></div>
-                            <div class="timeline-connector"></div>
-                            <div class="step-label">Current Location</div>
-                            <div class="step-title" id="nav-current-dept">Loading...</div>
-                        </div>
-                        <div class="timeline-step">
-                            <div class="timeline-dot dot-green"></div>
-                            <div class="step-label">Next Step</div>
-                            <div class="step-title" id="nav-next-dept">Loading...</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Footer legend -->
-                <div class="overlay-panel legend-card fade-in" style="width: max-content;">
-                    <div class="legend-item"><div class="legend-swatch dept-registration"></div> Registration</div>
-                    <div class="legend-item"><div class="legend-swatch dept-vision"></div> Vision Lab</div>
-                    <div class="legend-item"><div class="legend-swatch dept-dilation"></div> Dilation Hall</div>
-                    <div class="legend-item"><div class="legend-swatch dept-diagnostics"></div> Diagnostics</div>
-                    <div class="legend-item"><div class="legend-swatch dept-consultation"></div> Doctor Consultation</div>
-                    <div class="legend-item"><div class="legend-swatch dept-billing"></div> Billing &amp; Insurance</div>
-                    <div class="legend-item"><div class="legend-swatch dept-pharmacy"></div> Pharmacy</div>
-                </div>
-
+            <!-- Legend -->
+            <div class="legend-panel">
+                <div class="legend-item"><div class="legend-swatch sw-registration"></div> Registration</div>
+                <div class="legend-item"><div class="legend-swatch sw-vision"></div> Vision Lab</div>
+                <div class="legend-item"><div class="legend-swatch sw-dilation"></div> Dilation Hall</div>
+                <div class="legend-item"><div class="legend-swatch sw-diagnostics"></div> Diagnostics</div>
+                <div class="legend-item"><div class="legend-swatch sw-consultation"></div> Consultation</div>
+                <div class="legend-item"><div class="legend-swatch sw-pharmacy"></div> Pharmacy</div>
+                <div class="legend-item"><div class="legend-swatch sw-billing"></div> Billing & Insurance</div>
             </div>
 
+            <!-- Zoom Controls -->
+            <div class="zoom-controls">
+                <button id="zoom-in" title="Zoom In"><i class="fas fa-plus"></i></button>
+                <button id="zoom-out" title="Zoom Out"><i class="fas fa-minus"></i></button>
+                <button id="zoom-reset" title="Reset View"><i class="fas fa-expand"></i></button>
+            </div>
         </div>
     </div>
 
-    <!-- Scripts -->
     <script src="js/theme.js?v=999"></script>
     <script src="js/config.js?v=999"></script>
     <script src="js/main.js?v=999"></script>
 
     <script>
+    (() => {
+        'use strict';
+
+        /* ═══ TEST PATIENT FALLBACK ═══ */
+        if (!localStorage.getItem('currentPatientId') && !localStorage.getItem('currentUser')) {
+            localStorage.setItem('currentPatientId', 'CV-0777');
+        }
+
         const NAV_API = API_BASE;
         let navPatientId = localStorage.getItem('currentPatientId') || localStorage.getItem('currentUser');
         let navPollTimer = null;
+        let prevDept = null;
+        let lastLoadData = {};
 
-        // X, Y map to the center of each room inside the 1000x1000 CSS grid
+        // ─── DEPT COORDS ───
         const DEPT_COORDS = {
-            consultation:     { x: 250, y: 225 },
-            diagnostics:      { x: 750, y: 225 },
-            pharmacy:         { x: 200, y: 600 },
-            dilation_hall:    { x: 700, y: 600 },
-            billing_insurance:{ x: 200, y: 875 },
-            registration:     { x: 550, y: 875 },
-            vision_lab:       { x: 850, y: 875 }
+            registration:{x:140,y:460}, vision_lab:{x:140,y:175}, dilation_hall:{x:420,y:150},
+            diagnostics:{x:655,y:150}, consultation:{x:930,y:170}, pharmacy:{x:930,y:470},
+            billing_insurance:{x:505,y:495}
         };
 
-        window.addEventListener('load', () => {
-            if (!navPatientId) { window.location.href = 'login.html'; return; }
-            fetchNavigatorData();
-            navPollTimer = setInterval(fetchNavigatorData, 4000);
-        });
+        // ─── WAYPOINTS ───
+        const WAYPOINTS = {
+            registration_door:{x:165,y:395}, vision_lab_door:{x:190,y:260},
+            dilation_hall_door:{x:405,y:250}, diagnostics_door:{x:645,y:250},
+            consultation_door:{x:815,y:170}, pharmacy_door:{x:815,y:465},
+            billing_insurance_door:{x:495,y:425},
+            west_main:{x:275,y:340}, east_main:{x:775,y:340},
+            west_upper:{x:275,y:260}, west_lower:{x:275,y:395},
+            east_upper:{x:775,y:250}, east_lower:{x:775,y:465},
+            center_main:{x:505,y:340}, dilation_jn:{x:405,y:340},
+            diag_jn:{x:655,y:340}, bottom_west:{x:275,y:600},
+            bottom_east:{x:775,y:600}, bottom_center:{x:505,y:600},
+            billing_jn:{x:505,y:425}, exit_point:{x:415,y:630}
+        };
 
+        const GRAPH = {
+            registration_door:['west_lower'], vision_lab_door:['west_upper'],
+            dilation_hall_door:['dilation_jn'], diagnostics_door:['diag_jn'],
+            consultation_door:['east_upper'], pharmacy_door:['east_lower'],
+            billing_insurance_door:['billing_jn'],
+            west_upper:['vision_lab_door','west_main','dilation_jn'],
+            west_main:['west_upper','west_lower','dilation_jn','center_main'],
+            west_lower:['registration_door','west_main','bottom_west'],
+            dilation_jn:['dilation_hall_door','west_main','west_upper','center_main','diag_jn'],
+            center_main:['dilation_jn','diag_jn','west_main','east_main','billing_jn'],
+            diag_jn:['diagnostics_door','dilation_jn','center_main','east_main'],
+            east_upper:['consultation_door','east_main','diag_jn'],
+            east_main:['east_upper','east_lower','diag_jn','center_main'],
+            east_lower:['pharmacy_door','east_main','bottom_east'],
+            bottom_west:['west_lower','bottom_center'],
+            bottom_center:['bottom_west','bottom_east','billing_jn','exit_point'],
+            bottom_east:['east_lower','bottom_center'],
+            billing_jn:['billing_insurance_door','center_main','bottom_center'],
+            exit_point:['bottom_center']
+        };
+
+        const DEPT_DOOR = {
+            registration:'registration_door', vision_lab:'vision_lab_door',
+            dilation_hall:'dilation_hall_door', diagnostics:'diagnostics_door',
+            consultation:'consultation_door', pharmacy:'pharmacy_door',
+            billing_insurance:'billing_insurance_door'
+        };
+
+        // ─── BFS ───
+        function findPath(s, e) {
+            if (s === e) return [s];
+            const vis = new Set([s]); const q = [[s]];
+            while (q.length) {
+                const p = q.shift(); const c = p[p.length-1];
+                for (const n of (GRAPH[c]||[])) {
+                    if (vis.has(n)) continue;
+                    const np = [...p, n];
+                    if (n === e) return np;
+                    vis.add(n); q.push(np);
+                }
+            }
+            return null;
+        }
+
+        function buildSvgPath(wps) {
+            if (!wps || wps.length < 2) return '';
+            const pts = wps.map(n => WAYPOINTS[n]);
+            let d = `M ${pts[0].x} ${pts[0].y}`;
+            for (let i = 1; i < pts.length; i++) d += ` L ${pts[i].x} ${pts[i].y}`;
+            return d;
+        }
+
+        function drawDirectionArrows(wps) {
+            const c = document.getElementById('direction-arrows'); c.innerHTML = '';
+            if (!wps || wps.length < 2) return;
+            const pts = wps.map(n => WAYPOINTS[n]);
+            for (let i = 0; i < pts.length - 1; i++) {
+                const p1=pts[i], p2=pts[i+1];
+                const dist = Math.hypot(p2.x-p1.x, p2.y-p1.y);
+                if (dist < 40) continue;
+                const mx=(p1.x+p2.x)/2, my=(p1.y+p2.y)/2;
+                const angle = Math.atan2(p2.y-p1.y, p2.x-p1.x)*180/Math.PI;
+                const a = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+                a.setAttribute('points','-6,-4 6,0 -6,4');
+                a.setAttribute('transform',`translate(${mx},${my}) rotate(${angle})`);
+                a.setAttribute('class','direction-arrow');
+                c.appendChild(a);
+            }
+        }
+
+        function setActiveRoom(dk) {
+            document.querySelectorAll('.room-group').forEach(g => g.classList.remove('room-active'));
+            if (dk) { const el = document.getElementById('room-'+dk); if (el) el.classList.add('room-active'); }
+        }
+
+        // ─── SMOOTH MARKER ANIMATION ALONG PATH ───
+        let animFrame = null;
+        function animateMarkerAlongPath(fromDept, toDept, onDone) {
+            if (animFrame) cancelAnimationFrame(animFrame);
+            const marker = document.getElementById('patient-marker');
+            const fromCoord = DEPT_COORDS[fromDept];
+            const toCoord = DEPT_COORDS[toDept];
+            if (!fromCoord || !toCoord) { if (onDone) onDone(); return; }
+
+            // Build path waypoints
+            const startN = DEPT_DOOR[fromDept], endN = DEPT_DOOR[toDept];
+            const route = findPath(startN, endN);
+            if (!route || route.length < 2) {
+                marker.setAttribute('transform', `translate(${toCoord.x},${toCoord.y})`);
+                if (onDone) onDone();
+                return;
+            }
+
+            // Build point array: fromDept center -> door waypoints -> toDept center
+            const pts = [fromCoord, ...route.map(n => WAYPOINTS[n]), toCoord];
+            // Calculate total distance
+            let totalDist = 0;
+            const segs = [];
+            for (let i = 0; i < pts.length-1; i++) {
+                const d = Math.hypot(pts[i+1].x-pts[i].x, pts[i+1].y-pts[i].y);
+                segs.push(d); totalDist += d;
+            }
+
+            const duration = Math.min(2500, Math.max(800, totalDist * 2.5));
+            const start = performance.now();
+
+            function step(ts) {
+                const elapsed = ts - start;
+                const t = Math.min(1, elapsed / duration);
+                const eased = t < 0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; // easeInOutQuad
+                const targetDist = eased * totalDist;
+
+                let acc = 0, px = pts[0].x, py = pts[0].y;
+                for (let i = 0; i < segs.length; i++) {
+                    if (acc + segs[i] >= targetDist) {
+                        const f = (targetDist - acc) / segs[i];
+                        px = pts[i].x + (pts[i+1].x - pts[i].x) * f;
+                        py = pts[i].y + (pts[i+1].y - pts[i].y) * f;
+                        break;
+                    }
+                    acc += segs[i];
+                    px = pts[i+1].x; py = pts[i+1].y;
+                }
+                marker.setAttribute('transform', `translate(${px},${py})`);
+                if (t < 1) { animFrame = requestAnimationFrame(step); }
+                else { animFrame = null; if (onDone) onDone(); }
+            }
+            animFrame = requestAnimationFrame(step);
+        }
+
+        function moveMarker(dk) {
+            const marker = document.getElementById('patient-marker');
+            const coords = DEPT_COORDS[dk];
+            if (!coords) { marker.style.display = 'none'; return; }
+            marker.style.display = '';
+
+            if (prevDept && prevDept !== dk && DEPT_COORDS[prevDept]) {
+                animateMarkerAlongPath(prevDept, dk);
+            } else {
+                marker.setAttribute('transform', `translate(${coords.x},${coords.y})`);
+            }
+        }
+
+        function updatePath(cur, nxt) {
+            const pathEl = document.getElementById('nav-path');
+            if (!cur||!nxt||!DEPT_DOOR[cur]||!DEPT_DOOR[nxt]) {
+                pathEl.setAttribute('d',''); document.getElementById('direction-arrows').innerHTML=''; return;
+            }
+            const route = findPath(DEPT_DOOR[cur], DEPT_DOOR[nxt]);
+            if (route) {
+                pathEl.setAttribute('d', buildSvgPath(route));
+                pathEl.style.opacity='1';
+                drawDirectionArrows(route);
+            } else {
+                pathEl.setAttribute('d','');pathEl.style.opacity='0';
+                document.getElementById('direction-arrows').innerHTML='';
+            }
+        }
+
+        // ─── FETCH ───
+        // NEW: waiting model integration — uses /patient/predicted-wait-time/ 
+        // (same endpoint as patient_dashboard.html + staff_panel.html)
+        // to ensure the navigator panel shows identical ML-predicted wait time.
         async function fetchNavigatorData() {
             try {
                 const res = await fetch(`${NAV_API}/patient/current-status/${navPatientId}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    updateNavigator(data);
+                if (res.ok) updateNavigator(await res.json());
+            } catch(e) { console.error('[Navigator]',e); }
+
+            // NEW: Use /patient/predicted-wait-time/ (waiting_model.pkl) for panel ETA
+            // This is the SAME endpoint used by patient_dashboard.html and staff_panel.html
+            try {
+                const r2 = await fetch(`${NAV_API}/patient/predicted-wait-time/${navPatientId}?_=${Date.now()}`);
+                if (r2.ok) {
+                    const d = await r2.json();
+                    const etaEl = document.getElementById('nav-eta');
+                    if (d.available && d.formatted) {
+                        etaEl.textContent = d.formatted;  // "Xm Ys" from waiting_model.pkl
+                    } else if (d.predicted_minutes !== null && d.predicted_minutes !== undefined) {
+                        etaEl.textContent = Math.round(d.predicted_minutes) + 'm';
+                    } else {
+                        etaEl.textContent = '--';
+                    }
                 }
-            } catch (err) { console.error(err); }
+            } catch(e) { /* waiting time prediction is optional */ }
+
+            // NEW: Update per-room color coding based on ML-predicted load
+            updateRoomWaitColors();
+        }
+
+        // NEW: Per-department wait time color-coding inside SVG rooms
+        // Uses lastLoadData (already populated by updateNavigator from current-status)
+        // This reuses the same PredictionService.predict_department_wait() data
+        function updateRoomWaitColors() {
+            Object.keys(DEPT_COORDS).forEach(k => {
+                const loadEl = document.getElementById('load-' + k);
+                if (!loadEl) return;
+                const ld = lastLoadData[k];
+                if (!ld) return;
+                const cnt = ld.count || 0;
+                const lvl = ld.level || 'Low';
+                // Color-code: High=red, Medium=yellow, Low=green
+                const color = lvl === 'High' ? '#ef4444' : lvl === 'Medium' ? '#f59e0b' : '#10b981';
+                loadEl.textContent = `${cnt} patients · ${lvl}`;
+                loadEl.style.fill = color;
+            });
         }
 
         function updateNavigator(data) {
-            const current = data.current_department;
-            const next = data.next_department;
-            const isCompleted = data.is_completed;
+            const cur = data.current_department, nxt = data.next_department, done = data.is_completed;
+            document.getElementById('nav-current-dept').textContent = done ? '✓ Journey Complete' : (data.current_department_display||'--');
+            document.getElementById('nav-next-dept').textContent = done ? 'Exit' : (data.next_department_display||'--');
+            const pct = data.journey_progress_pct||0;
+            document.getElementById('journey-fill').style.width = pct+'%';
+            document.getElementById('journey-label').textContent = `Journey: ${pct}%`;
 
-            document.getElementById('nav-current-dept').textContent = isCompleted ? 'Completed' : (data.current_department_display || '--');
-            document.getElementById('nav-next-dept').textContent = isCompleted ? 'Exit' : (data.next_department_display || '--');
+            if (cur && DEPT_COORDS[cur] && !done) { moveMarker(cur); setActiveRoom(cur); }
+            else { document.getElementById('patient-marker').style.display='none'; setActiveRoom(null); }
 
-            const marker = document.getElementById('patient-marker');
-            if (current && DEPT_COORDS[current] && !isCompleted) {
-                marker.style.display = 'block';
-                marker.style.left = DEPT_COORDS[current].x + 'px';
-                // Move it down slightly so the person points cleanly over the thick room shadow wall
-                marker.style.top = DEPT_COORDS[current].y + 'px';
-            } else { marker.style.display = 'none'; }
-
-            const line = document.getElementById('nav-line');
-            if (current && next && DEPT_COORDS[current] && DEPT_COORDS[next] && !isCompleted) {
-                const p1 = DEPT_COORDS[current];
-                const p2 = DEPT_COORDS[next];
-                // Subtract 10 from Y so line flies nicely above the floor blocks
-                line.setAttribute('d', `M ${p1.x} ${p1.y - 15} L ${p2.x} ${p2.y - 15}`);
-                line.style.opacity = '1';
-            } else { line.style.opacity = '0'; }
+            if (!done && cur && nxt) updatePath(cur, nxt);
+            else { document.getElementById('nav-path').setAttribute('d',''); document.getElementById('direction-arrows').innerHTML=''; }
 
             if (data.department_loads) {
-                Object.keys(DEPT_COORDS).forEach(key => {
-                    const lc = document.getElementById('load-' + key);
-                    if (lc && data.department_loads[key]) {
-                        const lvl = data.department_loads[key].level;
-                        lc.textContent = `(Load: ${lvl})`;
-                        lc.style.color = lvl === 'High' ? '#ef4444' : lvl === 'Medium' ? '#f59e0b' : '#10b981';
+                lastLoadData = data.department_loads;
+                Object.keys(DEPT_COORDS).forEach(k => {
+                    const lc = document.getElementById('load-'+k);
+                    if (lc && data.department_loads[k]) {
+                        const {level:lvl, count:cnt=0} = data.department_loads[k];
+                        lc.textContent = `${cnt} patients · ${lvl}`;
+                        lc.style.fill = lvl==='High'?'#ef4444':lvl==='Medium'?'#f59e0b':'#10b981';
                     }
                 });
             }
+            prevDept = cur;
         }
+
+        // ═══ PANEL: DRAG + MINIMIZE + CLOSE ═══
+        const panel = document.getElementById('info-panel');
+        const header = document.getElementById('panel-header');
+        const body = document.getElementById('panel-body');
+        const btnMin = document.getElementById('btn-minimize');
+        const btnClose = document.getElementById('btn-close');
+        const btnRestore = document.getElementById('btn-restore');
+        let isDragging=false, dragX=0, dragY=0, panelX=16, panelY=16;
+
+        header.addEventListener('mousedown', e => {
+            if (e.target.closest('.panel-btns')) return;
+            isDragging=true; dragX=e.clientX-panelX; dragY=e.clientY-panelY;
+            document.body.style.userSelect='none';
+        });
+        document.addEventListener('mousemove', e => {
+            if (!isDragging) return;
+            panelX=e.clientX-dragX; panelY=e.clientY-dragY;
+            panel.style.left=panelX+'px'; panel.style.top=panelY+'px';
+        });
+        document.addEventListener('mouseup', () => { isDragging=false; document.body.style.userSelect=''; });
+
+        btnMin.addEventListener('click', () => {
+            body.classList.toggle('collapsed');
+            btnMin.innerHTML = body.classList.contains('collapsed') ? '<i class="fas fa-plus"></i>' : '<i class="fas fa-minus"></i>';
+        });
+        btnClose.addEventListener('click', () => {
+            panel.style.display='none'; btnRestore.style.display='flex';
+        });
+        btnRestore.addEventListener('click', () => {
+            panel.style.display=''; btnRestore.style.display='none';
+        });
+
+        // ═══ ZOOM + PAN ═══
+        const mapContainer = document.getElementById('map-container');
+        const mapInner = document.getElementById('map-inner');
+        let scale=1, panXm=0, panYm=0, isPanning=false, startPanX=0, startPanY=0;
+        const MIN_ZOOM=0.5, MAX_ZOOM=3;
+
+        function applyTransform() {
+            mapInner.style.transform = `translate(${panXm}px,${panYm}px) scale(${scale})`;
+        }
+
+        mapContainer.addEventListener('wheel', e => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            scale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, scale + delta));
+            applyTransform();
+        }, {passive:false});
+
+        mapContainer.addEventListener('mousedown', e => {
+            if (e.target.closest('.room-group')) return;
+            isPanning=true; startPanX=e.clientX-panXm; startPanY=e.clientY-panYm;
+            mapContainer.classList.add('panning');
+        });
+        document.addEventListener('mousemove', e => {
+            if (!isPanning) return;
+            panXm=e.clientX-startPanX; panYm=e.clientY-startPanY;
+            mapInner.style.transition='none';
+            applyTransform();
+        });
+        document.addEventListener('mouseup', () => {
+            isPanning=false; mapContainer.classList.remove('panning');
+            mapInner.style.transition='transform .15s ease-out';
+        });
+
+        document.getElementById('zoom-in').addEventListener('click', () => { scale=Math.min(MAX_ZOOM,scale+0.2); applyTransform(); });
+        document.getElementById('zoom-out').addEventListener('click', () => { scale=Math.max(MIN_ZOOM,scale-0.2); applyTransform(); });
+        document.getElementById('zoom-reset').addEventListener('click', () => { scale=1; panXm=0; panYm=0; applyTransform(); });
+
+        // ═══ ROOM TOOLTIPS ═══
+        const tooltip = document.getElementById('room-tooltip');
+        const ttName = document.getElementById('tt-name');
+        const ttLoad = document.getElementById('tt-load');
+        document.querySelectorAll('.room-group').forEach(g => {
+            g.style.cursor = 'pointer';
+            g.addEventListener('mouseenter', e => {
+                const name = g.dataset.dept || '';
+                const key = g.dataset.key || '';
+                ttName.textContent = name;
+                const ld = lastLoadData[key];
+                ttLoad.textContent = ld ? `${ld.count||0} patients · Load: ${ld.level}` : 'No data';
+                tooltip.classList.add('visible');
+            });
+            g.addEventListener('mousemove', e => {
+                tooltip.style.left = (e.clientX+12)+'px'; tooltip.style.top = (e.clientY-40)+'px';
+            });
+            g.addEventListener('mouseleave', () => { tooltip.classList.remove('visible'); });
+        });
+
+        // ═══ INIT ═══
+        window.addEventListener('load', () => {
+            if (!navPatientId) { window.location.href='login.html'; return; }
+            fetchNavigatorData();
+            navPollTimer = setInterval(fetchNavigatorData, 4000);
+        });
+    })();
     </script>
 </body>
 </html>

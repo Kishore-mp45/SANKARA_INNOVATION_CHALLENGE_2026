@@ -1,2 +1,6 @@
 DEBUG: Endpoint called with tracking_id='patient001' name='ram' mobile='000000000000' department='registration' action='New Patient Registration' next_department=None staff_id='CV-12346'
 DEBUG: Endpoint called with tracking_id='patient001' name='ram' mobile='000000000000' department='registration' action='Patient Registration Completed' next_department='vision_lab' staff_id='CV-12346'
+DEBUG: Endpoint called with tracking_id='CV-0777' name='Yash' mobile='9633852741' department='registration' action='New Patient Registration' next_department=None staff_id='CV-777'
+DEBUG: Endpoint called with tracking_id='CV-0777' name='Yash' mobile='9633852741' department='registration' action='Patient Registration Completed' next_department='vision_lab' staff_id='CV-777'
+DEBUG: Endpoint called with tracking_id='CV-0777' name=None mobile=None department='vision_lab' action='Vision Screening Completed' next_department='dilation_hall' staff_id='CV-777'
+DEBUG: Endpoint called with tracking_id='CV-0777' name=None mobile=None department='dilation_hall' action='Dilation Check Completed' next_department='diagnostics' staff_id='07'
