@@ -66,10 +66,10 @@
         .form-input {
             width: 100%;
             padding: 0.75rem 1rem;
-            background: rgba(30, 41, 59, 0.5);
+            background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            color: white;
+            color: var(--text-main);
             font-size: 1rem;
             outline: none;
             transition: border-color 0.2s;
@@ -143,7 +143,7 @@
         .toast {
             background: var(--sidebar-bg);
             border-left: 4px solid var(--primary-color);
-            color: white;
+            color: var(--text-main);
             padding: 1rem 1.5rem;
             border-radius: 4px;
             margin-bottom: 1rem;
@@ -307,9 +307,7 @@
 <body>
     <div class="sidebar">
         <div class="brand">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
+            <img src="assets/sankara_logo.svg" alt="Sankara" style="width:28px;height:28px;">
             <span>PatientPath AI</span>
         </div>
         <ul class="nav-menu">
@@ -380,6 +378,20 @@
                     </div>
                 </div>
 
+                <!-- Notifications Section -->
+                <div class="workflow-card" style="margin-bottom:1.5rem;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+                        <h3 style="margin:0; color:var(--primary-color); display:flex; align-items:center; gap:0.5rem;">
+                            <i class="fas fa-bell"></i> Notifications
+                            <span id="notif-badge" style="background:rgba(239,68,68,0.15); color:#ef4444; font-size:0.7rem; padding:0.15rem 0.5rem; border-radius:999px; font-weight:700; display:none;">0</span>
+                        </h3>
+                        <button onclick="fetchStaffNotifications()" style="padding:0.35rem 0.6rem; background:var(--card-bg); border:1px solid var(--border-color); color:var(--text-muted); border-radius:6px; cursor:pointer; font-size:0.8rem;"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <div id="staff-notif-list">
+                        <div style="text-align:center; padding:0.75rem; color:var(--text-muted); font-size:0.85rem;">Loading notifications...</div>
+                    </div>
+                </div>
+
                 <!-- Stats Bar -->
                 <div class="stats-bar">
                     <div class="stat-item">
@@ -411,6 +423,22 @@
                             id="peak-hours-value">
                             <i class="fas fa-spinner fa-spin" style="font-size: 0.9rem; color: var(--text-muted);"></i>
                             Loading...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Patient Approvals Section (Registration Department Only) -->
+                <div id="patient-approvals-section" style="display:none; margin-bottom:1.5rem;">
+                    <div class="workflow-card">
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+                            <h3 style="color:var(--primary-color); margin:0; display:flex; align-items:center; gap:0.5rem;">
+                                <i class="fas fa-user-check"></i> Pending Patient Registrations
+                                <span id="patient-pending-badge" style="background:rgba(239,68,68,0.15); color:#ef4444; font-size:0.75rem; padding:0.2rem 0.6rem; border-radius:999px; font-weight:700; display:none;">0</span>
+                            </h3>
+                            <button onclick="fetchPatientApprovals()" style="padding:0.4rem 0.7rem; background:var(--card-bg); border:1px solid var(--border-color); color:var(--text-muted); border-radius:6px; cursor:pointer;"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                        <div id="patient-approvals-list">
+                            <div style="text-align:center; padding:1rem; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
                         </div>
                     </div>
                 </div>
@@ -519,7 +547,7 @@
             "consultation": ["Consultation Started", "Consultation Ended", "Surgery Recommended"],
             "pharmacy": ["Prescription Received", "Medicines Dispensed"],
             "billing_insurance": ["Bill Generated", "Payment Received", "Insurance Verified"],
-            "registration": ["Patient Check-In", "New Patient Registration", "Update Contact Info", "Verify Insurance", "Assign ID Card", "Patient Registration Completed"]
+            "registration": ["Update Contact Info", "Patient Registration Completed"]
         };
 
         const deptSelect = document.getElementById('dept-select');
@@ -644,9 +672,9 @@
                 patientMobileInput.required = true;
 
                 // Registration Mode UI logic
-                idFieldLabel.textContent = "2. Assign Unique Tracking ID";
+                idFieldLabel.textContent = "2. Enter Tracking ID";
                 idFieldLabel.style.color = "var(--primary-color)";
-                patientIdInput.placeholder = "Manually Enter Unique ID (e.g. CV-1001)";
+                patientIdInput.placeholder = "Enter Tracking ID";
                 patientIdInput.readOnly = false; // Allow manual edit
                 patientIdInput.value = ""; // Clear for new reg
 
@@ -938,6 +966,207 @@
                 document.getElementById('peak-hours-value').textContent = 'Unavailable';
             }
         })();
+        // --- Patient Approvals (Registration Department Only) ---
+        (function initPatientApprovals() {
+            var dept = localStorage.getItem('currentDept') || '';
+            if (dept !== 'registration') return;
+
+            var section = document.getElementById('patient-approvals-section');
+            if (section) section.style.display = 'block';
+
+            fetchPatientApprovals();
+            setInterval(fetchPatientApprovals, 10000);
+        })();
+
+        async function fetchPatientApprovals() {
+            try {
+                var res = await fetch(API_BASE + '/auth/pending-approvals?role=patient');
+                if (!res.ok) return;
+                var data = await res.json();
+                var pending = data.pending || [];
+
+                var badge = document.getElementById('patient-pending-badge');
+                if (pending.length > 0) {
+                    badge.textContent = pending.length;
+                    badge.style.display = 'inline';
+                } else {
+                    badge.style.display = 'none';
+                }
+
+                var list = document.getElementById('patient-approvals-list');
+                if (pending.length === 0) {
+                    list.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--text-muted);"><i class="fas fa-check-circle" style="color:#10b981;"></i> No pending patient registrations</div>';
+                    return;
+                }
+
+                var html = '';
+                pending.forEach(function(user) {
+                    var created = user.created_at ? new Date(user.created_at).toLocaleDateString() : '';
+                    html += '<div style="display:flex; align-items:center; gap:1rem; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px; margin-bottom:0.5rem;">';
+                    html += '<div style="width:36px;height:36px;border-radius:8px;background:rgba(16,185,129,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-user" style="color:#10b981;"></i></div>';
+                    html += '<div style="flex:1;min-width:0;">';
+                    html += '<div style="font-weight:600;color:var(--text-main);font-size:0.9rem;">' + user.username + '</div>';
+                    html += '<div style="font-size:0.75rem;color:var(--text-muted);">' + (user.mobile || 'No mobile') + ' &middot; ' + user.generated_id + ' &middot; ' + created + '</div>';
+                    html += '</div>';
+                    html += '<div style="display:flex;gap:0.4rem;flex-shrink:0;">';
+                    html += '<button onclick="approvePatient(' + user.id + ')" style="padding:0.35rem 0.7rem;background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);border-radius:6px;cursor:pointer;font-weight:600;font-size:0.78rem;"><i class="fas fa-check"></i> Approve</button>';
+                    html += '<button onclick="rejectPatient(' + user.id + ')" style="padding:0.35rem 0.7rem;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);border-radius:6px;cursor:pointer;font-weight:600;font-size:0.78rem;"><i class="fas fa-times"></i> Reject</button>';
+                    html += '</div></div>';
+                });
+                list.innerHTML = html;
+            } catch (e) {
+                console.error('Patient approvals fetch error:', e);
+            }
+        }
+
+        async function approvePatient(userId) {
+            var approverId = localStorage.getItem('currentUserId');
+            try {
+                var res = await fetch(API_BASE + '/auth/approve/' + userId, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ approver_id: parseInt(approverId) })
+                });
+                if (res.ok) {
+                    showToast('Patient approved successfully', 'success');
+                    fetchPatientApprovals();
+                } else {
+                    var data = await res.json();
+                    showToast(data.detail || 'Approval failed', 'error');
+                }
+            } catch (e) {
+                showToast('Error approving patient', 'error');
+            }
+        }
+
+        async function rejectPatient(userId) {
+            var approverId = localStorage.getItem('currentUserId');
+            try {
+                var res = await fetch(API_BASE + '/auth/reject/' + userId, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ approver_id: parseInt(approverId) })
+                });
+                if (res.ok) {
+                    showToast('Patient registration rejected', 'success');
+                    fetchPatientApprovals();
+                } else {
+                    var data = await res.json();
+                    showToast(data.detail || 'Rejection failed', 'error');
+                }
+            } catch (e) {
+                showToast('Error rejecting patient', 'error');
+            }
+        }
+
+        // --- Staff Notifications ---
+        async function fetchStaffNotifications() {
+            var recipientId = localStorage.getItem('currentUser');
+            if (!recipientId) return;
+
+            try {
+                var res = await fetch(API_BASE + '/admin/notifications/' + encodeURIComponent(recipientId));
+                if (!res.ok) return;
+                var data = await res.json();
+                var notifs = data.notifications || [];
+
+                var badge = document.getElementById('notif-badge');
+                var pendingCount = notifs.filter(function(n) { return n.status === 'pending'; }).length;
+                if (pendingCount > 0) {
+                    badge.textContent = pendingCount;
+                    badge.style.display = 'inline';
+                } else {
+                    badge.style.display = 'none';
+                }
+
+                var list = document.getElementById('staff-notif-list');
+                if (notifs.length === 0) {
+                    list.innerHTML = '<div style="text-align:center; padding:0.75rem; color:var(--text-muted); font-size:0.85rem;"><i class="fas fa-check-circle" style="color:#10b981;"></i> No notifications</div>';
+                    return;
+                }
+
+                var html = '';
+                notifs.forEach(function(n) {
+                    var statusColor = n.status === 'pending' ? '#f59e0b' : n.status === 'accepted' ? '#10b981' : '#ef4444';
+                    var statusIcon = n.status === 'pending' ? 'fa-hourglass-half' : n.status === 'accepted' ? 'fa-check-circle' : 'fa-times-circle';
+                    var statusLabel = n.status.charAt(0).toUpperCase() + n.status.slice(1);
+                    var time = n.created_at ? new Date(n.created_at).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '';
+                    var deptDisplay = n.target_department ? n.target_department.replace(/_/g, ' ').replace(/\b\w/g, function(c){return c.toUpperCase();}) : '';
+
+                    html += '<div style="padding:0.75rem; border:1px solid var(--border-color); border-radius:8px; margin-bottom:0.5rem; border-left:3px solid ' + statusColor + ';">';
+                    html += '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.35rem;">';
+                    html += '<span style="font-weight:600; color:var(--text-main); font-size:0.85rem;">' + n.title + '</span>';
+                    html += '<span style="font-size:0.7rem; color:' + statusColor + '; display:flex; align-items:center; gap:0.25rem;"><i class="fas ' + statusIcon + '"></i> ' + statusLabel + '</span>';
+                    html += '</div>';
+                    html += '<div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.35rem;">' + (n.message || '') + '</div>';
+                    html += '<div style="display:flex; align-items:center; justify-content:space-between;">';
+                    html += '<span style="font-size:0.7rem; color:var(--text-muted);">' + time + (deptDisplay ? ' &middot; ' + deptDisplay : '') + '</span>';
+
+                    if (n.status === 'pending') {
+                        html += '<div style="display:flex; gap:0.35rem;">';
+                        html += '<button onclick="respondNotif(' + n.id + ', \'accepted\')" style="padding:0.3rem 0.6rem;background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);border-radius:6px;cursor:pointer;font-weight:600;font-size:0.75rem;"><i class="fas fa-check"></i> Accept</button>';
+                        html += '<button onclick="respondNotif(' + n.id + ', \'rejected\')" style="padding:0.3rem 0.6rem;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);border-radius:6px;cursor:pointer;font-weight:600;font-size:0.75rem;"><i class="fas fa-times"></i> Decline</button>';
+                        html += '</div>';
+                    }
+
+                    html += '</div></div>';
+                });
+                list.innerHTML = html;
+            } catch (e) {
+                console.warn('Notification fetch error:', e);
+            }
+        }
+
+        async function respondNotif(notifId, action) {
+            try {
+                var res = await fetch(API_BASE + '/admin/notifications/' + notifId + '/respond?action=' + action, { method: 'POST' });
+                if (res.ok) {
+                    showToast('Notification ' + action, 'success');
+                    fetchStaffNotifications();
+                } else {
+                    showToast('Failed to respond', 'error');
+                }
+            } catch (e) {
+                showToast('Network error', 'error');
+            }
+        }
+
+        // Fetch notifications on load and poll every 15s
+        fetchStaffNotifications();
+        setInterval(fetchStaffNotifications, 15000);
+
+        // --- WebSocket for Staff Assignment Notifications ---
+        (function initStaffWebSocket() {
+            var userId = localStorage.getItem('currentUser');
+            if (!userId) return;
+
+            var wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            var wsUrl = wsProto + '//' + window.location.host + '/ws?user_id=' + encodeURIComponent(userId);
+
+            try {
+                var ws = new WebSocket(wsUrl);
+                ws.onmessage = function(event) {
+                    try {
+                        var msg = JSON.parse(event.data);
+                        if (msg.type === 'staff_assignment') {
+                            var data = msg.data || {};
+                            showToast(data.message || 'New department assignment received', 'success');
+                            if (data.department) {
+                                localStorage.setItem('currentDept', data.department);
+                            }
+                        } else if (msg.type === 'deployment_request') {
+                            var data = msg.data || {};
+                            showToast(data.title || 'New deployment request received!', 'success');
+                            fetchStaffNotifications();
+                        }
+                    } catch (e) {}
+                };
+                ws.onerror = function() { console.warn('Staff WS connection error'); };
+            } catch (e) {
+                console.warn('WebSocket init error:', e);
+            }
+        })();
+
         // --- Department Status Widget ---
         (async function initDeptStatus() {
             var staffId = localStorage.getItem('currentUser') || 'staff1';

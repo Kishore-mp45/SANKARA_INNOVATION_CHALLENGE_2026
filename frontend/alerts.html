@@ -519,9 +519,7 @@
 <body>
     <div class="sidebar">
         <div class="brand">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
+            <img src="assets/sankara_logo.svg" alt="Sankara" style="width:28px;height:28px;">
             <span>PatientPath AI</span>
         </div>
         <ul class="nav-menu">
@@ -577,6 +575,20 @@
                     </div>
                 </div>
 
+            </div>
+        </div>
+    </div>
+
+    <!-- Deploy Staff Modal -->
+    <div id="deploy-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:10000; display:none; align-items:center; justify-content:center;">
+        <div style="background:var(--sidebar-bg, #1e293b); border:1px solid var(--border-color, #334155); border-radius:16px; padding:1.5rem; max-width:500px; width:90%; max-height:80vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+                <h3 style="margin:0; color:var(--text-main); display:flex; align-items:center; gap:0.5rem;"><i class="fas fa-user-plus" style="color:#8b5cf6;"></i> Deploy Staff</h3>
+                <button onclick="closeDeployModal()" style="background:none; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;"><i class="fas fa-times"></i></button>
+            </div>
+            <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;" id="deploy-target-info">Loading...</div>
+            <div id="deploy-staff-list" style="display:grid; gap:0.5rem;">
+                <div style="text-align:center; padding:1rem; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading available staff...</div>
             </div>
         </div>
     </div>
@@ -737,6 +749,9 @@
                 return;
             }
 
+            // Store decisions globally for access in handlers
+            window._decisions = decisions;
+
             var html = '<div class="decisions-grid">';
             decisions.forEach(function(d, idx) {
                 var typeIcon = 'fa-check-circle';
@@ -789,13 +804,20 @@
         }
 
         function applyDecision(index) {
+            var decision = window._decisions ? window._decisions[index] : null;
+
+            // If it's a staff deployment decision, open the deploy modal
+            if (decision && (decision.type === 'staff' || decision.type === 'redirect') && decision.zone) {
+                openDeployModal(decision.zone, decision.title);
+                return;
+            }
+
+            // For other decisions, just mark as applied
             var card = document.getElementById('dec-' + index);
             if (!card) return;
             var btn = card.querySelector('.btn-action-apply');
-
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
             btn.style.opacity = '0.8';
-
             setTimeout(function() {
                 btn.innerHTML = '<i class="fas fa-check"></i> Applied';
                 btn.classList.add('applied');
@@ -804,6 +826,76 @@
                     card.style.pointerEvents = 'none';
                 }, 800);
             }, 600);
+        }
+
+        // --- Deploy Staff Modal ---
+        function openDeployModal(targetZone, title) {
+            var modal = document.getElementById('deploy-modal');
+            modal.style.display = 'flex';
+            document.getElementById('deploy-target-info').textContent = 'Deploy staff to: ' + (title || targetZone);
+            window._deployTargetZone = targetZone;
+            fetchAvailableStaff(targetZone);
+        }
+
+        function closeDeployModal() {
+            document.getElementById('deploy-modal').style.display = 'none';
+        }
+
+        async function fetchAvailableStaff(excludeDept) {
+            var list = document.getElementById('deploy-staff-list');
+            list.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+            try {
+                var res = await fetch(ALERT_API_BASE + '/admin/available-staff?exclude_department=' + encodeURIComponent(excludeDept));
+                if (!res.ok) throw new Error('Failed');
+                var data = await res.json();
+                var staff = data.available_staff || [];
+
+                if (staff.length === 0) {
+                    list.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--text-muted);">No available staff from other departments.</div>';
+                    return;
+                }
+
+                var html = '';
+                staff.forEach(function(s) {
+                    html += '<div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem; background:var(--card-bg); border:1px solid var(--border-color); border-radius:10px;">';
+                    html += '<div style="width:38px;height:38px;border-radius:50%;background:rgba(139,92,246,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-user" style="color:#8b5cf6;"></i></div>';
+                    html += '<div style="flex:1;min-width:0;">';
+                    html += '<div style="font-weight:600;color:var(--text-main);font-size:0.9rem;">' + s.username + '</div>';
+                    html += '<div style="font-size:0.75rem;color:var(--text-muted);">' + s.generated_id + ' &middot; ' + (s.department_display || s.department) + '</div>';
+                    html += '</div>';
+                    html += '<button onclick="deployStaffMember(' + s.id + ', \'' + s.username + '\')" style="padding:0.4rem 0.85rem;background:rgba(139,92,246,0.15);color:#8b5cf6;border:1px solid rgba(139,92,246,0.3);border-radius:8px;cursor:pointer;font-weight:600;font-size:0.8rem;white-space:nowrap;" onmouseover="this.style.background=\'#8b5cf6\';this.style.color=\'#fff\'" onmouseout="this.style.background=\'rgba(139,92,246,0.15)\';this.style.color=\'#8b5cf6\'"><i class="fas fa-paper-plane"></i> Deploy</button>';
+                    html += '</div>';
+                });
+                list.innerHTML = html;
+            } catch (e) {
+                list.innerHTML = '<div style="text-align:center; padding:1rem; color:#ef4444;">Failed to load staff list.</div>';
+            }
+        }
+
+        async function deployStaffMember(staffId, staffName) {
+            var targetZone = window._deployTargetZone;
+            try {
+                var res = await fetch(ALERT_API_BASE + '/admin/deploy-staff', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        staff_user_id: staffId,
+                        target_department: targetZone
+                    })
+                });
+                if (res.ok) {
+                    // Replace the deploy button with success
+                    event.target.closest('button').innerHTML = '<i class="fas fa-check"></i> Sent';
+                    event.target.closest('button').disabled = true;
+                    event.target.closest('button').style.background = 'rgba(16,185,129,0.15)';
+                    event.target.closest('button').style.color = '#10b981';
+                    event.target.closest('button').style.borderColor = 'rgba(16,185,129,0.3)';
+                } else {
+                    alert('Failed to deploy staff');
+                }
+            } catch (e) {
+                alert('Network error');
+            }
         }
 
         function dismissDecision(index) {

@@ -6,14 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register – Sankara Eye Foundation | PatientPathAI</title>
     <meta name="description" content="Create your account on PatientPathAI – Sankara Eye Foundation's AI-powered hospital operations platform.">
-    <link rel="stylesheet" href="css/auth.css?v=5.0">
+    <link rel="stylesheet" href="css/auth.css?v=6.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
 <body>
     <div class="auth-container">
 
-        <!-- ── LEFT PANEL ── -->
+        <!-- LEFT PANEL -->
         <div class="auth-left">
             <img src="assets/doctor_hero.png" alt="Doctor" class="auth-left-img">
             <div class="auth-left-overlay"></div>
@@ -33,7 +33,7 @@
             </div>
         </div>
 
-        <!-- ── RIGHT PANEL (Register Form) ── -->
+        <!-- RIGHT PANEL (Register Form) -->
         <div class="auth-right">
             <div class="auth-brand-top">
                 <svg class="logo-icon" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -50,14 +50,13 @@
             <p class="auth-subheading">Fill in your details to register</p>
 
             <div class="auth-form">
-                <!-- Role Select -->
+                <!-- Role Select (No Admin option) -->
                 <div class="form-group">
                     <label for="role-select">Select Role</label>
                     <select id="role-select" onchange="updateLabels()">
                         <option value="patient">Patient</option>
                         <option value="staff">Staff</option>
                         <option value="doctor">Doctor</option>
-                        <option value="admin">Admin</option>
                     </select>
                 </div>
 
@@ -80,32 +79,36 @@
                     <input type="text" id="user-name" placeholder="Enter your full name">
                 </div>
 
-                <!-- User ID -->
-                <div class="form-group">
-                    <label id="id-label" for="user-id">Patient ID</label>
-                    <input type="text" id="user-id" placeholder="Enter Patient ID">
+                <!-- Mobile Number -->
+                <div class="form-group" id="mobile-group">
+                    <label id="mobile-label" for="mobile">Mobile Number <span id="mobile-required" style="color:#ef4444;">*</span></label>
+                    <input type="tel" id="mobile" placeholder="Enter your mobile number">
                 </div>
 
                 <!-- Password -->
                 <div class="form-group">
                     <label for="password">Password</label>
                     <div class="pw-wrapper">
-                        <input type="password" id="password" placeholder="Create a password" oninput="validatePasswordLive()">
-                        <button type="button" class="pw-toggle" onclick="togglePassword()" title="Show/Hide password">
+                        <input type="password" id="password" placeholder="Create a password">
+                        <button type="button" class="pw-toggle" onclick="togglePassword('password', 'pw-eye-icon')" title="Show/Hide password">
                             <i class="fas fa-eye" id="pw-eye-icon"></i>
                         </button>
                     </div>
-                    <ul class="pw-requirements" id="pw-requirements">
-                        <li class="pw-req-item" id="req-length"><i class="fas fa-circle"></i> Minimum 8 characters</li>
-                        <li class="pw-req-item" id="req-upper"><i class="fas fa-circle"></i> At least one uppercase letter (A-Z)</li>
-                        <li class="pw-req-item" id="req-lower"><i class="fas fa-circle"></i> At least one lowercase letter (a-z)</li>
-                        <li class="pw-req-item" id="req-number"><i class="fas fa-circle"></i> At least one number (0-9)</li>
-                        <li class="pw-req-item" id="req-symbol"><i class="fas fa-circle"></i> At least one symbol (!@#$%&*)</li>
-                    </ul>
+                </div>
+
+                <!-- Confirm Password -->
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <div class="pw-wrapper">
+                        <input type="password" id="confirm-password" placeholder="Re-enter your password">
+                        <button type="button" class="pw-toggle" onclick="togglePassword('confirm-password', 'cpw-eye-icon')" title="Show/Hide password">
+                            <i class="fas fa-eye" id="cpw-eye-icon"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Register Button -->
-                <button class="btn-auth-submit" onclick="handleSignup()">Register</button>
+                <button class="btn-auth-submit" id="register-btn" onclick="handleSignup()">Register</button>
 
                 <!-- Messages -->
                 <p class="auth-error" id="error-text"></p>
@@ -119,40 +122,26 @@
 
     </div>
 
-    <!-- Theme (force light) -->
+    <!-- Theme -->
     <script src="js/theme.js?v=1000"></script>
+    <script src="js/config.js?v=999"></script>
 
-    <!-- ═══════════════════════════════════════ -->
-    <!-- EXISTING SIGNUP LOGIC (PRESERVED)      -->
-    <!-- ═══════════════════════════════════════ -->
     <script>
         function updateLabels() {
             const role = document.getElementById('role-select').value;
-            const label = document.getElementById('id-label');
-            const placeholder = document.getElementById('user-id');
             const deptGroup = document.getElementById('dept-group');
-
-            const config = {
-                admin: { label: 'Admin ID', ph: 'Enter Admin ID' },
-                doctor: { label: 'Doctor ID', ph: 'Enter Doctor ID' },
-                staff: { label: 'Staff ID', ph: 'Enter Staff ID' },
-                patient: { label: 'Patient ID', ph: 'Enter Patient ID' }
-            };
-
-            label.textContent = config[role].label;
-            placeholder.placeholder = config[role].ph;
+            const mobileRequired = document.getElementById('mobile-required');
 
             // Show department dropdown only for staff
-            if (role === 'staff') {
-                deptGroup.style.display = 'block';
-            } else {
-                deptGroup.style.display = 'none';
-            }
+            deptGroup.style.display = role === 'staff' ? 'block' : 'none';
+
+            // Mobile is required for all roles
+            mobileRequired.style.display = 'inline';
         }
 
-        function togglePassword() {
-            const pwInput = document.getElementById('password');
-            const eyeIcon = document.getElementById('pw-eye-icon');
+        function togglePassword(inputId, iconId) {
+            const pwInput = document.getElementById(inputId);
+            const eyeIcon = document.getElementById(iconId);
             if (pwInput.type === 'password') {
                 pwInput.type = 'text';
                 eyeIcon.classList.remove('fa-eye');
@@ -164,96 +153,84 @@
             }
         }
 
-        function checkPasswordRules(password) {
-            return {
-                length: password.length >= 8,
-                upper: /[A-Z]/.test(password),
-                lower: /[a-z]/.test(password),
-                number: /[0-9]/.test(password),
-                symbol: /[^A-Za-z0-9]/.test(password)
-            };
-        }
-
-        function updateRequirementUI(rules, highlight) {
-            const map = {
-                length: 'req-length',
-                upper: 'req-upper',
-                lower: 'req-lower',
-                number: 'req-number',
-                symbol: 'req-symbol'
-            };
-            for (const [key, elId] of Object.entries(map)) {
-                const el = document.getElementById(elId);
-                const icon = el.querySelector('i');
-                el.classList.remove('met', 'unmet');
-                if (rules[key]) {
-                    el.classList.add('met');
-                    icon.className = 'fas fa-check-circle';
-                } else if (highlight) {
-                    el.classList.add('unmet');
-                    icon.className = 'fas fa-times-circle';
-                } else {
-                    icon.className = 'fas fa-circle';
-                }
-            }
-        }
-
-        function validatePasswordLive() {
-            const password = document.getElementById('password').value;
-            const rules = checkPasswordRules(password);
-            updateRequirementUI(rules, false);
-        }
-
-        function handleSignup() {
+        async function handleSignup() {
             const role = document.getElementById('role-select').value;
-            const userId = document.getElementById('user-id').value.trim();
+            const username = document.getElementById('user-name').value.trim();
+            const mobile = document.getElementById('mobile').value.trim();
             const password = document.getElementById('password').value.trim();
+            const confirmPassword = document.getElementById('confirm-password').value.trim();
+            const department = document.getElementById('dept-select').value;
             const errorEl = document.getElementById('error-text');
             const successEl = document.getElementById('success-text');
+            const registerBtn = document.getElementById('register-btn');
 
             errorEl.style.display = 'none';
             successEl.style.display = 'none';
 
-            if (!userId || !password) {
-                errorEl.textContent = "Please fill in all fields.";
+            // Validate required fields
+            if (!username || !password || !confirmPassword) {
+                errorEl.textContent = "Please fill in all required fields.";
                 errorEl.style.display = 'block';
                 return;
             }
 
-            // Validate password strength
-            const rules = checkPasswordRules(password);
-            const allMet = Object.values(rules).every(v => v);
-            updateRequirementUI(rules, true);
-
-            if (!allMet) {
-                errorEl.textContent = "Password does not meet the requirements.";
+            if (!mobile) {
+                errorEl.textContent = "Mobile number is required.";
                 errorEl.style.display = 'block';
                 return;
             }
 
-            // Get existing users
-            const users = JSON.parse(localStorage.getItem('ppa_users') || '{}');
-
-            // Check if ID already exists
-            if (users[userId]) {
-                errorEl.textContent = "ID already registered. Please login.";
+            if (password !== confirmPassword) {
+                errorEl.textContent = "Passwords do not match.";
                 errorEl.style.display = 'block';
                 return;
             }
 
-            // Save user
-            users[userId] = {
+            // Build request body
+            const body = {
+                username: username,
+                password: password,
+                confirm_password: confirmPassword,
+                mobile: mobile || null,
                 role: role,
-                password: password
+                department: role === 'staff' ? department : null
             };
-            localStorage.setItem('ppa_users', JSON.stringify(users));
 
-            successEl.textContent = "Account created successfully! Redirecting...";
-            successEl.style.display = 'block';
+            // Disable button during request
+            registerBtn.disabled = true;
+            registerBtn.textContent = 'Registering...';
 
-            setTimeout(() => {
-                window.location.href = 'login.html';
-            }, 1000);
+            try {
+                const res = await fetch(API_BASE + '/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    successEl.innerHTML = `
+                        Registration submitted successfully!<br>
+                        <span style="font-size:0.85em;">Please wait for approval before logging in.</span>
+                    `;
+                    successEl.style.display = 'block';
+
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 3000);
+                } else {
+                    errorEl.textContent = data.detail || "Registration failed. Please try again.";
+                    errorEl.style.display = 'block';
+                }
+            } catch (err) {
+                errorEl.textContent = "Server error. Please try again later.";
+                errorEl.style.display = 'block';
+                console.error("Registration error:", err);
+            } finally {
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Register';
+            }
         }
 
         // Initialize

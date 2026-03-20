@@ -25,7 +25,7 @@
 
         .admin-row-2 {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr;
             gap: 1rem;
             margin-bottom: 1.5rem;
         }
@@ -138,9 +138,7 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="brand">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
+            <img src="assets/sankara_logo.svg" alt="Sankara" style="width:28px;height:28px;">
             <span>PatientPath AI</span>
         </div>
         <ul class="nav-menu">
@@ -217,21 +215,8 @@
                 </div>
             </div>
 
-            <!-- Row 2: Peak Hours + System Health -->
+            <!-- Row 2: System Health -->
             <div class="admin-row-2">
-                <!-- Peak Hours Card -->
-                <div class="admin-card">
-                    <div style="width: 42px; height: 42px; background: rgba(245,158,11,0.12); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i class="fas fa-clock" style="color: #f59e0b; font-size: 1.1rem;"></i>
-                    </div>
-                    <div style="flex: 1;">
-                        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; margin-bottom: 0.2rem;">Peak Hours of Today</div>
-                        <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-main);" id="peak-hours-value">
-                            <i class="fas fa-spinner fa-spin" style="font-size: 0.9rem; color: var(--text-muted);"></i> Loading...
-                        </div>
-                    </div>
-                </div>
-
                 <!-- System Health Card -->
                 <div class="admin-card" style="flex-direction: column; align-items: stretch; padding: 1.25rem 1.5rem;">
                     <div style="font-weight: 700; font-size: 1rem; color: var(--text-main); margin-bottom: 0.75rem;">
@@ -252,6 +237,25 @@
                 </div>
             </div>
 
+            <!-- Pending Approvals Section -->
+            <div style="margin-bottom: 1.5rem;">
+                <div class="alloc-panel">
+                    <div class="alloc-panel-header">
+                        <h2 class="alloc-panel-title">
+                            <i class="fas fa-user-check" style="font-size: 1.1rem;"></i>
+                            Pending Registrations
+                            <span id="pending-badge" style="background:rgba(239,68,68,0.15); color:#ef4444; font-size:0.75rem; padding:0.2rem 0.6rem; border-radius:999px; font-weight:700; margin-left:0.5rem; display:none;">0</span>
+                        </h2>
+                        <button onclick="fetchPendingApprovals()" class="btn-sm"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <div id="pending-approvals-grid" style="display:grid; gap:0.75rem;">
+                        <div style="text-align:center; padding:1.5rem; color:var(--text-muted);">
+                            <i class="fas fa-spinner fa-spin"></i> Loading...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- AI Staff Allocation Section (exact same UI as standalone page) -->
             <div style="margin-bottom: 1.5rem;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
@@ -260,7 +264,7 @@
                         AI Staff Allocation Recommendation
                     </h2>
                     <div style="display: flex; align-items: center; gap: 1rem;">
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">Powered by XGBoost Model</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">AI-Powered Insights</span>
                         <button onclick="refreshStaffAllocation()" class="btn-sm" id="btn-refresh-staff">
                             <i class="fas fa-sync-alt"></i>
                         </button>
@@ -355,13 +359,14 @@
         document.addEventListener('DOMContentLoaded', () => {
             console.log("Admin Dashboard Initialized");
             fetchStats();
-            fetchPeakHours();
             fetchCVStatus();
             fetchStaffAllocation();
+            fetchPendingApprovals();
 
             setInterval(fetchStats, 10000);
             setInterval(fetchCVStatus, 5000);
             setInterval(fetchStaffAllocation, 15000);
+            setInterval(fetchPendingApprovals, 10000);
         });
 
         async function fetchStats() {
@@ -376,21 +381,88 @@
             }
         }
 
-        async function fetchPeakHours() {
+        async function fetchPendingApprovals() {
             try {
-                const res = await fetch(`${API_BASE_URL}/prediction/peak-hours/today`);
+                const res = await fetch(`${API_BASE_URL}/auth/pending-approvals`);
+                if (!res.ok) return;
+                const data = await res.json();
+                const pending = data.pending || [];
+
+                // Update badge
+                const badge = document.getElementById('pending-badge');
+                if (pending.length > 0) {
+                    badge.textContent = pending.length;
+                    badge.style.display = 'inline';
+                } else {
+                    badge.style.display = 'none';
+                }
+
+                const grid = document.getElementById('pending-approvals-grid');
+                if (pending.length === 0) {
+                    grid.innerHTML = '<div style="text-align:center; padding:1.5rem; color:var(--text-muted);"><i class="fas fa-check-circle" style="color:#10b981;"></i> No pending registrations</div>';
+                    return;
+                }
+
+                let html = '';
+                pending.forEach(function(user) {
+                    const roleColor = user.role === 'doctor' ? '#8b5cf6' : user.role === 'staff' ? '#3b82f6' : '#10b981';
+                    const roleBg = user.role === 'doctor' ? 'rgba(139,92,246,0.12)' : user.role === 'staff' ? 'rgba(59,130,246,0.12)' : 'rgba(16,185,129,0.12)';
+                    const roleIcon = user.role === 'doctor' ? 'fa-user-md' : user.role === 'staff' ? 'fa-id-badge' : 'fa-user';
+                    const dept = user.department ? ' (' + user.department.replace('_', ' ') + ')' : '';
+                    const created = user.created_at ? new Date(user.created_at).toLocaleDateString() : '';
+
+                    html += '<div style="display:flex; align-items:center; gap:1rem; padding:0.85rem 1rem; background:var(--card-bg); border:1px solid var(--border-color); border-radius:10px; transition:all 0.2s;">';
+                    html += '<div style="width:40px;height:40px;border-radius:10px;background:' + roleBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas ' + roleIcon + '" style="color:' + roleColor + ';"></i></div>';
+                    html += '<div style="flex:1;min-width:0;">';
+                    html += '<div style="font-weight:700;color:var(--text-main);font-size:0.9rem;">' + user.username + '</div>';
+                    html += '<div style="font-size:0.75rem;color:var(--text-muted);">' + user.role.charAt(0).toUpperCase() + user.role.slice(1) + dept + ' &middot; ' + user.generated_id + ' &middot; ' + created + '</div>';
+                    html += '</div>';
+                    html += '<div style="display:flex;gap:0.5rem;flex-shrink:0;">';
+                    html += '<button onclick="approveUser(' + user.id + ')" style="padding:0.4rem 0.85rem;background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);border-radius:8px;cursor:pointer;font-weight:600;font-size:0.8rem;transition:all 0.2s;" onmouseover="this.style.background=\'#10b981\';this.style.color=\'#fff\'" onmouseout="this.style.background=\'rgba(16,185,129,0.15)\';this.style.color=\'#10b981\'"><i class="fas fa-check"></i> Approve</button>';
+                    html += '<button onclick="rejectUser(' + user.id + ')" style="padding:0.4rem 0.85rem;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);border-radius:8px;cursor:pointer;font-weight:600;font-size:0.8rem;transition:all 0.2s;" onmouseover="this.style.background=\'#ef4444\';this.style.color=\'#fff\'" onmouseout="this.style.background=\'rgba(239,68,68,0.15)\';this.style.color=\'#ef4444\'"><i class="fas fa-times"></i> Reject</button>';
+                    html += '</div></div>';
+                });
+                grid.innerHTML = html;
+            } catch (e) {
+                console.error('Pending approvals fetch error:', e);
+            }
+        }
+
+        async function approveUser(userId) {
+            const approverId = localStorage.getItem('currentUserId');
+            try {
+                const res = await fetch(`${API_BASE_URL}/auth/approve/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ approver_id: parseInt(approverId) })
+                });
                 if (res.ok) {
+                    fetchPendingApprovals();
+                } else {
                     const data = await res.json();
-                    const el = document.getElementById('peak-hours-value');
-                    if (data.start_time !== 'N/A') {
-                        el.textContent = `${data.start_time} – ${data.end_time}`;
-                    } else {
-                        el.textContent = 'No peak detected today';
-                    }
+                    alert(data.detail || 'Approval failed');
                 }
             } catch (e) {
-                console.error('Peak hours fetch error:', e);
-                document.getElementById('peak-hours-value').textContent = 'Unavailable';
+                console.error('Approve error:', e);
+            }
+        }
+
+        async function rejectUser(userId) {
+            const approverId = localStorage.getItem('currentUserId');
+            try {
+                const res = await fetch(`${API_BASE_URL}/auth/reject/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ approver_id: parseInt(approverId) })
+                });
+                if (res.ok) {
+                    fetchPendingApprovals();
+                } else {
+                    const data = await res.json();
+                    alert(data.detail || 'Rejection failed');
+                }
+            } catch (e) {
+                console.error('Reject error:', e);
             }
         }
 

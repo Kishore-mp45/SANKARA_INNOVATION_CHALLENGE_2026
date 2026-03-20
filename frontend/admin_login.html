@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login – Sankara Eye Foundation | PatientPathAI</title>
+    <link rel="stylesheet" href="css/auth.css?v=6.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/theme.js?v=1000"></script>
+    <script>
+        window.onload = function () {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('currentRole');
+            localStorage.removeItem('currentDept');
+            localStorage.removeItem('currentUserId');
+            localStorage.removeItem('currentUsername');
+            localStorage.removeItem('currentMobile');
+        };
+    </script>
+</head>
+
+<body>
+    <div class="auth-container">
+
+        <!-- LEFT PANEL -->
+        <div class="auth-left">
+            <img src="assets/doctor_hero.png" alt="Doctor" class="auth-left-img">
+            <div class="auth-left-overlay"></div>
+            <div class="auth-left-content">
+                <div class="auth-left-logo">
+                    <svg class="logo-icon" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="60" cy="50" rx="28" ry="28" fill="#E88A1A"/>
+                        <polygon points="5,50 32,30 32,70" fill="#E88A1A"/>
+                        <polygon points="115,50 88,30 88,70" fill="#E88A1A"/>
+                        <circle cx="60" cy="50" r="18" fill="#F5A623" opacity="0.7"/>
+                        <circle cx="60" cy="50" r="10" fill="#FFC857" opacity="0.5"/>
+                    </svg>
+                    <span>PatientPathAI</span>
+                </div>
+                <div class="auth-left-welcome">Admin<br>Control Center</div>
+                <p class="auth-left-sub">Secure administrative access to hospital operations management.</p>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="auth-right">
+            <div class="auth-brand-top">
+                <svg class="logo-icon" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="60" cy="50" rx="28" ry="28" fill="#E88A1A"/>
+                    <polygon points="5,50 32,30 32,70" fill="#E88A1A"/>
+                    <polygon points="115,50 88,30 88,70" fill="#E88A1A"/>
+                    <circle cx="60" cy="50" r="18" fill="#F5A623" opacity="0.7"/>
+                    <circle cx="60" cy="50" r="10" fill="#FFC857" opacity="0.5"/>
+                </svg>
+                <span class="brand-label">PatientPathAI</span>
+            </div>
+
+            <h2 class="auth-heading">Admin Login</h2>
+            <p class="auth-subheading">Authorized personnel only</p>
+
+            <div class="auth-form">
+                <!-- Admin ID -->
+                <div class="form-group">
+                    <label for="admin-id">Admin ID</label>
+                    <input type="text" id="admin-id" placeholder="Enter Admin ID (e.g. ADMI-0001)">
+                </div>
+
+                <!-- Password -->
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="pw-wrapper">
+                        <input type="password" id="password" placeholder="Enter Password">
+                        <button type="button" class="pw-toggle" onclick="togglePassword()" title="Show/Hide password">
+                            <i class="fas fa-eye" id="pw-eye-icon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sign In -->
+                <button class="btn-auth-submit" id="login-btn" onclick="handleAdminLogin()">Sign In as Admin</button>
+
+                <!-- Messages -->
+                <p id="error-msg" class="auth-error"></p>
+                <p id="info-msg" class="auth-success"></p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Auth API is available on both port 5000 (admin portal) and port 8000 (main app)
+        // Use same origin since auth router is mounted on admin_app too
+        var ADMIN_API = '';
+
+        function togglePassword() {
+            var pw = document.getElementById('password');
+            var icon = document.getElementById('pw-eye-icon');
+            if (pw.type === 'password') {
+                pw.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                pw.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        async function handleAdminLogin() {
+            var adminId = document.getElementById('admin-id').value.trim();
+            var password = document.getElementById('password').value.trim();
+            var errorEl = document.getElementById('error-msg');
+            var infoEl = document.getElementById('info-msg');
+            var loginBtn = document.getElementById('login-btn');
+
+            errorEl.style.display = 'none';
+            infoEl.style.display = 'none';
+
+            if (!adminId) {
+                errorEl.textContent = "Please enter your Admin ID.";
+                errorEl.style.display = 'block';
+                return;
+            }
+            if (!password) {
+                errorEl.textContent = "Please enter your password.";
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Signing in...';
+
+            try {
+                var res = await fetch(ADMIN_API + '/auth/admin-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        admin_id: adminId,
+                        password: password
+                    })
+                });
+
+                var data = await res.json();
+
+                if (res.ok) {
+                    // Redirect to bridge page on port 8000 which sets localStorage and opens dashboard
+                    var mainApp = window.location.protocol + '//' + window.location.hostname + ':8000';
+                    var bridgeParams = '?role=admin'
+                        + '&user=' + encodeURIComponent(data.generated_id)
+                        + '&userId=' + encodeURIComponent(data.user_id)
+                        + '&username=' + encodeURIComponent(data.username)
+                        + '&mobile=' + encodeURIComponent(data.mobile || '');
+                    window.location.href = mainApp + '/admin_bridge.html' + bridgeParams;
+                } else {
+                    errorEl.textContent = data.detail || "Admin login failed.";
+                    errorEl.style.display = 'block';
+                }
+            } catch (err) {
+                errorEl.textContent = "Server error. Please try again later.";
+                errorEl.style.display = 'block';
+                console.error("Admin login error:", err);
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Sign In as Admin';
+            }
+        }
+    </script>
+</body>
+
+</html>

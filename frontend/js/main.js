@@ -39,8 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentRole = localStorage.getItem('currentRole');
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 
-    // Skip check for login, signup, and landing pages
-    if (currentPage === 'login.html' || currentPage === 'signup.html' || currentPage === 'index.html') return;
+    // Skip check for login, signup, landing, and admin bridge pages
+    if (currentPage === 'login.html' || currentPage === 'signup.html' || currentPage === 'index.html' || currentPage === 'admin_login.html' || currentPage === 'admin_bridge.html') return;
 
     if (!currentRole) {
         window.location.href = 'login.html';
@@ -244,6 +244,31 @@ function renumberSidebar() {
     });
 }
 
+function getInitials(name) {
+    if (!name) return '?';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+}
+
+window.toggleProfileDropdown = function() {
+    const dd = document.getElementById('profile-dropdown');
+    if (dd) {
+        dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+    }
+};
+
+// Close profile dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    const dd = document.getElementById('profile-dropdown');
+    const icon = document.getElementById('profile-icon');
+    if (dd && icon && !icon.contains(e.target)) {
+        dd.style.display = 'none';
+    }
+});
+
 function setupHeaderControls(role, label) {
     const header = document.querySelector('header');
     if (!header) return;
@@ -256,15 +281,39 @@ function setupHeaderControls(role, label) {
     controls.id = 'rbac-controls';
     controls.style.cssText = 'position: absolute; top: 1rem; right: 2rem; display: flex; align-items: center; gap: 1rem;';
 
+    const username = localStorage.getItem('currentUsername') || 'User';
+    const generatedId = localStorage.getItem('currentUser') || '';
+    const mobile = localStorage.getItem('currentMobile') || '';
+    const dept = localStorage.getItem('currentDept') || '';
+    const initials = getInitials(username);
+
+    const deptLine = dept ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.15rem;"><i class="fas fa-building" style="width:14px;"></i> ${dept.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</div>` : '';
+    const mobileLine = mobile ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.15rem;"><i class="fas fa-phone" style="width:14px;"></i> ${mobile}</div>` : '';
+
     controls.innerHTML = `
         <div id="theme-toggle-container" style="display: flex; align-items: center;"></div>
-        <div style="display: flex; flex-direction: column; text-align: right; justify-content: center;">
-            <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.2;">Current Role</div>
-            <div style="font-weight: 600; color: var(--primary-color); line-height: 1.2;">${label}</div>
+        <div id="profile-icon" style="cursor:pointer; position:relative;" onclick="window.toggleProfileDropdown()">
+            <div style="width:42px; height:42px; border-radius:50%; background:var(--primary-color); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:0.95rem; letter-spacing:0.5px; user-select:none; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+                ${initials}
+            </div>
+            <div id="profile-dropdown" style="display:none; position:absolute; right:0; top:52px; background:var(--sidebar-bg); border:1px solid var(--border-color); border-radius:12px; padding:1.25rem; min-width:260px; z-index:99999; box-shadow:0 12px 32px rgba(0,0,0,0.3);">
+                <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+                    <div style="width:44px; height:44px; border-radius:50%; background:var(--primary-color); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:1rem; flex-shrink:0;">${initials}</div>
+                    <div>
+                        <div style="font-weight:700; color:var(--text-main); font-size:0.95rem;">${username}</div>
+                        <div style="font-size:0.8rem; color:var(--primary-color); font-weight:600;">${generatedId}</div>
+                    </div>
+                </div>
+                <div style="border-top:1px solid var(--border-color); padding-top:0.75rem; margin-bottom:0.5rem;">
+                    <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.15rem;"><i class="fas fa-user-tag" style="width:14px;"></i> ${label}</div>
+                    ${deptLine}
+                    ${mobileLine}
+                </div>
+                <button onclick="window.logout()" style="width:100%; padding:0.55rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); color:#ef4444; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.85rem; transition:all 0.2s; margin-top:0.5rem;" onmouseover="this.style.background='#ef4444';this.style.color='#fff'" onmouseout="this.style.background='rgba(239,68,68,0.1)';this.style.color='#ef4444'">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
         </div>
-        <button id="logout-btn" onclick="window.logout()" style="padding: 0.5rem 1rem; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 6px; cursor: pointer; transition: all 0.2s;">
-            Change Role
-        </button>
     `;
 
     // Make header relative if static
@@ -273,14 +322,6 @@ function setupHeaderControls(role, label) {
     }
 
     header.appendChild(controls);
-
-    // Attach Event Listeners
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', (e) => {
-            window.logout();
-        });
-    }
 
     // Move the global theme toggle inside the container cleanly
     const moveToggle = () => {

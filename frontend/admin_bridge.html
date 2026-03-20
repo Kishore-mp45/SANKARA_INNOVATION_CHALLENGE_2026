@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Redirecting...</title>
+    <style>
+        body { background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: 'Inter', sans-serif; }
+        .loader { text-align: center; }
+        .spinner { width: 40px; height: 40px; border: 3px solid #334155; border-top-color: #0ea5e9; border-radius: 50%; animation: spin 0.6s linear infinite; margin: 0 auto 1rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="loader">
+        <div class="spinner"></div>
+        <div>Signing in as Admin...</div>
+    </div>
+    <script>
+        // Read session data from URL params (sent by admin_login.html on port 5000)
+        var params = new URLSearchParams(window.location.search);
+        var role = params.get('role');
+        var user = params.get('user');
+        var userId = params.get('userId');
+        var username = params.get('username');
+        var mobile = params.get('mobile');
+
+        if (role === 'admin' && user && userId) {
+            localStorage.setItem('currentRole', role);
+            localStorage.setItem('currentUser', user);
+            localStorage.setItem('currentUserId', userId);
+            localStorage.setItem('currentUsername', username || 'Admin');
+            localStorage.setItem('currentMobile', mobile || '');
+            window.location.replace('admin_dashboard.html');
+        } else {
+            document.querySelector('.loader').innerHTML = '<div style="color:#ef4444;">Invalid admin session. <a href="/" style="color:#60a5fa;">Go back</a></div>';
+        }
+    </script>
+</body>
+</html>

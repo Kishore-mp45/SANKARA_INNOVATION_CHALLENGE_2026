@@ -218,9 +218,7 @@
 <body>
     <div class="sidebar">
         <div class="brand">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
+            <img src="assets/sankara_logo.svg" alt="Sankara" style="width:28px;height:28px;">
             <span>PatientPath AI</span>
         </div>
         <ul class="nav-menu">
@@ -342,10 +340,15 @@
                         totalDeficit += (dept.deficit || 0);
                     }
 
+                    // Hide check-in button for staff's own department
+                    var myDept = localStorage.getItem('currentDept') || '';
+                    var isOwnDept = (zoneName === myDept);
+                    var showCheckin = dept.is_bottleneck && !isOwnDept;
+
                     html +=
                         '<div class="dept-row" style="border: 1px solid ' + borderColor + ';">' +
                             '<div class="dept-info">' +
-                                '<div class="dept-name">' + dept.department + '</div>' +
+                                '<div class="dept-name">' + dept.department + (isOwnDept ? ' <span style="font-size:0.7rem;color:var(--primary-color);">(Your Dept)</span>' : '') + '</div>' +
                                 '<div class="dept-meta">' +
                                     'Patients: <strong>' + dept.active_patients + '</strong> &nbsp;|&nbsp; ' +
                                     'Staff: <strong>' + dept.current_staff + '</strong> / <strong class="optimal">' + dept.optimal_staff + '</strong>' +
@@ -355,7 +358,7 @@
                                     '<span style="color:' + statusColor + ';">' + statusText + '</span>' +
                                 '</div>' +
                             '</div>' +
-                            (dept.is_bottleneck
+                            (showCheckin
                                 ? '<button class="btn-checkin" onclick="staffCheckin(\'' + zoneName + '\')"><i class="fas fa-sign-in-alt"></i> Check in</button>'
                                 : '') +
                         '</div>';
@@ -379,12 +382,26 @@
         }
 
         async function staffCheckin(zoneName) {
+            // Verify staff is logged in
+            var currentRole = localStorage.getItem('currentRole');
+            var staffId = localStorage.getItem('currentUser');
+            if (!currentRole || currentRole !== 'staff' || !staffId) {
+                showToast('Please login as Staff first', 'error');
+                setTimeout(function() { window.location.href = 'login.html'; }, 1500);
+                return;
+            }
+
             try {
-                var res = await fetch(API_BASE_URL + '/prediction/staff-checkin/' + zoneName, { method: 'POST' });
+                var res = await fetch(API_BASE_URL + '/prediction/staff-checkin/' + zoneName + '?staff_id=' + encodeURIComponent(staffId), { method: 'POST' });
                 if (res.ok) {
                     var data = await res.json();
                     showToast(data.message || 'Checked in successfully', 'success');
-                    fetchStaffAllocation();
+                    // Update assigned department and redirect to staff panel
+                    localStorage.setItem('currentDept', zoneName);
+                    setTimeout(function() { window.location.href = 'staff_panel.html'; }, 1500);
+                } else if (res.status === 409) {
+                    var errData = await res.json();
+                    showToast(errData.detail || 'Already checked in to this department', 'error');
                 } else {
                     showToast('Check-in failed', 'error');
                 }

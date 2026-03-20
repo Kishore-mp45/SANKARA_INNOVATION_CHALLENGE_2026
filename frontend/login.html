@@ -8,23 +8,26 @@
     <meta name="description" content="Login to PatientPathAI – Sankara Eye Foundation's AI-powered hospital operations platform.">
     <script src="js/theme.js?v=1000"></script>
     <script>
-        console.log("Login Page Loaded v5.0");
+        console.log("Login Page Loaded v6.0");
         // Clear any existing session to prevent confusion on load
         window.onload = function () {
             localStorage.removeItem('currentUser');
             localStorage.removeItem('currentRole');
             localStorage.removeItem('currentDept');
+            localStorage.removeItem('currentUserId');
+            localStorage.removeItem('currentUsername');
+            localStorage.removeItem('currentMobile');
             console.log("Session cleared for fresh login.");
         };
     </script>
-    <link rel="stylesheet" href="css/auth.css?v=5.0">
+    <link rel="stylesheet" href="css/auth.css?v=6.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
 <body>
     <div class="auth-container">
 
-        <!-- ── LEFT PANEL ── -->
+        <!-- LEFT PANEL -->
         <div class="auth-left">
             <img src="assets/doctor_hero.png" alt="Doctor" class="auth-left-img">
             <div class="auth-left-overlay"></div>
@@ -44,7 +47,7 @@
             </div>
         </div>
 
-        <!-- ── RIGHT PANEL (Login Form) ── -->
+        <!-- RIGHT PANEL (Login Form) -->
         <div class="auth-right">
             <div class="auth-brand-top">
                 <svg class="logo-icon" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -65,7 +68,6 @@
                 <div class="form-group">
                     <label for="role-select">Select Access Role</label>
                     <select id="role-select" onchange="updateLabels()">
-                        <option value="admin">Admin</option>
                         <option value="doctor">Doctor</option>
                         <option value="staff">Staff</option>
                         <option value="patient">Patient</option>
@@ -85,41 +87,31 @@
                     </select>
                 </div>
 
-                <!-- User ID -->
+                <!-- User ID / Mobile -->
                 <div class="form-group">
                     <label id="id-label" for="user-id">Admin ID</label>
-                    <input type="text" id="user-id" placeholder="Enter ID">
+                    <input type="text" id="user-id" placeholder="Enter ID" onkeydown="if(event.key==='Enter')document.getElementById('password').focus()">
                 </div>
 
                 <!-- Password -->
                 <div class="form-group" id="password-group">
                     <label for="password">Password</label>
                     <div class="pw-wrapper">
-                        <input type="password" id="password" placeholder="Enter Password" oninput="validatePasswordLive()">
+                        <input type="password" id="password" placeholder="Enter Password" onkeydown="if(event.key==='Enter')handleLogin()">
                         <button type="button" class="pw-toggle" onclick="togglePassword()" title="Show/Hide password">
                             <i class="fas fa-eye" id="pw-eye-icon"></i>
                         </button>
                     </div>
-                    <ul class="pw-requirements" id="pw-requirements">
-                        <li class="pw-req-item" id="req-length"><i class="fas fa-circle"></i> Minimum 8 characters</li>
-                        <li class="pw-req-item" id="req-upper"><i class="fas fa-circle"></i> At least one uppercase letter (A-Z)</li>
-                        <li class="pw-req-item" id="req-lower"><i class="fas fa-circle"></i> At least one lowercase letter (a-z)</li>
-                        <li class="pw-req-item" id="req-number"><i class="fas fa-circle"></i> At least one number (0-9)</li>
-                        <li class="pw-req-item" id="req-symbol"><i class="fas fa-circle"></i> At least one symbol (!@#$%&*)</li>
-                    </ul>
                 </div>
 
                 <!-- Sign In -->
-                <button class="btn-auth-submit" onclick="handleLogin()">Sign In</button>
+                <button class="btn-auth-submit" id="login-btn" onclick="handleLogin()">Sign In</button>
 
-                <!-- Error Message -->
+                <!-- Error / Info Messages -->
                 <p id="error-msg" class="auth-error"></p>
+                <p id="info-msg" class="auth-success"></p>
 
                 <!-- Links -->
-                <div class="auth-link-row">
-                    <a href="#">Forgot Password?</a>
-                </div>
-
                 <div class="auth-footer-link">
                     Don't have an account? <a href="signup.html">Sign Up</a>
                 </div>
@@ -128,9 +120,7 @@
 
     </div>
 
-    <!-- ═══════════════════════════════════════ -->
-    <!-- EXISTING LOGIN LOGIC (PRESERVED)       -->
-    <!-- ═══════════════════════════════════════ -->
+    <script src="js/config.js?v=999"></script>
     <script>
         function togglePassword() {
             const pwInput = document.getElementById('password');
@@ -146,187 +136,110 @@
             }
         }
 
-        function checkPasswordRules(password) {
-            return {
-                length: password.length >= 8,
-                upper: /[A-Z]/.test(password),
-                lower: /[a-z]/.test(password),
-                number: /[0-9]/.test(password),
-                symbol: /[^A-Za-z0-9]/.test(password)
-            };
-        }
-
-        function updateRequirementUI(rules, highlight) {
-            const map = {
-                length: 'req-length',
-                upper: 'req-upper',
-                lower: 'req-lower',
-                number: 'req-number',
-                symbol: 'req-symbol'
-            };
-            for (const [key, elId] of Object.entries(map)) {
-                const el = document.getElementById(elId);
-                const icon = el.querySelector('i');
-                el.classList.remove('met', 'unmet');
-                if (rules[key]) {
-                    el.classList.add('met');
-                    icon.className = 'fas fa-check-circle';
-                } else if (highlight) {
-                    el.classList.add('unmet');
-                    icon.className = 'fas fa-times-circle';
-                } else {
-                    icon.className = 'fas fa-circle';
-                }
-            }
-        }
-
-        function validatePasswordLive() {
-            const password = document.getElementById('password').value;
-            const rules = checkPasswordRules(password);
-            updateRequirementUI(rules, false);
-        }
-
         function updateLabels() {
             const role = document.getElementById('role-select').value;
             const label = document.getElementById('id-label');
             const placeholder = document.getElementById('user-id');
             const deptGroup = document.getElementById('dept-group');
-            const passwordGroup = document.getElementById('password-group');
             const loginBtn = document.querySelector('.btn-auth-submit');
 
             const config = {
-                admin: { label: 'Admin ID', ph: 'Enter Admin ID', btn: 'Sign In' },
-                doctor: { label: 'Doctor ID', ph: 'Enter Doctor ID', btn: 'Sign In' },
-                staff: { label: 'Staff ID', ph: 'Enter Staff ID', btn: 'Sign In' },
-                patient: { label: 'Patient Tracking ID', ph: 'Enter Patient ID (e.g. CV-12345)', btn: 'Login' }
+                doctor: { label: 'Mobile Number', ph: 'Enter your registered mobile number', btn: 'Sign In' },
+                staff: { label: 'Mobile Number', ph: 'Enter your registered mobile number', btn: 'Sign In' },
+                patient: { label: 'Mobile Number', ph: 'Enter your registered mobile number', btn: 'Login' }
             };
 
             label.textContent = config[role].label;
             placeholder.placeholder = config[role].ph;
             loginBtn.textContent = config[role].btn;
 
-            // Show/Hide Logic
-            if (role === 'patient') {
-                passwordGroup.style.display = 'block';
-                deptGroup.style.display = 'none';
-            } else if (role === 'staff') {
-                passwordGroup.style.display = 'block';
-                deptGroup.style.display = 'block';
-            } else {
-                passwordGroup.style.display = 'block';
-                deptGroup.style.display = 'none';
-            }
-
-            // Reset requirement indicators when switching roles
-            const password = document.getElementById('password').value;
-            if (password) {
-                validatePasswordLive();
-            }
+            // Show/Hide department
+            deptGroup.style.display = role === 'staff' ? 'block' : 'none';
         }
 
-        function handleLogin() {
+        async function handleLogin() {
             const role = document.getElementById('role-select').value;
-            const userId = document.getElementById('user-id').value.trim();
+            const loginId = document.getElementById('user-id').value.trim();
             const password = document.getElementById('password').value.trim();
             const errorEl = document.getElementById('error-msg');
-            const deptSelect = document.getElementById('dept-select');
+            const infoEl = document.getElementById('info-msg');
+            const loginBtn = document.getElementById('login-btn');
 
             errorEl.style.display = 'none';
+            infoEl.style.display = 'none';
 
-            if (!userId) {
-                errorEl.textContent = "Please enter your ID.";
+            if (!loginId) {
+                errorEl.textContent = "Please enter your mobile number.";
                 errorEl.style.display = 'block';
                 return;
             }
 
-            console.log("Attempting login", role, userId);
-
-            // PATIENT FLOW
-            if (role === 'patient') {
-                if (!password) {
-                    errorEl.textContent = "Please enter your password.";
-                    errorEl.style.display = 'block';
-                    return;
-                }
-
-                const users = JSON.parse(localStorage.getItem('ppa_users') || '{}');
-                const user = users[userId];
-
-                if (!user) {
-                    errorEl.textContent = "Patient ID not found. Please sign up first.";
-                    errorEl.style.display = 'block';
-                    return;
-                }
-
-                if (user.role !== 'patient') {
-                    errorEl.textContent = `ID exists but is not registered as patient. Try ${user.role}.`;
-                    errorEl.style.display = 'block';
-                    return;
-                }
-
-                if (user.password !== password) {
-                    errorEl.textContent = "Invalid password. Ensure your password meets the requirements below.";
-                    errorEl.style.display = 'block';
-                    const rules = checkPasswordRules(password);
-                    updateRequirementUI(rules, true);
-                    return;
-                }
-
-                console.log("Redirecting to Patient Dashboard");
-                localStorage.setItem('currentUser', userId);
-                localStorage.setItem('currentPatientId', userId);
-                localStorage.setItem('currentRole', 'patient');
-                window.location.href = 'patient_dashboard.html?v=' + new Date().getTime();
-                return;
-            }
-
-            // STAFF/ADMIN/DOCTOR FLOW
             if (!password) {
-                errorEl.textContent = "Please enter credentials.";
+                errorEl.textContent = "Please enter your password.";
                 errorEl.style.display = 'block';
                 return;
             }
 
-            const users = JSON.parse(localStorage.getItem('ppa_users') || '{}');
-            const user = users[userId];
+            // Disable button during request
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Signing in...';
 
-            if (!user) {
-                errorEl.textContent = "User ID not found. Please sign up.";
+            try {
+                const res = await fetch(API_BASE + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        login_id: loginId,
+                        password: password,
+                        role: role
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    // Store session data in localStorage
+                    localStorage.setItem('currentRole', data.role);
+                    localStorage.setItem('currentUser', data.generated_id);
+                    localStorage.setItem('currentUserId', data.user_id);
+                    localStorage.setItem('currentUsername', data.username);
+                    localStorage.setItem('currentMobile', data.mobile || '');
+
+                    if (data.role === 'patient') {
+                        localStorage.setItem('currentPatientId', data.generated_id);
+                    }
+
+                    if (data.department) {
+                        localStorage.setItem('currentDept', data.department);
+                    } else {
+                        localStorage.removeItem('currentDept');
+                    }
+
+                    // Redirect to role-specific dashboard
+                    const dashboards = {
+                        admin: 'admin_dashboard.html',
+                        doctor: 'doctor_dashboard.html',
+                        staff: 'staff_panel.html',
+                        patient: 'patient_dashboard.html'
+                    };
+                    window.location.href = dashboards[data.role] || 'occupancy.html';
+                } else if (res.status === 403) {
+                    // Pending or rejected
+                    infoEl.textContent = data.detail;
+                    infoEl.style.display = 'block';
+                    infoEl.style.color = '#f59e0b';
+                } else {
+                    errorEl.textContent = data.detail || "Login failed. Please check your credentials.";
+                    errorEl.style.display = 'block';
+                }
+            } catch (err) {
+                errorEl.textContent = "Server error. Please try again later.";
                 errorEl.style.display = 'block';
-                return;
+                console.error("Login error:", err);
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = (role === 'patient') ? 'Login' : 'Sign In';
             }
-
-            if (user.role !== role) {
-                errorEl.textContent = `ID exists but is not registered as ${role}. Try ${user.role}.`;
-                errorEl.style.display = 'block';
-                return;
-            }
-
-            if (user.password !== password) {
-                errorEl.textContent = "Invalid password. Ensure your password meets the requirements below.";
-                errorEl.style.display = 'block';
-                const rules = checkPasswordRules(password);
-                updateRequirementUI(rules, true);
-                return;
-            }
-
-            // Success
-            localStorage.setItem('currentRole', role);
-            localStorage.setItem('currentUser', userId);
-
-            if (role === 'staff') {
-                localStorage.setItem('currentDept', deptSelect.value);
-            } else {
-                localStorage.removeItem('currentDept');
-            }
-
-            // Redirect to role-specific dashboard
-            const dashboards = {
-                admin: 'admin_dashboard.html',
-                doctor: 'doctor_dashboard.html',
-                staff: 'staff_panel.html'
-            };
-            window.location.href = dashboards[role] || 'occupancy.html';
         }
 
         // Init labels logic

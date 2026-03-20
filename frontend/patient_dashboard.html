@@ -172,9 +172,7 @@
     <!-- Sidebar (Standard Full Sidebar - filtered by main.js) -->
     <div class="sidebar">
         <div class="brand">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
+            <img src="assets/sankara_logo.svg" alt="Sankara" style="width:28px;height:28px;">
             <span>PatientPath AI</span>
         </div>
         <ul class="nav-menu">
@@ -380,16 +378,43 @@
                     statusBadge.style.opacity = '0.5';
                     setTimeout(() => statusBadge.style.opacity = '1', 300);
                 } else if (response.status === 404) {
-                    // Patient not registered by staff yet
-                    console.warn("Patient not found in database yet:", currentPatientId);
-                    document.getElementById('current-stage').innerText = "Not Yet Registered";
+                    // Patient not in tracking system yet — check approval status
+                    console.warn("Patient not found in tracking system:", currentPatientId);
+                    var userId = localStorage.getItem('currentUserId');
+                    if (userId) {
+                        try {
+                            var profileRes = await fetch(API_BASE_URL + '/auth/profile/' + userId);
+                            if (profileRes.ok) {
+                                var profile = await profileRes.json();
+                                if (profile.status === 'approved') {
+                                    document.getElementById('current-stage').innerText = "Approved — Awaiting Check-in";
+                                    document.getElementById('next-dept').innerText = "Registration";
+                                    document.getElementById('conn-text').innerText = "Approved — Visit Registration Desk";
+                                    document.getElementById('connection-status').className = 'status-badge status-on-track';
+                                    var track = document.querySelector('.progress-track');
+                                    if (track) track.innerHTML = '<p style="color: #10b981; text-align: center; padding: 1rem;"><i class="fas fa-check-circle"></i> Your account has been approved! Please visit the Registration desk to begin your journey.</p>';
+                                } else if (profile.status === 'pending') {
+                                    document.getElementById('current-stage').innerText = "Pending Approval";
+                                    document.getElementById('next-dept').innerText = "Awaiting Staff";
+                                    document.getElementById('conn-text').innerText = "Awaiting Approval...";
+                                    document.getElementById('connection-status').className = 'status-badge status-waiting';
+                                    var track = document.querySelector('.progress-track');
+                                    if (track) track.innerHTML = '<p style="color: #f59e0b; text-align: center; padding: 1rem;"><i class="fas fa-hourglass-half"></i> Your registration is pending approval. Please wait for staff to approve your account.</p>';
+                                } else {
+                                    document.getElementById('current-stage').innerText = "Registration Rejected";
+                                    document.getElementById('conn-text').innerText = "Contact Administration";
+                                    document.getElementById('connection-status').className = 'status-badge status-delayed';
+                                }
+                                document.getElementById('last-updated').innerText = "--:--";
+                                return;
+                            }
+                        } catch (e) { console.warn("Profile fetch error:", e); }
+                    }
+                    document.getElementById('current-stage').innerText = "Awaiting Registration";
                     document.getElementById('last-updated').innerText = "--:--";
-                    document.getElementById('next-dept').innerText = "Waiting for Staff";
-                    document.getElementById('conn-text').innerText = "Waiting for Registration...";
+                    document.getElementById('next-dept').innerText = "Registration";
+                    document.getElementById('conn-text').innerText = "Visit Registration Desk";
                     document.getElementById('connection-status').className = 'status-badge status-waiting';
-                    // Clear progress track
-                    const track = document.querySelector('.progress-track');
-                    if (track) track.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 1rem;">Your tracking ID has not been registered yet. Please visit the Registration desk.</p>';
                 } else {
                     console.error("Fetch failed with status:", response.status);
                     document.getElementById('conn-text').innerText = "Connecting...";
