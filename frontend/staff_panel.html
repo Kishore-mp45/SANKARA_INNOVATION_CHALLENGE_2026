@@ -307,7 +307,7 @@
 <body>
     <div class="sidebar">
         <div class="brand">
-            <img src="assets/sankara_logo.svg" alt="Sankara" style="width:28px;height:28px;">
+            <img src="assets/Sankara-Eye-Foundation-Logo.png" alt="SANKARA EYE FOUNDATION" style="width:32px;height:32px;object-fit:contain;">
             <span>PatientPath AI</span>
         </div>
         <ul class="nav-menu">
@@ -427,7 +427,7 @@
                     </div>
                 </div>
 
-                <!-- Patient Approvals Section (Registration Department Only) -->
+                <!-- Patient Approvals Section (All Staff) -->
                 <div id="patient-approvals-section" style="display:none; margin-bottom:1.5rem;">
                     <div class="workflow-card">
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
@@ -534,6 +534,7 @@
 
     <script src="js/theme.js?v=999"></script>
     <script src="js/config.js?v=999"></script>
+    <script src="js/toast.js?v=1"></script>
     <script src="js/main.js?v=999"></script>
     <script>
         // API Configuration
@@ -593,7 +594,24 @@
                 const response = await fetch(`${API_BASE_URL}/patient/tracking/${id}`);
                 if (response.ok) {
                     const patient = await response.json();
-                    patientInfoDiv.textContent = `✓ Found: ${patient.name || 'Unknown Name'} (Current: ${formatZone(patient.current_zone)})`;
+                    const patientZone = (patient.current_zone || '').toLowerCase();
+                    const myDept = (localStorage.getItem('currentDept') || '').toLowerCase();
+
+                    // Check if patient belongs to this staff's department
+                    if (myDept && patientZone && patientZone !== myDept) {
+                        // Cross-department patient - block all actions
+                        patientInfoDiv.innerHTML = '<span style="color:#f59e0b;"><i class="fas fa-exclamation-triangle"></i> Patient is currently in <strong>' + formatZone(patient.current_zone) + '</strong>. You cannot perform any actions.</span>';
+                        patientInfoDiv.style.color = '#f59e0b';
+                        actionBtnContainer.innerHTML = '';
+                        // Hide registration fields if visible
+                        regFieldsDiv.style.display = 'none';
+                        searchBtn.innerHTML = '<i class="fas fa-search"></i>';
+                        searchBtn.disabled = false;
+                        return;
+                    }
+
+                    patientInfoDiv.textContent = '\u2713 Found: ' + (patient.name || 'Unknown Name') + ' (Current: ' + formatZone(patient.current_zone) + ')';
+                    patientInfoDiv.style.color = '';
 
                     // Auto-select current dept if valid
                     if (patient.current_zone) {
@@ -849,22 +867,7 @@
             }
         }
 
-        function showToast(message, type) {
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            if (type === 'error') toast.style.borderLeftColor = '#ef4444';
-
-            toast.innerHTML = `
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
-                <span>${message}</span>
-            `;
-
-            toastContainer.appendChild(toast);
-            setTimeout(() => {
-                toast.style.animation = 'slideIn 0.3s ease-in reverse forwards';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
+        // showToast provided by js/toast.js
 
         function saveActivityLog(id, action, next) {
             const log = {
@@ -966,11 +969,8 @@
                 document.getElementById('peak-hours-value').textContent = 'Unavailable';
             }
         })();
-        // --- Patient Approvals (Registration Department Only) ---
+        // --- Patient Approvals (All Staff) ---
         (function initPatientApprovals() {
-            var dept = localStorage.getItem('currentDept') || '';
-            if (dept !== 'registration') return;
-
             var section = document.getElementById('patient-approvals-section');
             if (section) section.style.display = 'block';
 

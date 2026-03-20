@@ -1152,16 +1152,9 @@ cd backend && python main.py
 ```
 Runs with hot-reload on `http://localhost:8000`. Requires MySQL 8.0 on `localhost:3306`.
 
-### Docker
-```bash
-docker build -t patientpath-ai .
-docker run -p 8000:8000 patientpath-ai
-```
-The Dockerfile uses Python 3.11-slim with SQLite for cloud environments (no MySQL required).
-
 ### Railway
 The project includes `railway.toml` for one-click deployment:
-- Dockerfile-based build
+- Nixpacks-based build
 - Health check at `/status` endpoint
 - Auto-restart on failure (max 3 retries)
 - `start.sh` handles PORT environment variable from Railway
@@ -1349,7 +1342,6 @@ PATIENTPATH-AI/
 |
 |-- detect.py                       # Standalone GUI detection tracker (OpenCV window)
 |-- headless_detect.py              # Headless detection tracker (server/testing)
-|-- Dockerfile                      # Production container (Python 3.11-slim)
 |-- railway.toml                    # Railway deployment config
 |-- Procfile                        # Process definition for PaaS
 |-- start.sh                        # Startup script for Railway/Docker

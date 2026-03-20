@@ -483,26 +483,50 @@ async def get_available_staff(
     exclude_department: Optional[str] = Query(None, description="Exclude staff from this department"),
     db: Session = Depends(get_db),
 ):
-    """Get list of approved staff available for deployment (excluding the bottleneck department)."""
+    """Get list of approved staff available for deployment, with pending deployment status."""
+    from models.notification import Notification
+
     query = db.query(User).filter(User.role == "staff", User.status == "approved")
 
     if exclude_department:
         query = query.filter(User.department != exclude_department)
 
     staff_list = query.all()
+
+    # Look up pending deployment notifications for each staff
+    pending_notifs = db.query(Notification).filter(
+        Notification.type == "deployment",
+        Notification.status == "pending",
+    ).all()
+    # Map recipient_id -> notification info
+    pending_map = {}
+    for n in pending_notifs:
+        pending_map[n.recipient_id] = {
+            "notification_id": n.id,
+            "target_department": n.target_department,
+            "target_display": DEPT_DISPLAY.get(n.target_department, n.target_department),
+        }
+
+    result = []
+    for s in staff_list:
+        entry = {
+            "id": s.id,
+            "username": s.username,
+            "generated_id": s.generated_id,
+            "department": s.department,
+            "department_display": DEPT_DISPLAY.get(s.department, s.department),
+            "mobile": s.mobile,
+            "deployment_pending": False,
+            "pending_target": None,
+        }
+        if s.generated_id in pending_map:
+            entry["deployment_pending"] = True
+            entry["pending_target"] = pending_map[s.generated_id]["target_display"]
+        result.append(entry)
+
     return {
-        "available_staff": [
-            {
-                "id": s.id,
-                "username": s.username,
-                "generated_id": s.generated_id,
-                "department": s.department,
-                "department_display": DEPT_DISPLAY.get(s.department, s.department),
-                "mobile": s.mobile,
-            }
-            for s in staff_list
-        ],
-        "count": len(staff_list),
+        "available_staff": result,
+        "count": len(result),
     }
 
 
@@ -549,6 +573,30 @@ async def deploy_staff(body: DeployStaffRequest, db: Session = Depends(get_db)):
     }
 
 
+@router.get("/deployment-status")
+async def get_deployment_status(
+    target_department: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """Get deployment notification statuses. Used by admin to poll for acceptance/rejection."""
+    from models.notification import Notification
+
+    query = db.query(Notification).filter(Notification.type == "deployment")
+    if target_department:
+        query = query.filter(Notification.target_department == target_department)
+
+    notifs = query.order_by(Notification.created_at.desc()).limit(50).all()
+
+    pending_count = sum(1 for n in notifs if n.status == "pending")
+    accepted_count = sum(1 for n in notifs if n.status == "accepted")
+
+    return {
+        "deployments": [n.to_dict() for n in notifs],
+        "pending_count": pending_count,
+        "accepted_count": accepted_count,
+    }
+
+
 @router.get("/notifications/{recipient_id}")
 async def get_notifications(
     recipient_id: str,
@@ -572,8 +620,9 @@ async def respond_to_notification(
     action: str = Query(..., description="accepted or rejected"),
     db: Session = Depends(get_db),
 ):
-    """Staff responds to a deployment notification."""
+    """Staff responds to a deployment notification. On accept, performs check-in to target department."""
     from models.notification import Notification
+    from services.staff_allocation_service import StaffAllocationService
 
     notif = db.query(Notification).filter(Notification.id == notification_id).first()
     if not notif:
@@ -583,7 +632,37 @@ async def respond_to_notification(
         raise HTTPException(status_code=400, detail="Action must be 'accepted' or 'rejected'")
 
     notif.status = action
-    notif.responded_at = datetime.now()
+    notif.responded_at = datetime.utcnow()
     db.commit()
 
-    return {"message": f"Notification {action}", "notification": notif.to_dict()}
+    checkin_result = None
+
+    # On acceptance, perform the actual staff check-in to target department
+    if action == "accepted" and notif.target_department:
+        checkin_result = StaffAllocationService.checkin_staff(
+            notif.target_department, db, staff_id=notif.recipient_id
+        )
+
+        # Broadcast the staff update via WebSocket so admin alerts refresh
+        try:
+            from routers.websocket import manager
+            await manager.broadcast({
+                "type": "staff_update",
+                "data": {
+                    "department": checkin_result.get("department", notif.target_department),
+                    "current_staff": checkin_result.get("current_staff", 0),
+                    "optimal_staff": checkin_result.get("optimal_staff", 0),
+                    "deficit": checkin_result.get("deficit", 0),
+                    "is_bottleneck": checkin_result.get("is_bottleneck", False),
+                    "event": "deployment_accepted",
+                    "staff_id": notif.recipient_id,
+                }
+            }, message_type="alerts")
+        except Exception:
+            pass
+
+    return {
+        "message": f"Notification {action}",
+        "notification": notif.to_dict(),
+        "checkin_result": checkin_result,
+    }

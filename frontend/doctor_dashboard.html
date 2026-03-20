@@ -68,10 +68,10 @@
         .form-textarea {
             width: 100%;
             padding: 0.75rem 1rem;
-            background: rgba(30, 41, 59, 0.5);
+            background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            color: white;
+            color: var(--text-main);
             font-size: 1rem;
             outline: none;
             transition: border-color 0.2s;
@@ -199,25 +199,50 @@
         @media (max-width: 640px) {
             .metric-cards-row { grid-template-columns: repeat(2, 1fr); }
         }
+
+        /* Light theme overrides for doctor dashboard */
+        .light-theme .workflow-card {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        .light-theme .metric-card {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .light-theme .metric-card:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+        .light-theme .form-select,
+        .light-theme .form-input,
+        .light-theme .form-textarea {
+            background: var(--bg-color, #f1f5f9);
+        }
+        .light-theme .form-select option {
+            background: #fff;
+            color: #1a2332;
+        }
+        .light-theme .btn-update {
+            box-shadow: 0 2px 6px rgba(14, 165, 233, 0.15);
+        }
+        .light-theme .locked-panel {
+            opacity: 0.6;
+        }
     </style>
 </head>
 
 <body>
     <div class="sidebar">
         <div class="brand">
-            <img src="assets/sankara_logo.svg" alt="Sankara" style="width:28px;height:28px;">
+            <img src="assets/Sankara-Eye-Foundation-Logo.png" alt="SANKARA EYE FOUNDATION" style="width:32px;height:32px;object-fit:contain;">
             <span>PatientPath AI</span>
         </div>
-        <ul class="nav-menu">
-            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
-            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
-            <li><a href="video.html" class="nav-item"><span class="step-badge">3</span> Live Video</a></li>
-            <li><a href="alerts.html" class="nav-item"><span class="step-badge">4</span> Alerts</a></li>
-            <li><a href="doctor_dashboard.html" class="nav-item active"><span class="step-badge">5</span> Doctor Panel</a></li>
-            <li><a href="doctor_workload.html" class="nav-item"><span class="step-badge">6</span> Doctor Workload</a></li>
-            <li><a href="doctor_activity.html" class="nav-item"><span class="step-badge">7</span> Activity History</a></li>
-            <li><a href="doctor_dept_insights.html" class="nav-item"><span class="step-badge">8</span> Dept Insights</a></li>
-            <li><a href="doctor_escalate.html" class="nav-item"><span class="step-badge">9</span> Escalate Issue</a></li>
+                <ul class="nav-menu">
+            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">1</span> Live Occupancy</a></li>
+            <li><a href="video.html" class="nav-item"><span class="step-badge">2</span> Live Video</a></li>
+            <li><a href="alerts.html" class="nav-item"><span class="step-badge">3</span> Alerts</a></li>
+            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">4</span> Doctor Panel</a></li>
+            <li><a href="doctor_workload.html" class="nav-item"><span class="step-badge">5</span> Doctor Workload</a></li>
+            <li><a href="doctor_activity.html" class="nav-item"><span class="step-badge">6</span> Activity History</a></li>
+            <li><a href="doctor_dept_insights.html" class="nav-item"><span class="step-badge">7</span> Dept Insights</a></li>
+            <li><a href="doctor_escalate.html" class="nav-item"><span class="step-badge">8</span> Escalate Issue</a></li>
         </ul>
     </div>
 
@@ -377,6 +402,7 @@
 
     <script src="js/theme.js?v=999"></script>
     <script src="js/config.js?v=999"></script>
+    <script src="js/toast.js?v=1"></script>
     <script src="js/main.js?v=999"></script>
     <script>
         const API_BASE_URL = API_BASE;
@@ -542,24 +568,7 @@
             document.getElementById('consult-notes').value = "";
         }
 
-        // --- Toast Utility (Copied from Staff Panel) ---
-        function showToast(message, type) {
-            const toastContainer = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.style.background = 'var(--card-bg)';
-            toast.style.color = 'white';
-            toast.style.padding = '1rem';
-            toast.style.borderRadius = '4px';
-            toast.style.marginBottom = '1rem';
-            toast.style.boxShadow = '0 4px 6px rgba(0,0,0,0.3)';
-            toast.style.borderLeft = type === 'error' ? '4px solid #ef4444' : '4px solid #10b981';
-
-            toast.innerHTML = `<span>${message}</span>`;
-            toastContainer.appendChild(toast);
-
-            setTimeout(() => toast.remove(), 3000);
-        }
+        // showToast provided by js/toast.js
 
         // --- Initial Load ---
         // Verify current status

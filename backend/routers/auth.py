@@ -4,8 +4,8 @@ PatientPath AI - Auth Router
 Handles registration, login, approval hierarchy, and user profiles.
 
 Approval Hierarchy:
-  - Admin approves Staff and Doctor
-  - Staff (Registration Dept) approves Patient
+  - Admin approves/rejects Staff and Doctor only
+  - Staff approves/rejects Patient only
 """
 
 from datetime import datetime
@@ -166,8 +166,8 @@ async def approve_user(user_id: int, data: ApprovalAction, db: Session = Depends
         if approver.role != "admin":
             raise HTTPException(status_code=403, detail="Only admin can approve doctor/staff registrations")
     elif user.role == "patient":
-        if approver.role not in ("staff", "admin"):
-            raise HTTPException(status_code=403, detail="Only staff (registration) or admin can approve patient registrations")
+        if approver.role != "staff":
+            raise HTTPException(status_code=403, detail="Only staff can approve patient registrations")
 
     user.status = "approved"
     user.approved_by = data.approver_id
@@ -188,6 +188,19 @@ async def reject_user(user_id: int, data: ApprovalAction, db: Session = Depends(
 
     if user.status != "pending":
         raise HTTPException(status_code=400, detail=f"User is already {user.status}")
+
+    # Validate approver
+    approver = db.query(User).filter(User.id == data.approver_id).first()
+    if not approver:
+        raise HTTPException(status_code=404, detail="Approver not found")
+
+    # Enforce rejection hierarchy (same as approval)
+    if user.role in ("doctor", "staff"):
+        if approver.role != "admin":
+            raise HTTPException(status_code=403, detail="Only admin can reject doctor/staff registrations")
+    elif user.role == "patient":
+        if approver.role != "staff":
+            raise HTTPException(status_code=403, detail="Only staff can reject patient registrations")
 
     user.status = "rejected"
     user.approved_by = data.approver_id

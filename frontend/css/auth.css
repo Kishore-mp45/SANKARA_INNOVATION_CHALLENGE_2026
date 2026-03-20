@@ -1,5 +1,5 @@
 /* ============================================
-   Sankara Eye Foundation – Auth Pages (Login / Register)
+   SANKARA EYE FOUNDATION – Auth Pages (Login / Register)
    Light Hospital Theme • Two-column layout
    ============================================ */
 
@@ -25,20 +25,18 @@
     --font: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-html, body {
-    height: 100%;
+html {
     font-family: var(--font);
     -webkit-font-smoothing: antialiased;
-    background: var(--bg-soft);
-    overflow: hidden;
 }
 
 body {
     display: flex;
-    align-items: stretch;
+    align-items: flex-start;
     justify-content: center;
     min-height: 100vh;
     margin: 0;
+    background: var(--bg-soft);
 }
 
 /* ── Auth Container ── */
@@ -126,7 +124,6 @@ body {
     flex-direction: column;
     justify-content: center;
     padding: 48px 48px 40px;
-    overflow-y: auto;
 }
 
 .auth-brand-top {

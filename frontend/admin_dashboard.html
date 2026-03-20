@@ -138,7 +138,7 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="brand">
-            <img src="assets/sankara_logo.svg" alt="Sankara" style="width:28px;height:28px;">
+            <img src="assets/Sankara-Eye-Foundation-Logo.png" alt="SANKARA EYE FOUNDATION" style="width:32px;height:32px;object-fit:contain;">
             <span>PatientPath AI</span>
         </div>
         <ul class="nav-menu">
@@ -243,7 +243,7 @@
                     <div class="alloc-panel-header">
                         <h2 class="alloc-panel-title">
                             <i class="fas fa-user-check" style="font-size: 1.1rem;"></i>
-                            Pending Registrations
+                            Pending Staff & Doctor Registrations
                             <span id="pending-badge" style="background:rgba(239,68,68,0.15); color:#ef4444; font-size:0.75rem; padding:0.2rem 0.6rem; border-radius:999px; font-weight:700; margin-left:0.5rem; display:none;">0</span>
                         </h2>
                         <button onclick="fetchPendingApprovals()" class="btn-sm"><i class="fas fa-sync-alt"></i></button>
@@ -383,10 +383,22 @@
 
         async function fetchPendingApprovals() {
             try {
-                const res = await fetch(`${API_BASE_URL}/auth/pending-approvals`);
-                if (!res.ok) return;
-                const data = await res.json();
-                const pending = data.pending || [];
+                // Fetch staff and doctor approvals separately (admin does NOT manage patients)
+                const [staffRes, doctorRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/auth/pending-approvals?role=staff`),
+                    fetch(`${API_BASE_URL}/auth/pending-approvals?role=doctor`)
+                ]);
+                let pending = [];
+                if (staffRes.ok) {
+                    const d = await staffRes.json();
+                    pending = pending.concat(d.pending || []);
+                }
+                if (doctorRes.ok) {
+                    const d = await doctorRes.json();
+                    pending = pending.concat(d.pending || []);
+                }
+                // Sort by newest first
+                pending.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
                 // Update badge
                 const badge = document.getElementById('pending-badge');
@@ -399,15 +411,15 @@
 
                 const grid = document.getElementById('pending-approvals-grid');
                 if (pending.length === 0) {
-                    grid.innerHTML = '<div style="text-align:center; padding:1.5rem; color:var(--text-muted);"><i class="fas fa-check-circle" style="color:#10b981;"></i> No pending registrations</div>';
+                    grid.innerHTML = '<div style="text-align:center; padding:1.5rem; color:var(--text-muted);"><i class="fas fa-check-circle" style="color:#10b981;"></i> No pending staff or doctor registrations</div>';
                     return;
                 }
 
                 let html = '';
                 pending.forEach(function(user) {
-                    const roleColor = user.role === 'doctor' ? '#8b5cf6' : user.role === 'staff' ? '#3b82f6' : '#10b981';
-                    const roleBg = user.role === 'doctor' ? 'rgba(139,92,246,0.12)' : user.role === 'staff' ? 'rgba(59,130,246,0.12)' : 'rgba(16,185,129,0.12)';
-                    const roleIcon = user.role === 'doctor' ? 'fa-user-md' : user.role === 'staff' ? 'fa-id-badge' : 'fa-user';
+                    const roleColor = user.role === 'doctor' ? '#8b5cf6' : '#3b82f6';
+                    const roleBg = user.role === 'doctor' ? 'rgba(139,92,246,0.12)' : 'rgba(59,130,246,0.12)';
+                    const roleIcon = user.role === 'doctor' ? 'fa-user-md' : 'fa-id-badge';
                     const dept = user.department ? ' (' + user.department.replace('_', ' ') + ')' : '';
                     const created = user.created_at ? new Date(user.created_at).toLocaleDateString() : '';
 

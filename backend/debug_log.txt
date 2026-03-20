@@ -18,3 +18,7 @@ DEBUG: Endpoint called with tracking_id='ABIX-1001' name='ABi' mobile='123456789
 DEBUG: Endpoint called with tracking_id='ABIX-1001' name='ABi' mobile='1234567890' department='registration' action='New Patient Registration' next_department=None staff_id='YASH-1002'
 DEBUG: Endpoint called with tracking_id='CV-7777' name='ABi' mobile='1234567890' department='registration' action='New Patient Registration' next_department=None staff_id='YASH-1002'
 DEBUG: Endpoint called with tracking_id='ARAV-1001' name='aravind' mobile='7305730779' department='registration' action='Patient Registration Completed' next_department='vision_lab' staff_id='YASH-1002'
+DEBUG: Endpoint called with tracking_id='DENI-1001' name='denistan' mobile='9677388522' department='registration' action='Patient Registration Completed' next_department='vision_lab' staff_id='YASH-1002'
+DEBUG: Endpoint called with tracking_id='DENI-1001' name='denistan' mobile='9677388522' department='registration' action='Patient Registration Completed' next_department='vision_lab' staff_id='YASH-1002'
+DEBUG: Endpoint called with tracking_id='DENI-1001' name='denistan' mobile='9677388522' department='registration' action='Patient Registration Completed' next_department='vision_lab' staff_id='YASH-1002'
+DEBUG: Endpoint called with tracking_id='DENI-1001' name=None mobile=None department='vision_lab' action='Vision Screening Started' next_department=None staff_id='ARAV-1001'

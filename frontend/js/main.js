@@ -63,6 +63,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Apply UI Changes (Sidebar, Buttons)
     applyRoleBasedAccess(currentRole);
 
+    // 2b. Make sidebar brand clickable -> project info page
+    const brandEl = document.querySelector('.sidebar .brand');
+    if (brandEl) {
+        brandEl.style.cursor = 'pointer';
+        brandEl.title = 'Project Info';
+        brandEl.addEventListener('click', function() { window.location.href = 'index.html'; });
+    }
+
     // 3. Add Header Controls (Logout / Role Label)
     setupHeaderControls(currentRole, roleConfig.label);
 
@@ -83,165 +91,67 @@ function applyRoleBasedAccess(role) {
     const config = USER_ROLES[role];
     if (!config) return;
 
-    // Sidebar Filtering
-    const navItems = document.querySelectorAll('.nav-menu li a');
-    navItems.forEach(item => {
-        const href = item.getAttribute('href');
-        if (!config.allowed_pages.includes(href)) {
-            item.parentElement.style.display = 'none';
-        } else {
-            item.parentElement.style.display = 'block'; // Ensure visible on re-login
-        }
-    });
+    // Fixed nav order per role - clear and rebuild to ensure consistency across all pages
+    const NAV_ITEMS = {
+        patient: [
+            { href: 'patient_dashboard.html', label: 'My Dashboard' },
+            { href: 'live_navigator.html', label: 'Live Navigator' },
+            { href: 'patient_activity.html', label: 'Activity History' },
+            { href: 'hospital_load_status.html', label: 'Hospital Load' },
+            { href: 'waiting_time_trend.html', label: 'Waiting Trend' },
+        ],
+        doctor: [
+            { href: 'occupancy.html', label: 'Live Occupancy' },
+            { href: 'video.html', label: 'Live Video' },
+            { href: 'alerts.html', label: 'Alerts' },
+            { href: 'doctor_dashboard.html', label: 'Doctor Panel' },
+            { href: 'doctor_workload.html', label: 'Doctor Workload' },
+            { href: 'doctor_activity.html', label: 'Activity History' },
+            { href: 'doctor_dept_insights.html', label: 'Dept Insights' },
+            { href: 'doctor_escalate.html', label: 'Escalate Issue' },
+        ],
+        staff: [
+            { href: 'occupancy.html', label: 'Live Occupancy' },
+            { href: 'staff_panel.html', label: 'Staff Panel' },
+            { href: 'staff_activity.html', label: 'Recent Activity' },
+            { href: 'staff_allocation.html', label: 'AI Staff Allocation' },
+            { href: 'bottleneck_warnings.html', label: 'Bottleneck Warnings' },
+            { href: 'patient_search.html', label: 'Patient Search' },
+            { href: 'escalate_issue.html', label: 'Escalate Issue' },
+            { href: 'department_performance.html', label: 'Dept. Performance' },
+            { href: 'department_insights.html', label: 'Dept. Insights' },
+        ],
+        admin: [
+            { href: 'occupancy.html', label: 'Live Occupancy' },
+            { href: 'heatmap.html', label: 'Zone Heatmap' },
+            { href: 'metrics.html', label: 'Metrics' },
+            { href: 'alerts.html', label: 'Alerts' },
+            { href: 'charts.html', label: 'Charts' },
+            { href: 'prediction.html', label: 'Prediction' },
+            { href: 'video.html', label: 'Live Video' },
+            { href: 'admin_dashboard.html', label: 'Admin Center' },
+            { href: 'notification_center.html', label: 'Notifications' },
+            { href: 'escalation_reports.html', label: 'Escalations' },
+            { href: 'resource_allocation.html', label: 'Resources' },
+        ],
+    };
 
-    // Inject "My Dashboard" and "Activity History" for patient role (persistent across all pages)
-    if (role === 'patient') {
-        const navMenu = document.querySelector('.nav-menu');
-        if (navMenu && !navMenu.querySelector('a[href="patient_dashboard.html"]')) {
+    const navMenu = document.querySelector('.nav-menu');
+    if (navMenu && NAV_ITEMS[role]) {
+        const currentPage = window.location.pathname.split('/').pop() || '';
+        navMenu.innerHTML = '';
+        NAV_ITEMS[role].forEach(function (item, idx) {
             const li = document.createElement('li');
-            li.innerHTML = '<a href="patient_dashboard.html" class="nav-item"><span class="step-badge">3</span> My Dashboard</a>';
+            const isActive = (item.href === currentPage) ? ' active' : '';
+            li.innerHTML = '<a href="' + item.href + '" class="nav-item' + isActive + '"><span class="step-badge">' + (idx + 1) + '</span> ' + item.label + '</a>';
             navMenu.appendChild(li);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="live_navigator.html"]')) {
-            const liNav = document.createElement('li');
-            liNav.innerHTML = '<a href="live_navigator.html" class="nav-item"><span class="step-badge">4</span> Live Navigator</a>';
-            navMenu.appendChild(liNav);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="patient_activity.html"]')) {
-            const li2 = document.createElement('li');
-            li2.innerHTML = '<a href="patient_activity.html" class="nav-item"><span class="step-badge">5</span> Activity History</a>';
-            navMenu.appendChild(li2);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="hospital_load_status.html"]')) {
-            const li3 = document.createElement('li');
-            li3.innerHTML = '<a href="hospital_load_status.html" class="nav-item"><span class="step-badge">5</span> Hospital Load</a>';
-            navMenu.appendChild(li3);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="waiting_time_trend.html"]')) {
-            const li4 = document.createElement('li');
-            li4.innerHTML = '<a href="waiting_time_trend.html" class="nav-item"><span class="step-badge">6</span> Waiting Trend</a>';
-            navMenu.appendChild(li4);
-        }
-    }
-
-    // Inject nav items for doctor role
-    if (role === 'doctor') {
-        const navMenu = document.querySelector('.nav-menu');
-        if (navMenu && !navMenu.querySelector('a[href="doctor_workload.html"]')) {
-            const li = document.createElement('li');
-            li.innerHTML = '<a href="doctor_workload.html" class="nav-item"><span class="step-badge">6</span> Doctor Workload</a>';
-            navMenu.appendChild(li);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="doctor_activity.html"]')) {
-            const li2 = document.createElement('li');
-            li2.innerHTML = '<a href="doctor_activity.html" class="nav-item"><span class="step-badge">7</span> Activity History</a>';
-            navMenu.appendChild(li2);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="doctor_dept_insights.html"]')) {
-            const li3 = document.createElement('li');
-            li3.innerHTML = '<a href="doctor_dept_insights.html" class="nav-item"><span class="step-badge">8</span> Dept Insights</a>';
-            navMenu.appendChild(li3);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="doctor_escalate.html"]')) {
-            const li4 = document.createElement('li');
-            li4.innerHTML = '<a href="doctor_escalate.html" class="nav-item"><span class="step-badge">9</span> Escalate Issue</a>';
-            navMenu.appendChild(li4);
-        }
-    }
-
-    // Inject nav items for staff role
-    if (role === 'staff') {
-        const navMenu = document.querySelector('.nav-menu');
-        if (navMenu && !navMenu.querySelector('a[href="staff_panel.html"]')) {
-            const li = document.createElement('li');
-            li.innerHTML = '<a href="staff_panel.html" class="nav-item"><span class="step-badge">3</span> Staff Panel</a>';
-            navMenu.appendChild(li);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="staff_activity.html"]')) {
-            const li2 = document.createElement('li');
-            li2.innerHTML = '<a href="staff_activity.html" class="nav-item"><span class="step-badge">4</span> Recent Activity</a>';
-            navMenu.appendChild(li2);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="staff_allocation.html"]')) {
-            const li3 = document.createElement('li');
-            li3.innerHTML = '<a href="staff_allocation.html" class="nav-item"><span class="step-badge">5</span> AI Staff Allocation</a>';
-            navMenu.appendChild(li3);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="bottleneck_warnings.html"]')) {
-            const li4 = document.createElement('li');
-            li4.innerHTML = '<a href="bottleneck_warnings.html" class="nav-item"><span class="step-badge">6</span> Bottleneck Warnings</a>';
-            navMenu.appendChild(li4);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="patient_search.html"]')) {
-            const li5 = document.createElement('li');
-            li5.innerHTML = '<a href="patient_search.html" class="nav-item"><span class="step-badge">7</span> Patient Search</a>';
-            navMenu.appendChild(li5);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="escalate_issue.html"]')) {
-            const li6 = document.createElement('li');
-            li6.innerHTML = '<a href="escalate_issue.html" class="nav-item"><span class="step-badge">8</span> Escalate Issue</a>';
-            navMenu.appendChild(li6);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="department_performance.html"]')) {
-            const li7 = document.createElement('li');
-            li7.innerHTML = '<a href="department_performance.html" class="nav-item"><span class="step-badge">9</span> Dept. Performance</a>';
-            navMenu.appendChild(li7);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="department_insights.html"]')) {
-            const li8 = document.createElement('li');
-            li8.innerHTML = '<a href="department_insights.html" class="nav-item"><span class="step-badge">10</span> Dept. Insights</a>';
-            navMenu.appendChild(li8);
-        }
-    }
-
-    // Inject "Admin Center", "Notifications", "Escalations", and "Resources" for admin role (persistent across all pages)
-    if (role === 'admin') {
-        const navMenu = document.querySelector('.nav-menu');
-        if (navMenu && !navMenu.querySelector('a[href="admin_dashboard.html"]')) {
-            const li = document.createElement('li');
-            li.innerHTML = '<a href="admin_dashboard.html" class="nav-item"><span class="step-badge">9</span> Admin Center</a>';
-            navMenu.appendChild(li);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="notification_center.html"]')) {
-            const li2 = document.createElement('li');
-            li2.innerHTML = '<a href="notification_center.html" class="nav-item"><span class="step-badge">10</span> Notifications</a>';
-            navMenu.appendChild(li2);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="escalation_reports.html"]')) {
-            const li3 = document.createElement('li');
-            li3.innerHTML = '<a href="escalation_reports.html" class="nav-item"><span class="step-badge">11</span> Escalations</a>';
-            navMenu.appendChild(li3);
-        }
-        if (navMenu && !navMenu.querySelector('a[href="resource_allocation.html"]')) {
-            const li4 = document.createElement('li');
-            li4.innerHTML = '<a href="resource_allocation.html" class="nav-item"><span class="step-badge">12</span> Resources</a>';
-            navMenu.appendChild(li4);
-        }
+        });
     }
 
     // Specific Component Hiding (Modular Logic)
-    // Add specific class checks if needed, e.g., <div class="rbac-admin-only">
     if (role !== 'admin') {
         document.querySelectorAll('.rbac-admin-only').forEach(el => el.style.display = 'none');
     }
-
-    // Re-number all visible sidebar items sequentially
-    renumberSidebar();
-}
-
-function renumberSidebar() {
-    const navMenu = document.querySelector('.nav-menu');
-    if (!navMenu) return;
-    const allItems = navMenu.querySelectorAll('li');
-    let visibleIndex = 1;
-    allItems.forEach(li => {
-        if (li.style.display === 'none') return;
-        const badge = li.querySelector('.step-badge');
-        if (badge) {
-            badge.textContent = visibleIndex;
-            visibleIndex++;
-        }
-    });
 }
 
 function getInitials(name) {

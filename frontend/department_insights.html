@@ -331,7 +331,7 @@
 <body>
     <div class="sidebar">
         <div class="brand">
-            <img src="assets/sankara_logo.svg" alt="Sankara" style="width:28px;height:28px;">
+            <img src="assets/Sankara-Eye-Foundation-Logo.png" alt="SANKARA EYE FOUNDATION" style="width:32px;height:32px;object-fit:contain;">
             <span>PatientPath AI</span>
         </div>
         <ul class="nav-menu">
@@ -405,9 +405,6 @@
 
                 <!-- Back link -->
                 <div style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;">
-                    <a href="staff_panel.html" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.2rem;background:var(--card-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);text-decoration:none;font-size:0.9rem;transition:all 0.2s;">
-                        <i class="fas fa-arrow-left"></i> Back to Staff Panel
-                    </a>
                     <a href="department_performance.html" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.2rem;background:var(--card-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);text-decoration:none;font-size:0.9rem;transition:all 0.2s;">
                         <i class="fas fa-chart-line"></i> Dept. Performance
                     </a>
@@ -424,9 +421,9 @@
         var API_BASE_URL = API_BASE;
         var REFRESH_INTERVAL = 25000;
         var pollTimer = null;
-        var svcChart = null;
+        // svcChart removed
         var gaugeChart = null;
-        var waitDistChart = null;
+        // waitDistChart removed
         var queuePredChart = null;
         var queueMovementChart = null;
         var processingRateChart = null;
@@ -517,7 +514,7 @@
                 if (!res.ok) throw new Error('WaitDist status ' + res.status);
 
                 var data = await res.json();
-                updateWaitDistChart(data.waiting_distribution);
+                // waiting_distribution chart removed
             } catch (e) {
                 console.error('Waiting distribution fetch error:', e);
             }
@@ -551,36 +548,6 @@
                 html += '    <div class="gauge-metric-item"><div class="gm-value" id="gm-queue">--</div><div class="gm-label">Queue Size</div></div>';
                 html += '    <div class="gauge-metric-item"><div class="gm-value" id="gm-capacity">--</div><div class="gm-label">Capacity</div></div>';
                 html += '  </div>';
-                html += '</div>';
-
-                // ── MIDDLE SECTION: Average Service Time Trend ──
-                html += '<div class="section-divider"><i class="fas fa-stopwatch" style="color:#6366f1;"></i> Service Time Analysis</div>';
-
-                html += '<div class="chart-card" id="svc-chart-card">';
-                html += '  <div class="chart-card-header">';
-                html += '    <div class="cc-icon bg-indigo"><i class="fas fa-stopwatch"></i></div>';
-                html += '    <div>';
-                html += '      <div class="cc-title">Average Service Time Trend</div>';
-                html += '      <div class="cc-subtitle">Hourly average service time for your department</div>';
-                html += '    </div>';
-                html += '  </div>';
-                html += '  <div class="chart-wrap line-chart"><canvas id="svcTimeChart"></canvas></div>';
-                html += '  <div class="trend-msg" id="svc-trend-msg"></div>';
-                html += '</div>';
-
-                // ── BOTTOM SECTION: Patient Waiting Time Distribution ──
-                html += '<div class="section-divider"><i class="fas fa-hourglass-half" style="color:#f59e0b;"></i> Waiting Time Analysis</div>';
-
-                html += '<div class="chart-card" id="wait-dist-card">';
-                html += '  <div class="chart-card-header">';
-                html += '    <div class="cc-icon bg-amber"><i class="fas fa-hourglass-half"></i></div>';
-                html += '    <div>';
-                html += '      <div class="cc-title">Patient Waiting Time Distribution</div>';
-                html += '      <div class="cc-subtitle">How patient waiting times are distributed in your department</div>';
-                html += '    </div>';
-                html += '  </div>';
-                html += '  <div class="chart-wrap bar-chart"><canvas id="waitDistChart"></canvas></div>';
-                html += '  <div id="wait-insight-msg"></div>';
                 html += '</div>';
 
                 // ── Queue Prediction (Next 30 Minutes) ──
@@ -632,7 +599,7 @@
 
             // Update charts with data
             updateGaugeChart(data.load_gauge);
-            updateServiceTimeChart(data.service_trend);
+            // service_trend chart removed
             updateQueuePredChart(data.queue_prediction);
         }
 
@@ -718,261 +685,7 @@
             });
         }
 
-        /* ═══════════════════ 2. Average Service Time Trend ═══════════════════ */
-        function updateServiceTimeChart(trendData) {
-            var labels = trendData.labels || [];
-            var values = trendData.data || [];
-            var canvas = document.getElementById('svcTimeChart');
-            var ctx = canvas.getContext('2d');
-
-            // Determine trend message
-            var trendMsgEl = document.getElementById('svc-trend-msg');
-            if (values.length >= 2) {
-                var last = values[values.length - 1];
-                var prev = values[values.length - 2];
-                var diff = last - prev;
-                if (diff > 1) {
-                    trendMsgEl.textContent = 'Service time is increasing (+' + diff.toFixed(1) + ' min)';
-                    trendMsgEl.className = 'trend-msg trend-up';
-                } else if (diff < -1) {
-                    trendMsgEl.textContent = 'Service time is decreasing (' + diff.toFixed(1) + ' min)';
-                    trendMsgEl.className = 'trend-msg trend-down';
-                } else {
-                    trendMsgEl.textContent = 'Service time is stable';
-                    trendMsgEl.className = 'trend-msg trend-stable';
-                }
-            } else {
-                trendMsgEl.textContent = 'Not enough data for trend analysis';
-                trendMsgEl.className = 'trend-msg trend-stable';
-            }
-
-            // Determine theme colors
-            var isLight = document.documentElement.classList.contains('light-theme');
-            var gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
-            var tickColor = isLight ? '#666' : '#999';
-
-            if (svcChart) {
-                svcChart.data.labels = labels;
-                svcChart.data.datasets[0].data = values;
-                svcChart.options.scales.x.ticks.color = tickColor;
-                svcChart.options.scales.y.ticks.color = tickColor;
-                svcChart.options.scales.x.grid.color = gridColor;
-                svcChart.options.scales.y.grid.color = gridColor;
-                svcChart.update('none');
-                return;
-            }
-
-            svcChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Avg Service Time (min)',
-                        data: values,
-                        borderColor: '#6366f1',
-                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                        borderWidth: 2.5,
-                        pointBackgroundColor: '#6366f1',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: {
-                        duration: 800,
-                        easing: 'easeInOutQuart'
-                    },
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: 'rgba(30,30,40,0.95)',
-                            titleFont: { size: 13, weight: '600' },
-                            bodyFont: { size: 12 },
-                            padding: 12,
-                            cornerRadius: 8,
-                            displayColors: false,
-                            callbacks: {
-                                label: function (ctx) {
-                                    return 'Service Time: ' + ctx.parsed.y + ' min';
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { color: gridColor },
-                            ticks: { color: tickColor, font: { size: 11 } }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: gridColor },
-                            ticks: {
-                                color: tickColor,
-                                font: { size: 11 },
-                                callback: function (v) { return v + ' min'; }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        /* ═══════════════════ 3. Patient Waiting Time Distribution ═══════════════════ */
-        function updateWaitDistChart(distribution) {
-            if (!distribution) return;
-
-            // Ensure DOM is ready (skeleton replaced)
-            var canvas = document.getElementById('waitDistChart');
-            if (!canvas) return;
-
-            var ctx = canvas.getContext('2d');
-            var isLight = document.documentElement.classList.contains('light-theme');
-            var gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
-            var tickColor = isLight ? '#666' : '#999';
-
-            var labels = ['0\u20135 min', '5\u201310 min', '10\u201320 min', '20+ min'];
-            var values = [
-                distribution['0-5'] || 0,
-                distribution['5-10'] || 0,
-                distribution['10-20'] || 0,
-                distribution['20+'] || 0
-            ];
-
-            // Gradient colors for each bar
-            var barColors = ['#10b981', '#f59e0b', '#f97316', '#ef4444'];
-            var hoverColors = ['#059669', '#d97706', '#ea580c', '#dc2626'];
-
-            if (waitDistChart) {
-                waitDistChart.data.datasets[0].data = values;
-                waitDistChart.options.scales.x.ticks.color = tickColor;
-                waitDistChart.options.scales.y.ticks.color = tickColor;
-                waitDistChart.options.scales.x.grid.color = gridColor;
-                waitDistChart.options.scales.y.grid.color = gridColor;
-                waitDistChart.update('none');
-                updateInsightMessage(distribution);
-                return;
-            }
-
-            waitDistChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Patients',
-                        data: values,
-                        backgroundColor: barColors,
-                        hoverBackgroundColor: hoverColors,
-                        borderRadius: 8,
-                        borderSkipped: false,
-                        barThickness: 48,
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: {
-                        duration: 1000,
-                        easing: 'easeOutQuart'
-                    },
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: 'rgba(30,30,40,0.95)',
-                            titleFont: { size: 13, weight: '600' },
-                            bodyFont: { size: 12 },
-                            padding: 12,
-                            cornerRadius: 8,
-                            displayColors: true,
-                            callbacks: {
-                                title: function (items) {
-                                    return items[0].label;
-                                },
-                                label: function (ctx) {
-                                    var count = ctx.parsed.y;
-                                    return count + ' patient' + (count !== 1 ? 's' : '') + ' waiting';
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { color: gridColor, display: false },
-                            ticks: { color: tickColor, font: { size: 12, weight: '600' } },
-                            border: { color: gridColor }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: gridColor },
-                            ticks: {
-                                color: tickColor,
-                                font: { size: 11 },
-                                stepSize: 1,
-                                callback: function (v) {
-                                    if (Number.isInteger(v)) return v;
-                                    return '';
-                                }
-                            },
-                            title: {
-                                display: true,
-                                text: 'Number of Patients',
-                                color: tickColor,
-                                font: { size: 11 }
-                            },
-                            border: { color: gridColor }
-                        }
-                    }
-                }
-            });
-
-            updateInsightMessage(distribution);
-        }
-
-        /* ═══════════════════ Dynamic Insight Message ═══════════════════ */
-        function updateInsightMessage(dist) {
-            var container = document.getElementById('wait-insight-msg');
-            if (!container) return;
-
-            var short = (dist['0-5'] || 0) + (dist['5-10'] || 0);
-            var moderate = dist['10-20'] || 0;
-            var long20 = dist['20+'] || 0;
-            var total = short + moderate + long20;
-
-            var msgClass, icon, text;
-
-            if (long20 > 0) {
-                msgClass = 'insight-warning';
-                icon = 'fa-triangle-exclamation';
-                text = 'Warning: Some patients experiencing long waiting times.';
-            } else if (total > 0 && moderate >= short) {
-                msgClass = 'insight-moderate';
-                icon = 'fa-circle-exclamation';
-                text = 'Moderate waiting times detected.';
-            } else {
-                msgClass = 'insight-good';
-                icon = 'fa-circle-check';
-                text = 'Department operating efficiently.';
-            }
-
-            container.innerHTML =
-                '<div class="insight-msg ' + msgClass + '">' +
-                '<i class="fas ' + icon + '"></i> ' + text +
-                '</div>';
-        }
+        /* (Service Time Analysis and Waiting Time Analysis sections removed) */
 
         /* ═══════════════════ 5. Queue Prediction ═══════════════════ */
         function updateQueuePredChart(qp) {

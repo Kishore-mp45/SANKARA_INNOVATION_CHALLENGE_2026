@@ -238,7 +238,19 @@ async def get_staff_recommendation(department_name: str, db: Session = Depends(g
 
 @router.post("/staff-checkin/{department_name}")
 async def staff_checkin(department_name: str, staff_id: str = None, db: Session = Depends(get_db)):
-    """Check in a staff member to a department. Prevents duplicate check-ins."""
+    """Check in a staff member to a department. Validates staff identity and prevents duplicates."""
+    # Validate department exists
+    valid_depts = ["registration", "consultation", "diagnostics", "vision_lab", "dilation_hall", "pharmacy", "billing_insurance"]
+    if department_name not in valid_depts:
+        raise HTTPException(status_code=400, detail=f"Invalid department: {department_name}")
+
+    # Validate staff_id belongs to an approved staff user
+    if staff_id:
+        from models.user import User
+        staff_user = db.query(User).filter(User.generated_id == staff_id, User.role == "staff", User.status == "approved").first()
+        if not staff_user:
+            raise HTTPException(status_code=403, detail="Unauthorized: staff identity not verified")
+
     result = StaffAllocationService.checkin_staff(department_name, db, staff_id=staff_id)
     if "error" in result and "Unknown" in result.get("error", ""):
         raise HTTPException(status_code=404, detail=result["error"])

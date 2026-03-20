@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login – Sankara Eye Foundation | PatientPathAI</title>
-    <meta name="description" content="Login to PatientPathAI – Sankara Eye Foundation's AI-powered hospital operations platform.">
+    <title>Login – SANKARA EYE FOUNDATION | PatientPathAI</title>
+    <meta name="description" content="Login to PatientPathAI – SANKARA EYE FOUNDATION's AI-powered hospital operations platform.">
     <script src="js/theme.js?v=1000"></script>
     <script>
         console.log("Login Page Loaded v6.0");
@@ -42,7 +42,7 @@
                     </svg>
                     <span>PatientPathAI</span>
                 </div>
-                <div class="auth-left-welcome">Welcome to<br>Sankara Eye Foundation</div>
+                <div class="auth-left-welcome">Welcome to<br>SANKARA EYE FOUNDATION</div>
                 <p class="auth-left-sub">AI-powered patient flow management system with centralized, role-based dashboards.</p>
             </div>
         </div>
@@ -60,8 +60,14 @@
                 <span class="brand-label">PatientPathAI</span>
             </div>
 
-            <h2 class="auth-heading">Login</h2>
-            <p class="auth-subheading">Enter your credentials to access your account</p>
+            <h2 class="auth-heading" id="login-heading">Login</h2>
+            <p class="auth-subheading" id="login-subheading">Enter your credentials to access your account</p>
+
+            <!-- Check-in banner (shown when redirected from staff allocation) -->
+            <div id="checkin-banner" style="display:none; background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.3); border-radius:8px; padding:0.75rem 1rem; margin-bottom:1rem; font-size:0.85rem; color:#8b5cf6;">
+                <i class="fas fa-sign-in-alt"></i> <strong>Check-in verification required.</strong><br>
+                <span style="font-size:0.8rem; color:var(--text-muted, #94a3b8);">Target department: <strong id="checkin-dept-display"></strong></span>
+            </div>
 
             <div class="auth-form">
                 <!-- Role Select -->
@@ -209,10 +215,48 @@
                         localStorage.setItem('currentPatientId', data.generated_id);
                     }
 
-                    if (data.department) {
+                    // For staff: use the department selected in the dropdown (not backend's stored value)
+                    if (data.role === 'staff') {
+                        var selectedDept = document.getElementById('dept-select').value;
+                        if (selectedDept) {
+                            localStorage.setItem('currentDept', selectedDept);
+                        } else if (data.department) {
+                            localStorage.setItem('currentDept', data.department);
+                        } else {
+                            localStorage.removeItem('currentDept');
+                        }
+                    } else if (data.department) {
                         localStorage.setItem('currentDept', data.department);
                     } else {
                         localStorage.removeItem('currentDept');
+                    }
+
+                    // --- Check-in flow: perform check-in after auth ---
+                    if (_checkinDept && data.role === 'staff') {
+                        loginBtn.textContent = 'Checking in...';
+                        try {
+                            var checkinRes = await fetch(API_BASE + '/prediction/staff-checkin/' + encodeURIComponent(_checkinDept) + '?staff_id=' + encodeURIComponent(data.generated_id), { method: 'POST' });
+                            if (checkinRes.ok) {
+                                localStorage.setItem('currentDept', _checkinDept);
+                                window.location.href = 'staff_panel.html';
+                            } else if (checkinRes.status === 409) {
+                                var checkinErr = await checkinRes.json();
+                                infoEl.textContent = checkinErr.detail || 'Already checked in to this department.';
+                                infoEl.style.display = 'block';
+                                infoEl.style.color = '#f59e0b';
+                                localStorage.setItem('currentDept', _checkinDept);
+                                setTimeout(function() { window.location.href = 'staff_panel.html'; }, 2000);
+                            } else {
+                                errorEl.textContent = 'Check-in failed. Redirecting to dashboard...';
+                                errorEl.style.display = 'block';
+                                setTimeout(function() { window.location.href = 'staff_panel.html'; }, 2000);
+                            }
+                        } catch (checkinErr) {
+                            errorEl.textContent = 'Check-in network error. Redirecting...';
+                            errorEl.style.display = 'block';
+                            setTimeout(function() { window.location.href = 'staff_panel.html'; }, 2000);
+                        }
+                        return;
                     }
 
                     // Redirect to role-specific dashboard
@@ -242,8 +286,37 @@
             }
         }
 
-        // Init labels logic
-        updateLabels();
+        // --- Check-in flow detection ---
+        var _checkinDept = new URLSearchParams(window.location.search).get('checkin_dept');
+
+        if (_checkinDept) {
+            // Lock role to staff
+            var roleSelect = document.getElementById('role-select');
+            roleSelect.value = 'staff';
+            roleSelect.disabled = true;
+
+            // Show and lock department
+            var deptGroup = document.getElementById('dept-group');
+            var deptSelect = document.getElementById('dept-select');
+            deptGroup.style.display = 'block';
+            deptSelect.value = _checkinDept;
+            deptSelect.disabled = true;
+
+            // Update UI
+            var deptNames = { registration:'Registration', vision_lab:'Vision Lab', dilation_hall:'Dilation Hall', diagnostics:'Diagnostics', pharmacy:'Pharmacy', billing_insurance:'Billing & Insurance', consultation:'Consultation' };
+            document.getElementById('checkin-banner').style.display = 'block';
+            document.getElementById('checkin-dept-display').textContent = deptNames[_checkinDept] || _checkinDept;
+            document.getElementById('login-heading').textContent = 'Staff Check-in';
+            document.getElementById('login-subheading').textContent = 'Verify your identity to check in';
+
+            // Set labels
+            document.getElementById('id-label').textContent = 'Mobile Number';
+            document.getElementById('user-id').placeholder = 'Enter your registered mobile number';
+            document.querySelector('.btn-auth-submit').textContent = 'Verify & Check In';
+        } else {
+            // Normal login flow
+            updateLabels();
+        }
     </script>
 </body>
 

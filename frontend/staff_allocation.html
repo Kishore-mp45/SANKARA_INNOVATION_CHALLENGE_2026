@@ -196,7 +196,7 @@
         .toast {
             background: var(--sidebar-bg);
             border-left: 4px solid var(--primary-color);
-            color: white;
+            color: var(--text-main, #1a2332);
             padding: 1rem 1.5rem;
             border-radius: 4px;
             margin-bottom: 1rem;
@@ -218,7 +218,7 @@
 <body>
     <div class="sidebar">
         <div class="brand">
-            <img src="assets/sankara_logo.svg" alt="Sankara" style="width:28px;height:28px;">
+            <img src="assets/Sankara-Eye-Foundation-Logo.png" alt="SANKARA EYE FOUNDATION" style="width:32px;height:32px;object-fit:contain;">
             <span>PatientPath AI</span>
         </div>
         <ul class="nav-menu">
@@ -283,13 +283,6 @@
                 <div class="dept-grid" id="dept-grid">
                     <div style="text-align:center;padding:2rem;color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading recommendations...</div>
                 </div>
-
-                <!-- Navigation -->
-                <div style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;">
-                    <a href="staff_panel.html" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.2rem;background:var(--card-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-main);text-decoration:none;font-size:0.9rem;transition:all 0.2s;">
-                        <i class="fas fa-arrow-left"></i> Back to Staff Panel
-                    </a>
-                </div>
             </div>
         </div>
     </div>
@@ -299,6 +292,7 @@
 
     <script src="js/theme.js?v=999"></script>
     <script src="js/config.js?v=999"></script>
+    <script src="js/toast.js?v=1"></script>
     <script src="js/main.js?v=999"></script>
 
     <script>
@@ -382,49 +376,15 @@
         }
 
         async function staffCheckin(zoneName) {
-            // Verify staff is logged in
-            var currentRole = localStorage.getItem('currentRole');
-            var staffId = localStorage.getItem('currentUser');
-            if (!currentRole || currentRole !== 'staff' || !staffId) {
-                showToast('Please login as Staff first', 'error');
-                setTimeout(function() { window.location.href = 'login.html'; }, 1500);
-                return;
-            }
-
-            try {
-                var res = await fetch(API_BASE_URL + '/prediction/staff-checkin/' + zoneName + '?staff_id=' + encodeURIComponent(staffId), { method: 'POST' });
-                if (res.ok) {
-                    var data = await res.json();
-                    showToast(data.message || 'Checked in successfully', 'success');
-                    // Update assigned department and redirect to staff panel
-                    localStorage.setItem('currentDept', zoneName);
-                    setTimeout(function() { window.location.href = 'staff_panel.html'; }, 1500);
-                } else if (res.status === 409) {
-                    var errData = await res.json();
-                    showToast(errData.detail || 'Already checked in to this department', 'error');
-                } else {
-                    showToast('Check-in failed', 'error');
-                }
-            } catch (e) {
-                console.error('Staff check-in error:', e);
-                showToast('Network error during check-in', 'error');
-            }
+            // Always require re-authentication for check-in
+            // Redirect to login page with locked target department
+            showToast('Redirecting to login for check-in verification...', 'info');
+            setTimeout(function() {
+                window.location.href = 'login.html?checkin_dept=' + encodeURIComponent(zoneName);
+            }, 800);
         }
 
-        function showToast(message, type) {
-            var container = document.getElementById('toast-container');
-            var toast = document.createElement('div');
-            toast.className = 'toast';
-            if (type === 'error') toast.style.borderLeftColor = '#ef4444';
-            toast.innerHTML =
-                '<i class="fas ' + (type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle') + '"></i>' +
-                '<span>' + message + '</span>';
-            container.appendChild(toast);
-            setTimeout(function () {
-                toast.style.animation = 'slideIn 0.3s ease-in reverse forwards';
-                setTimeout(function () { toast.remove(); }, 300);
-            }, 3000);
-        }
+        // showToast provided by js/toast.js
     </script>
 </body>
 

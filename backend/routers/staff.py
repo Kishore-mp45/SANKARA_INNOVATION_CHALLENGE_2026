@@ -255,12 +255,8 @@ async def escalate_issue(
             detail=f"Invalid issue_type. Must be one of: {', '.join(VALID_ISSUE_TYPES)}",
         )
 
-    ts = datetime.now()
-    if body.timestamp:
-        try:
-            ts = datetime.fromisoformat(body.timestamp)
-        except ValueError:
-            pass
+    # Use UTC as single source of truth for escalation timestamps
+    ts = datetime.utcnow()
 
     dept_display = DEPARTMENT_DISPLAY.get(body.department, body.department)
 

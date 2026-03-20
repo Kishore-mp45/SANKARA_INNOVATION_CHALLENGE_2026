@@ -31,7 +31,7 @@ class Escalation(Base):
     issue_type = Column(String(100), nullable=False)
     description = Column(Text, nullable=False)
     status = Column(SAEnum(EscalationStatus), default=EscalationStatus.OPEN, nullable=False)
-    timestamp = Column(DateTime, default=datetime.now, nullable=False, index=True)
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
     def to_dict(self):
         return {
@@ -42,5 +42,5 @@ class Escalation(Base):
             "issue_type": self.issue_type,
             "description": self.description,
             "status": self.status.value if self.status else "OPEN",
-            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "timestamp": (self.timestamp.isoformat() + "Z") if self.timestamp else None,
         }
