@@ -79,6 +79,20 @@ class ConnectionManager:
         for connection in disconnected:
             self.disconnect(connection)
     
+    async def send_to_user(self, user_id: str, message: dict):
+        """Send message to a specific user by their user_id."""
+        disconnected = []
+        for connection in self.active_connections:
+            try:
+                meta = self.connection_metadata.get(connection, {})
+                if meta.get("user_id") == user_id:
+                    await connection.send_json(message)
+            except Exception as e:
+                logger.error(f"Send to user error: {e}")
+                disconnected.append(connection)
+        for connection in disconnected:
+            self.disconnect(connection)
+
     @property
     def connection_count(self) -> int:
         """Get number of active connections."""
@@ -90,30 +104,21 @@ manager = ConnectionManager()
 
 
 @router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, user_id: str = None):
     """
     WebSocket endpoint for real-time updates.
-    
-    Clients can connect to receive:
-    - Occupancy updates
-    - Alert notifications
-    - Metric updates
-    
-    Message format:
-    ```json
-    {
-        "type": "occupancy_update",
-        "data": {...},
-        "timestamp": "2024-01-15T10:30:00Z"
-    }
-    ```
-    
+
+    Connect with ?user_id=XXX to receive targeted notifications.
+
     Client commands:
     - {"command": "subscribe", "topics": ["occupancy", "alerts"]}
     - {"command": "unsubscribe", "topics": ["alerts"]}
     - {"command": "ping"}
     """
-    await manager.connect(websocket)
+    await manager.connect(websocket, client_id=user_id)
+    # Store user_id in metadata for targeted messaging
+    if user_id:
+        manager.connection_metadata[websocket]["user_id"] = user_id
     
     try:
         # Send initial connection message

@@ -1,8 +1,8 @@
 """
 PatientPath AI - Database Connection
 ====================================
-Supports MySQL (local) and SQLite (cloud deployment).
-"""
+Supports MySQL and SQLite via environment-driven configuration.
+""" 
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -22,7 +22,7 @@ if settings.IS_SQLITE:
         connect_args={"check_same_thread": False},
         echo=settings.DATABASE_ECHO
     )
-    # Enable WAL mode and foreign keys for SQLite
+
     @event.listens_for(engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
@@ -86,5 +86,7 @@ def init_db():
     from models.metric import Metric
     from models.escalation import Escalation
     from models.prescription import Prescription
+    from models.user import User
+    from models.notification import Notification
 
     Base.metadata.create_all(bind=engine)

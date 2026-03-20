@@ -1,16 +1,29 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import PlainTextResponse
+from pydantic import BaseModel
 from typing import List, Optional
 from services.activity_service import ActivityService
 from services.patient_service import PatientService
 from services.zone_service import ZoneService
 from database import get_db
 from models.patient import Patient
+from models.user import User
 from models.escalation import Escalation, EscalationStatus
 from models.occupancy import OccupancyLog
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import json
+
+
+class StaffAssignment(BaseModel):
+    staff_user_id: int
+    department: str
+
+
+class DeployStaffRequest(BaseModel):
+    staff_user_id: int
+    target_department: str
+    message: Optional[str] = None
 
 router = APIRouter(
     prefix="/admin",
@@ -413,3 +426,164 @@ async def get_resource_status():
         "staff": {"free": freeStaff, "total": totalStaff, "trend": trend_staff},
         "equipment": {"usage_percent": equipUsage, "active": activeEquip, "total": totalEquip}
     }
+
+
+@router.post("/assign-staff")
+async def assign_staff(body: StaffAssignment, db: Session = Depends(get_db)):
+    """Assign a staff member to a department and send real-time notification."""
+    staff = db.query(User).filter(User.id == body.staff_user_id, User.role == "staff").first()
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff member not found")
+
+    dept_name = DEPT_DISPLAY.get(body.department, body.department)
+
+    # Update department in user record
+    staff.department = body.department
+    db.commit()
+
+    # Broadcast notification via WebSocket to that specific staff
+    try:
+        from routers.websocket import manager
+        await manager.send_to_user(staff.generated_id, {
+            "type": "staff_assignment",
+            "data": {
+                "message": f"You have been assigned to {dept_name}",
+                "department": body.department,
+                "department_display": dept_name,
+            },
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception:
+        pass  # WebSocket notification is best-effort
+
+    # Also broadcast to all admin connections
+    try:
+        from routers.websocket import manager
+        await manager.broadcast({
+            "type": "staff_assignment",
+            "data": {
+                "staff_id": staff.generated_id,
+                "staff_name": staff.username,
+                "department": dept_name,
+            },
+            "timestamp": datetime.now().isoformat()
+        }, message_type="alerts")
+    except Exception:
+        pass
+
+    return {
+        "message": f"Staff '{staff.username}' assigned to {dept_name}",
+        "staff_id": staff.generated_id,
+        "department": body.department,
+    }
+
+
+@router.get("/available-staff")
+async def get_available_staff(
+    exclude_department: Optional[str] = Query(None, description="Exclude staff from this department"),
+    db: Session = Depends(get_db),
+):
+    """Get list of approved staff available for deployment (excluding the bottleneck department)."""
+    query = db.query(User).filter(User.role == "staff", User.status == "approved")
+
+    if exclude_department:
+        query = query.filter(User.department != exclude_department)
+
+    staff_list = query.all()
+    return {
+        "available_staff": [
+            {
+                "id": s.id,
+                "username": s.username,
+                "generated_id": s.generated_id,
+                "department": s.department,
+                "department_display": DEPT_DISPLAY.get(s.department, s.department),
+                "mobile": s.mobile,
+            }
+            for s in staff_list
+        ],
+        "count": len(staff_list),
+    }
+
+
+@router.post("/deploy-staff")
+async def deploy_staff(body: DeployStaffRequest, db: Session = Depends(get_db)):
+    """Deploy a staff member to a target department. Sends real-time notification."""
+    from models.notification import Notification
+
+    staff = db.query(User).filter(User.id == body.staff_user_id, User.role == "staff").first()
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff member not found")
+
+    target_display = DEPT_DISPLAY.get(body.target_department, body.target_department)
+    source_display = DEPT_DISPLAY.get(staff.department, staff.department)
+
+    # Create notification record
+    notif = Notification(
+        recipient_id=staff.generated_id,
+        sender_id="ADMIN",
+        type="deployment",
+        title=f"Deployment Request: {target_display}",
+        message=body.message or f"You are requested to assist at {target_display} department. Current assignment: {source_display}.",
+        target_department=body.target_department,
+        status="pending",
+    )
+    db.add(notif)
+    db.commit()
+    db.refresh(notif)
+
+    # Send real-time WebSocket notification
+    try:
+        from routers.websocket import manager
+        await manager.send_to_user(staff.generated_id, {
+            "type": "deployment_request",
+            "data": notif.to_dict(),
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception:
+        pass
+
+    return {
+        "message": f"Deployment notification sent to {staff.username}",
+        "notification": notif.to_dict(),
+    }
+
+
+@router.get("/notifications/{recipient_id}")
+async def get_notifications(
+    recipient_id: str,
+    status: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """Get notifications for a specific staff member."""
+    from models.notification import Notification
+
+    query = db.query(Notification).filter(Notification.recipient_id == recipient_id)
+    if status:
+        query = query.filter(Notification.status == status)
+
+    notifs = query.order_by(Notification.created_at.desc()).limit(50).all()
+    return {"notifications": [n.to_dict() for n in notifs], "count": len(notifs)}
+
+
+@router.post("/notifications/{notification_id}/respond")
+async def respond_to_notification(
+    notification_id: int,
+    action: str = Query(..., description="accepted or rejected"),
+    db: Session = Depends(get_db),
+):
+    """Staff responds to a deployment notification."""
+    from models.notification import Notification
+
+    notif = db.query(Notification).filter(Notification.id == notification_id).first()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notification not found")
+
+    if action not in ("accepted", "rejected"):
+        raise HTTPException(status_code=400, detail="Action must be 'accepted' or 'rejected'")
+
+    notif.status = action
+    notif.responded_at = datetime.now()
+    db.commit()
+
+    return {"message": f"Notification {action}", "notification": notif.to_dict()}

@@ -52,6 +52,7 @@ from routers.websocket import router as websocket_router
 from routers.export import router as export_router
 from routers.admin import router as admin_router
 from routers.doctor import router as doctor_router
+from routers.auth import router as auth_router
 
 # Setup logging
 setup_logging()
@@ -87,6 +88,14 @@ async def lifespan(app: FastAPI):
     
     logger.info(f"Server ready at http://{settings.HOST}:{settings.PORT}")
     logger.info(f"API Documentation: http://{settings.HOST}:{settings.PORT}/docs")
+
+    # Start Admin Portal on separate port
+    try:
+        from admin_app import start_admin_server
+        start_admin_server()
+        logger.info(f"Admin Portal started at http://{settings.HOST}:{settings.ADMIN_PORT}")
+    except Exception as e:
+        logger.error(f"Admin Portal failed to start: {e}")
 
     # Start CV Detection Service
     try:
@@ -234,6 +243,9 @@ app.include_router(export_router)
 # Doctor routes
 app.include_router(doctor_router)
 
+# Auth routes (registration, login, approval)
+app.include_router(auth_router)
+
 # Prediction routes (includes staff allocation)
 from routers.prediction import router as prediction_router
 app.include_router(prediction_router)
@@ -267,12 +279,12 @@ if os.path.isdir(frontend_dir):
 if __name__ == "__main__":
     """
     Run the application directly with Python.
-    
+
+    Main app:    http://localhost:8000
+    Admin portal: http://localhost:5000
+
     Usage:
         python main.py
-        
-    Or with uvicorn for development:
-        uvicorn main:app --reload --host 0.0.0.0 --port 8000
     """
     uvicorn.run(
         "main:app",

@@ -17,6 +17,7 @@ from models.patient import Patient, PatientStatus
 from models.occupancy import OccupancyLog
 from models.alert import Alert, AlertType, AlertSeverity
 from models.metric import Metric
+from models.user import User
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -418,6 +419,29 @@ def seed_activity_logs():
         logger.warning(f"Activity log seeding failed: {e}")
 
 
+def seed_admin_user(db):
+    """Seed a default admin user if none exists."""
+    existing = db.query(User).filter(User.role == "admin").first()
+    if existing:
+        logger.info("Admin user already exists, skipping admin seed")
+        return
+
+    from werkzeug.security import generate_password_hash
+
+    admin = User(
+        username="Admin",
+        mobile="9999999999",
+        password_hash=generate_password_hash("Admin@1234"),
+        role="admin",
+        department=None,
+        generated_id="ADMI-0001",
+        status="approved",
+    )
+    db.add(admin)
+    db.commit()
+    logger.info("Default admin user seeded (ID: ADMI-0001, Password: Admin@1234)")
+
+
 def seed_initial_data():
     """
     Main function to seed all initial data.
@@ -426,9 +450,10 @@ def seed_initial_data():
     logger.info("=" * 50)
     logger.info("Starting database seeding...")
     logger.info("=" * 50)
-    
+
     try:
         with get_db_context() as db:
+            seed_admin_user(db)
             seed_zones(db)
             seed_patients(db, count=50)
             seed_occupancy_logs(db, hours=24)

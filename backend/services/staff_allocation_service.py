@@ -49,6 +49,12 @@ class StaffAllocationService:
         "billing_insurance": 1,
     }
 
+    # Track checked-in staff IDs per department to prevent duplicates
+    _checked_in_staff: Dict[str, set] = {dept: set() for dept in [
+        "registration", "vision_lab", "dilation_hall",
+        "consultation", "diagnostics", "pharmacy", "billing_insurance"
+    ]}
+
     @classmethod
     def _load_model(cls):
         """Load the staff allocation model if not already loaded."""
@@ -146,13 +152,24 @@ class StaffAllocationService:
             }
 
     @classmethod
-    def checkin_staff(cls, zone_name: str, db: Session) -> Dict[str, Any]:
+    def checkin_staff(cls, zone_name: str, db: Session, staff_id: str = None) -> Dict[str, Any]:
         """
         Check in a staff member to a department.
-        Increments current_staff by 1, then recalculates deficit.
+        Prevents duplicate check-ins for the same staff member.
         """
         if zone_name not in cls.DEPARTMENT_MAP:
             return {"error": f"Unknown department: {zone_name}"}
+
+        # Prevent duplicate check-ins
+        if staff_id:
+            if staff_id in cls._checked_in_staff.get(zone_name, set()):
+                return {
+                    "error": "duplicate",
+                    "message": f"Staff '{staff_id}' is already checked in to {cls.DEPARTMENT_DISPLAY.get(zone_name, zone_name)}.",
+                    "department": cls.DEPARTMENT_DISPLAY.get(zone_name, zone_name),
+                    "current_staff": cls.get_current_staff(zone_name),
+                }
+            cls._checked_in_staff[zone_name].add(staff_id)
 
         cls._current_staff[zone_name] = cls.get_current_staff(zone_name) + 1
 

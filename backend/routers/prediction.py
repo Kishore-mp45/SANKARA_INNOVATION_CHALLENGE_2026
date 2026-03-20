@@ -237,11 +237,13 @@ async def get_staff_recommendation(department_name: str, db: Session = Depends(g
 
 
 @router.post("/staff-checkin/{department_name}")
-async def staff_checkin(department_name: str, db: Session = Depends(get_db)):
-    """Check in a staff member to a department. Increments current staff by 1."""
-    result = StaffAllocationService.checkin_staff(department_name, db)
+async def staff_checkin(department_name: str, staff_id: str = None, db: Session = Depends(get_db)):
+    """Check in a staff member to a department. Prevents duplicate check-ins."""
+    result = StaffAllocationService.checkin_staff(department_name, db, staff_id=staff_id)
     if "error" in result and "Unknown" in result.get("error", ""):
         raise HTTPException(status_code=404, detail=result["error"])
+    if result.get("error") == "duplicate":
+        raise HTTPException(status_code=409, detail=result["message"])
 
     # Log to Activity Service
     ActivityService.add_log(
