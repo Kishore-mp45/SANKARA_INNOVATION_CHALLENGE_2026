@@ -257,11 +257,12 @@ function setupHeaderControls(role, label) {
     controls.style.cssText = 'position: absolute; top: 1rem; right: 2rem; display: flex; align-items: center; gap: 1rem;';
 
     controls.innerHTML = `
-        <div style="text-align: right;">
-            <div style="font-size: 0.8rem; color: var(--text-muted);">Current Role</div>
-            <div style="font-weight: 600; color: var(--primary-color);">${label}</div>
+        <div id="theme-toggle-container" style="display: flex; align-items: center;"></div>
+        <div style="display: flex; flex-direction: column; text-align: right; justify-content: center;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.2;">Current Role</div>
+            <div style="font-weight: 600; color: var(--primary-color); line-height: 1.2;">${label}</div>
         </div>
-        <button id="logout-btn" onclick="window.logout()" style="padding: 0.5rem 1rem; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+        <button id="logout-btn" onclick="window.logout()" style="padding: 0.5rem 1rem; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 6px; cursor: pointer; transition: all 0.2s;">
             Change Role
         </button>
     `;
@@ -275,10 +276,43 @@ function setupHeaderControls(role, label) {
 
     // Attach Event Listeners
     const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) logoutBtn.addEventListener('click', (e) => {
-        // e.stopPropagation();
-        window.logout();
-    });
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            window.logout();
+        });
+    }
+
+    // Move the global theme toggle inside the container cleanly
+    const moveToggle = () => {
+        const toggleBtn = document.getElementById('global-theme-toggle');
+        const container = document.getElementById('theme-toggle-container');
+        if (toggleBtn && container && toggleBtn.parentNode !== container) {
+            // Override fixed styles to fit smoothly inside the header
+            Object.assign(toggleBtn.style, {
+                position: 'relative',
+                top: 'auto',
+                right: 'auto',
+                zIndex: 'auto',
+                width: '38px',
+                height: '38px',
+                fontSize: '1rem',
+                boxShadow: 'none'
+            });
+            container.appendChild(toggleBtn);
+            return true;
+        }
+        return false;
+    };
+
+    // If the toggle already exists, move it. Otherwise wait for it to be injected by theme.js.
+    if (!moveToggle()) {
+        const observer = new MutationObserver((mutations, obs) => {
+            if (moveToggle()) {
+                obs.disconnect();
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: false });
+    }
 }
 
 function navigateTo(page) {

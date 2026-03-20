@@ -58,6 +58,7 @@
                 </div>
             </a>
             <div class="navbar-actions">
+                <div id="theme-toggle-container" style="display: flex; align-items: center;"></div>
                 <a href="#about-section" class="btn-about" title="About"><i class="fas fa-info-circle"></i></a>
                 <a href="login.html" class="btn-nav btn-nav-outline">Login</a>
                 <a href="signup.html" class="btn-nav btn-nav-solid">Register</a>
@@ -76,8 +77,7 @@
                     <span class="highlight">Advanced Eye Care</span> with Smart Patient Navigation
                 </h1>
                 <p class="hero-desc">
-                    Combining computer vision, event-driven workflow automation, and predictive analytics to
-                    optimize patient flow and hospital resources — powered by Sankara Eye Foundation.
+                    Smart navigation designed to guide you through your eye care journey with ease and efficiency.
                 </p>
                 <div class="hero-search-wrapper">
                     <div class="hero-search">
@@ -221,8 +221,34 @@
         <strong>Sankara Eye Foundation</strong> &mdash; PatientPathAI &copy; 2026. All rights reserved.
     </footer>
 
+    <!-- WhatsApp Floating Button -->
+    <a href="https://wa.me/15551557186" class="wa-float" target="_blank" rel="noopener noreferrer">
+        <span class="wa-label">Online Booking</span>
+        <div class="wa-icon-wrapper">
+            <i class="fab fa-whatsapp"></i>
+        </div>
+    </a>
+
     <!-- Theme (force light) -->
-    <script src="js/theme.js?v=1000"></script>
+    <script src="js/theme.js?v=2026"></script>
+    <script>
+        // Failsafe inline script to forcefully dock the toggle button if cache delays the new theme.js logic
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const btn = document.getElementById('global-theme-toggle');
+                const container = document.getElementById('theme-toggle-container');
+                if (btn && container && btn.parentNode !== container) {
+                    btn.style.position = 'relative';
+                    btn.style.top = 'auto';
+                    btn.style.right = 'auto';
+                    btn.style.left = 'auto';
+                    btn.style.bottom = 'auto';
+                    btn.style.boxShadow = 'none';
+                    container.appendChild(btn);
+                }
+            }, 50);
+        });
+    </script>
 
     <!-- Scroll animations, navbar shadow, & search autocomplete -->
     <script>

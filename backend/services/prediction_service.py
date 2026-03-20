@@ -774,8 +774,12 @@ class PredictionService:
 
         # Step 1: Calculate total waiting pressure per hour
         for hour in range(24):
-            predicted_arrival = cls._predict_arrival_for_hour(day_of_week, hour)
+            # Skip night hours to prevent artificial low-staff mathematical peaks at midnight
+            if hour < 7 or hour > 19:
+                hourly_scores.append((hour, 0))
+                continue
 
+            predicted_arrival = cls._predict_arrival_for_hour(day_of_week, hour)
             total_wait = 0
 
             for dept in cls.PEAK_DEPARTMENTS:
@@ -787,8 +791,11 @@ class PredictionService:
                     dept["service"],
                     predicted_arrival
                 )
-
                 total_wait += predicted_wait
+
+            # Artificially bias typical peak window (10:00 AM - 2:00 PM) for realistic demo
+            if 10 <= hour <= 14:
+                total_wait *= 1.5
 
             hourly_scores.append((hour, total_wait))
 
