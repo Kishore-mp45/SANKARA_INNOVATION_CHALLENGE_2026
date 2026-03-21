@@ -89,5 +89,17 @@ class Settings:
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     LOG_FILE: str = "patientpath.log"
 
+    # QR & Re-ID Tracking Thresholds
+    REID_AUTO_THRESHOLD: float = float(os.getenv("REID_AUTO_THRESHOLD", "0.85"))
+    REID_REVIEW_THRESHOLD: float = float(os.getenv("REID_REVIEW_THRESHOLD", "0.60"))
+    QR_PRIORITY_WINDOW_SECS: int = int(os.getenv("QR_PRIORITY_WINDOW_SECS", "60"))
+    REID_TRIGGER_DELAY_SECS: int = int(os.getenv("REID_TRIGGER_DELAY_SECS", "30"))
+    DUPLICATE_WINDOW_SECS: int = int(os.getenv("DUPLICATE_WINDOW_SECS", "120"))
+    REID_FPS_CAP: int = int(os.getenv("REID_FPS_CAP", "5"))
+    REID_CHECK_INTERVAL_SECS: int = int(os.getenv("REID_CHECK_INTERVAL_SECS", "10"))
+
+    # Free-move mode: allows movement to any zone (not just sequential next)
+    ENABLE_FREE_MOVE: bool = _parse_bool(os.getenv("ENABLE_FREE_MOVE", "true"), default=True)
+
 
 settings = Settings()

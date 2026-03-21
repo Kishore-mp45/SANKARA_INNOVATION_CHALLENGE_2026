@@ -13,7 +13,7 @@ window.logout = function () {
 // RBAC: Role Definitions
 const USER_ROLES = {
     admin: {
-        allowed_pages: ['occupancy.html', 'heatmap.html', 'metrics.html', 'alerts.html', 'charts.html', 'prediction.html', 'video.html', 'admin_dashboard.html', 'notification_center.html', 'escalation_reports.html', 'resource_allocation.html'],
+        allowed_pages: ['occupancy.html', 'heatmap.html', 'metrics.html', 'alerts.html', 'charts.html', 'prediction.html', 'video.html', 'admin_dashboard.html', 'notification_center.html', 'escalation_reports.html', 'resource_allocation.html', 'staff_confirmation.html', 'movement_audit.html'],
         default_dashboard: 'admin_dashboard.html',
         label: 'Administrator'
     },
@@ -23,8 +23,8 @@ const USER_ROLES = {
         label: 'Doctor'
     },
     staff: {
-        allowed_pages: ['occupancy.html', 'staff_panel.html', 'staff_activity.html', 'staff_allocation.html', 'bottleneck_warnings.html', 'patient_search.html', 'escalate_issue.html', 'department_performance.html', 'department_insights.html'],
-        default_dashboard: 'staff_panel.html',
+        allowed_pages: ['occupancy.html', 'staff_panel.html', 'staff_activity.html', 'staff_allocation.html', 'bottleneck_warnings.html', 'patient_search.html', 'escalate_issue.html', 'department_performance.html', 'department_insights.html', 'qr_scanner.html', 'staff_confirmation.html'],
+        default_dashboard: 'qr_scanner.html',
         label: 'Hospital Staff'
     },
     patient: {
@@ -112,7 +112,8 @@ function applyRoleBasedAccess(role) {
         ],
         staff: [
             { href: 'occupancy.html', label: 'Live Occupancy' },
-            { href: 'staff_panel.html', label: 'Staff Panel' },
+            { href: 'qr_scanner.html', label: 'QR Scanner & Actions' },
+            { href: 'staff_confirmation.html', label: 'Confirm Queue' },
             { href: 'staff_activity.html', label: 'Recent Activity' },
             { href: 'staff_allocation.html', label: 'AI Staff Allocation' },
             { href: 'bottleneck_warnings.html', label: 'Bottleneck Warnings' },
@@ -124,6 +125,8 @@ function applyRoleBasedAccess(role) {
         admin: [
             { href: 'occupancy.html', label: 'Live Occupancy' },
             { href: 'heatmap.html', label: 'Zone Heatmap' },
+            { href: 'staff_confirmation.html', label: 'Confirm Queue' },
+            { href: 'movement_audit.html', label: 'Movement Audit' },
             { href: 'metrics.html', label: 'Metrics' },
             { href: 'alerts.html', label: 'Alerts' },
             { href: 'charts.html', label: 'Charts' },
@@ -200,6 +203,16 @@ function setupHeaderControls(role, label) {
     const deptLine = dept ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.15rem;"><i class="fas fa-building" style="width:14px;"></i> ${dept.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</div>` : '';
     const mobileLine = mobile ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.15rem;"><i class="fas fa-phone" style="width:14px;"></i> ${mobile}</div>` : '';
 
+    const apiBase = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+    const qrSection = role === 'patient' ? `
+                <div id="profile-qr-section" style="border-top:1px solid var(--border-color); padding-top:0.75rem; margin-top:0.5rem; text-align:center;">
+                    <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;"><i class="fas fa-qrcode"></i> My QR Code</div>
+                    <div style="background:#fff; border-radius:8px; padding:8px; display:inline-block;">
+                        <img id="profile-qr-img" src="${apiBase}/auth/qr-code/${generatedId}" alt="QR Code" style="width:140px; height:140px; display:block;" onerror="this.parentElement.parentElement.style.display='none'">
+                    </div>
+                    <div style="font-size:0.7rem; color:var(--text-muted); margin-top:0.4rem;">Show this to staff for scanning</div>
+                </div>` : '';
+
     controls.innerHTML = `
         <div id="theme-toggle-container" style="display: flex; align-items: center;"></div>
         <div id="profile-icon" style="cursor:pointer; position:relative;" onclick="window.toggleProfileDropdown()">
@@ -219,6 +232,7 @@ function setupHeaderControls(role, label) {
                     ${deptLine}
                     ${mobileLine}
                 </div>
+                ${qrSection}
                 <button onclick="window.logout()" style="width:100%; padding:0.55rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); color:#ef4444; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.85rem; transition:all 0.2s; margin-top:0.5rem;" onmouseover="this.style.background='#ef4444';this.style.color='#fff'" onmouseout="this.style.background='rgba(239,68,68,0.1)';this.style.color='#ef4444'">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </button>

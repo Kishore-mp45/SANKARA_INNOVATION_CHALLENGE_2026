@@ -20,6 +20,9 @@ pandas>=2.1.4
 # WebSocket support
 websockets
 
+# Authentication
+werkzeug
+
 # Utilities
 python-dateutil
 
@@ -32,3 +35,7 @@ ultralytics
 opencv-python-headless
 numpy
 reportlab
+qrcode[pil]
+
+# Testing
+pytest

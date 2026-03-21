@@ -802,11 +802,10 @@ class PredictionService:
         # Step 2: Sort by highest waiting pressure
         hourly_scores.sort(key=lambda x: x[1], reverse=True)
 
-        # Take top 3 peak hours only
-        top_hours = sorted([hour for hour, _ in hourly_scores[:3]])
-
-        start_hour = min(top_hours)
-        end_hour = max(top_hours)
+        # Take the single busiest hour and show a 2hr window around it
+        peak_hour = hourly_scores[0][0]
+        start_hour = peak_hour
+        end_hour = peak_hour + 2
 
         def format_hour(h):
             return datetime.strptime(str(h), "%H").strftime("%I:00 %p")

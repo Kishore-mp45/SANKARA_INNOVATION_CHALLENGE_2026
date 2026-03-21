@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PatientPath AI - QR Scanner</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .scanner-container { max-width: 800px; margin: 0 auto; padding: 2rem; }
+        .scan-card, .panel-card {
+            background: var(--card-bg); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;
+        }
+        .scan-card h2, .panel-card h3 { margin-bottom: 1rem; color: var(--text-main); }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .form-input, .form-select {
+            width: 100%; padding: 0.75rem 1rem; border-radius: 8px;
+            border: 1px solid var(--border-color); background: var(--sidebar-bg);
+            color: var(--text-main); font-size: 1rem;
+        }
+        .form-input:focus, .form-select:focus { outline: none; border-color: var(--primary-color); }
+        .btn-scan {
+            width: 100%; padding: 0.85rem; background: var(--primary-color); color: #fff;
+            border: none; border-radius: 8px; font-size: 1rem; font-weight: 600;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .btn-scan:hover { background: var(--primary-hover); }
+        .btn-scan:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-fetch {
+            width: 100%; padding: 0.85rem; background: #7c3aed; color: #fff;
+            border: none; border-radius: 8px; font-size: 1rem; font-weight: 600;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .btn-fetch:hover { background: #6d28d9; }
+        .btn-fetch:disabled { opacity: 0.5; cursor: not-allowed; }
+        .result-card { background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border-color); display: none; margin-bottom: 1.5rem; }
+        .result-card.show { display: block; }
+        .result-success { border-left: 4px solid var(--accent-color); }
+        .result-error { border-left: 4px solid var(--danger-color); }
+        .result-title { font-weight: 600; margin-bottom: 0.75rem; font-size: 1.1rem; }
+        .result-detail { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; }
+        .result-detail strong { color: var(--text-main); }
+        .badge-qr { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; background: #059669; color: #fff; }
+        .patient-preview { background: var(--sidebar-bg); border-radius: 8px; padding: 1rem; margin-top: 1rem; display: none; }
+        .patient-preview.show { display: block; }
+        .preview-row { display: flex; justify-content: space-between; padding: 0.3rem 0; font-size: 0.9rem; }
+        .preview-label { color: var(--text-muted); }
+        .preview-value { color: var(--text-main); font-weight: 500; }
+
+        /* Stats bar */
+        .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-item { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; text-align: center; }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+        .stat-value { font-size: 1.1rem; font-weight: 600; color: var(--text-main); }
+
+        /* Zone actions */
+        .zone-actions-panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; display: none; }
+        .zone-actions-panel.show { display: block; }
+        .zone-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; background: var(--primary-color); color: #fff; margin-left: 0.5rem; }
+        .action-btn-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+        .action-btn {
+            padding: 0.6rem 1rem; border: 1px solid var(--border-color); border-radius: 8px;
+            background: var(--sidebar-bg); color: var(--text-main); font-size: 0.85rem;
+            font-weight: 500; cursor: pointer; transition: all 0.2s;
+        }
+        .action-btn:hover { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+        .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .action-btn.done { background: var(--accent-color); color: #fff; border-color: var(--accent-color); }
+
+        /* Pharmacy prescriptions */
+        .rx-section { margin-top: 1rem; padding: 1rem; background: rgba(14,165,233,0.1); border: 1px solid rgba(14,165,233,0.3); border-radius: 8px; display: none; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <img src="assets/Sankara-Eye-Foundation-Logo.png" alt="SANKARA EYE FOUNDATION" style="width:32px;height:32px;object-fit:contain;">
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu"></ul>
+    </div>
+    <div class="main-content">
+        <header><h1><i class="fas fa-qrcode"></i> QR Scanner & Staff Actions</h1></header>
+        <div class="scanner-container">
+
+            <!-- Timer Badge -->
+            <div id="time-since-badge" style="background:rgba(16,185,129,0.1); color:#10b981; padding:0.4rem 1.0rem; border-radius:24px; font-size:1.5rem; font-weight:500; display:none; width:fit-content; margin-bottom:1rem;">
+                <i class="fas fa-clock" style="margin-right:6px;"></i> <span id="time-since-text">Just now</span>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-label">Last Update</div>
+                    <div class="stat-value" id="last-update-time">--:--</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">My Actions</div>
+                    <div class="stat-value" id="my-action-count">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Status</div>
+                    <div class="stat-value" style="color:#10b981;">Online</div>
+                </div>
+            </div>
+
+            <!-- Patient Approvals -->
+            <div class="panel-card" id="patient-approvals-section">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+                    <h3 style="margin:0;color:var(--primary-color);display:flex;align-items:center;gap:0.5rem;">
+                        <i class="fas fa-user-check"></i> Pending Patient Registrations
+                        <span id="patient-pending-badge" style="background:rgba(239,68,68,0.15);color:#ef4444;font-size:0.7rem;padding:0.15rem 0.5rem;border-radius:999px;font-weight:700;display:none;">0</span>
+                    </h3>
+                    <button onclick="fetchPatientApprovals()" style="padding:0.35rem 0.6rem;background:var(--card-bg);border:1px solid var(--border-color);color:var(--text-muted);border-radius:6px;cursor:pointer;font-size:0.8rem;"><i class="fas fa-sync-alt"></i></button>
+                </div>
+                <div id="patient-approvals-list"><div style="text-align:center;padding:0.75rem;color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading...</div></div>
+            </div>
+
+            <!-- Notifications -->
+            <div class="panel-card">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+                    <h3 style="margin:0;color:var(--primary-color);display:flex;align-items:center;gap:0.5rem;">
+                        <i class="fas fa-bell"></i> Notifications
+                        <span id="notif-badge" style="background:rgba(239,68,68,0.15);color:#ef4444;font-size:0.7rem;padding:0.15rem 0.5rem;border-radius:999px;font-weight:700;display:none;">0</span>
+                    </h3>
+                    <button onclick="fetchStaffNotifications()" style="padding:0.35rem 0.6rem;background:var(--card-bg);border:1px solid var(--border-color);color:var(--text-muted);border-radius:6px;cursor:pointer;font-size:0.8rem;"><i class="fas fa-sync-alt"></i></button>
+                </div>
+                <div id="staff-notif-list"><div style="text-align:center;padding:0.75rem;color:var(--text-muted);font-size:0.85rem;">Loading...</div></div>
+            </div>
+
+            <!-- QR Token Input -->
+            <div class="scan-card">
+                <h2><i class="fas fa-qrcode"></i> Scan Patient QR Code</h2>
+                <p style="color:var(--text-muted);margin-bottom:1.5rem;">Enter the QR token, then fetch location to see actions and move the patient.</p>
+                <div class="form-group" style="margin-bottom:0.75rem;">
+                    <label class="form-label">QR Token</label>
+                    <input type="text" id="qrTokenInput" class="form-input" placeholder="Paste or scan QR token UUID...">
+                </div>
+                <button id="btnFetchLocation" class="btn-fetch" disabled>
+                    <i class="fas fa-map-marker-alt"></i> Fetch Current Location
+                </button>
+                <div class="patient-preview" id="patientPreview">
+                    <div class="preview-row"><span class="preview-label">Patient</span><span class="preview-value" id="prevName">--</span></div>
+                    <div class="preview-row"><span class="preview-label">Tracking ID</span><span class="preview-value" id="prevTrackingId">--</span></div>
+                    <div class="preview-row"><span class="preview-label">Current Zone</span><span class="preview-value" id="prevZone" style="color:var(--primary-color);font-weight:700;">--</span></div>
+                    <div class="preview-row"><span class="preview-label">Status</span><span class="preview-value" id="prevStatus">--</span></div>
+                </div>
+
+                <!-- Pharmacy prescriptions -->
+                <div class="rx-section" id="rxSection">
+                    <div style="font-weight:600;color:#0ea5e9;margin-bottom:0.5rem;font-size:0.9rem;"><i class="fas fa-prescription"></i> Active Prescriptions</div>
+                    <div id="rxList"></div>
+                </div>
+            </div>
+
+            <!-- Zone Actions -->
+            <div class="zone-actions-panel" id="zoneActionsPanel">
+                <h3 style="margin-bottom:0.75rem;"><i class="fas fa-tasks"></i> Zone Actions <span class="zone-badge" id="actionZoneBadge"></span></h3>
+                <div class="action-btn-grid" id="actionBtnGrid"></div>
+                <div id="actionResult" style="margin-top:0.75rem;font-size:0.85rem;color:var(--accent-color);display:none;"></div>
+            </div>
+
+            <!-- Movement -->
+            <div class="scan-card" id="movementSection" style="display:none;">
+                <h2><i class="fas fa-route"></i> Move Patient to Zone</h2>
+                <div class="form-group">
+                    <label class="form-label">Destination Zone</label>
+                    <select id="zoneSelect" class="form-select">
+                        <option value="">Select zone...</option>
+                        <option value="registration">Registration</option>
+                        <option value="vision_lab">Vision Lab</option>
+                        <option value="dilation_hall">Dilation Hall</option>
+                        <option value="diagnostics">Diagnostics</option>
+                        <option value="consultation">Consultation</option>
+                        <option value="pharmacy">Pharmacy</option>
+                        <option value="billing_insurance">Billing & Insurance</option>
+                    </select>
+                </div>
+                <button id="btnScan" class="btn-scan" disabled><i class="fas fa-check-circle"></i> Record Movement via QR</button>
+            </div>
+
+            <div class="result-card" id="resultCard">
+                <div class="result-title" id="resultTitle"></div>
+                <div class="result-detail" id="resultDetail"></div>
+            </div>
+
+            <!-- Recent Activity moved to staff_activity.html -->
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/toast.js"></script>
+    <script>
+        const API_BASE_URL = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+        const qrInput = document.getElementById('qrTokenInput');
+        const zoneSelect = document.getElementById('zoneSelect');
+        const btnScan = document.getElementById('btnScan');
+        const btnFetch = document.getElementById('btnFetchLocation');
+        const resultCard = document.getElementById('resultCard');
+        const patientPreview = document.getElementById('patientPreview');
+        const zoneActionsPanel = document.getElementById('zoneActionsPanel');
+        const movementSection = document.getElementById('movementSection');
+
+        const deptActions = {
+            "registration": ["Update Contact Info", "Patient Registration Completed"],
+            "vision_lab": ["Vision Screening Started", "Vision Screening Completed", "Issue Detected"],
+            "dilation_hall": ["Drops Administered", "Dilation Check Completed"],
+            "diagnostics": ["OCT Scan Started", "OCT Scan Completed", "Field Test Done"],
+            "pharmacy": ["Prescription Received", "Medicines Dispensed"],
+            "billing_insurance": ["Bill Generated", "Payment Received", "Insurance Verified"],
+        };
+
+        function fmtZone(z) {
+            if (!z) return '--';
+            const m = {"registration":"Registration","vision_lab":"Vision Lab","dilation_hall":"Dilation Hall","diagnostics":"Diagnostics","consultation":"Consultation","pharmacy":"Pharmacy","billing_insurance":"Billing & Insurance"};
+            return m[z] || z.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+        }
+
+        // --- State ---
+        let currentPatient = null;
+        const currentUserId = localStorage.getItem('currentUser') || 'staff';
+        const HISTORY_KEY = `qrScannerHistory_${currentUserId}`;
+        let recentHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+
+        const ACTION_COUNT_KEY = `staffActionCount_${currentUserId}`;
+        let actionCount = parseInt(localStorage.getItem(ACTION_COUNT_KEY) || '0');
+        document.getElementById('my-action-count').innerText = actionCount;
+
+        // Restore last update time
+        const LAST_UPDATE_KEY = `staffLastUpdate_${currentUserId}`;
+        (function restoreLastUpdate() {
+            var ts = localStorage.getItem(LAST_UPDATE_KEY);
+            if (ts) document.getElementById('last-update-time').innerText = new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false});
+        })();
+
+        function updateTimeSinceBadge() {
+            var lastTimeStr = localStorage.getItem(LAST_UPDATE_KEY);
+            var badge = document.getElementById('time-since-badge');
+            var text = document.getElementById('time-since-text');
+            if (!lastTimeStr) { if (badge) badge.style.display = 'none'; return; }
+            if (badge) badge.style.display = 'inline-flex';
+            var lastTime = new Date(lastTimeStr);
+            var lastUpdateEl = document.getElementById('last-update-time');
+            if (lastUpdateEl && lastUpdateEl.innerText === '--:--') {
+                lastUpdateEl.innerText = lastTime.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false});
+            }
+            var diffMins = Math.floor((new Date() - lastTime) / 60000);
+            if (text) {
+                if (diffMins < 1) text.innerText = 'Just now';
+                else if (diffMins < 60) text.innerText = diffMins + ' min' + (diffMins > 1 ? 's' : '') + ' ago';
+                else { var h = Math.floor(diffMins / 60); text.innerText = h + ' hr' + (h > 1 ? 's' : '') + ' ago'; }
+            }
+        }
+        updateTimeSinceBadge();
+        setInterval(updateTimeSinceBadge, 60000);
+
+        // --- QR Input ---
+        qrInput.addEventListener('input', function () {
+            btnFetch.disabled = qrInput.value.trim().length < 8;
+            if (qrInput.value.trim().length < 8) {
+                patientPreview.classList.remove('show');
+                zoneActionsPanel.classList.remove('show');
+                movementSection.style.display = 'none';
+                document.getElementById('rxSection').style.display = 'none';
+                currentPatient = null;
+            }
+        });
+        zoneSelect.addEventListener('change', function () { btnScan.disabled = !currentPatient || !zoneSelect.value; });
+
+        // --- Fetch Current Location ---
+        btnFetch.addEventListener('click', async function () {
+            var token = qrInput.value.trim();
+            if (token.length < 8) return;
+            btnFetch.disabled = true;
+            btnFetch.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fetching...';
+            try {
+                var data = await AppAPI.get('/tracking/qr-info/' + encodeURIComponent(token));
+                currentPatient = data;
+                document.getElementById('prevName').textContent = data.name || 'Unknown';
+                document.getElementById('prevTrackingId').textContent = data.tracking_id;
+                document.getElementById('prevZone').textContent = fmtZone(data.current_zone);
+                document.getElementById('prevStatus').textContent = data.status || '--';
+                patientPreview.classList.add('show');
+                showZoneActions(data.current_zone, data.tracking_id);
+                movementSection.style.display = 'block';
+                // Pharmacy: auto-fetch prescriptions
+                if (data.current_zone === 'pharmacy') fetchPrescriptions(data.tracking_id);
+                else document.getElementById('rxSection').style.display = 'none';
+                if (typeof showToast === 'function') showToast('Patient at ' + fmtZone(data.current_zone), 'success');
+            } catch (e) {
+                patientPreview.classList.remove('show');
+                zoneActionsPanel.classList.remove('show');
+                movementSection.style.display = 'none';
+                currentPatient = null;
+                if (typeof showToast === 'function') showToast(e.detail || 'Patient not found', 'error');
+            }
+            btnFetch.innerHTML = '<i class="fas fa-map-marker-alt"></i> Fetch Current Location';
+            btnFetch.disabled = false;
+        });
+
+        // --- Prescriptions ---
+        async function fetchPrescriptions(trackingId) {
+            try {
+                var res = await fetch(API_BASE_URL + '/patient/prescriptions/' + trackingId + '?_=' + Date.now());
+                if (!res.ok) return;
+                var data = await res.json();
+                var list = data.prescriptions || [];
+                if (!list.length) { document.getElementById('rxSection').style.display = 'none'; return; }
+                document.getElementById('rxSection').style.display = 'block';
+                document.getElementById('rxList').innerHTML = list.map(function(rx) {
+                    return '<div style="padding:0.5rem;background:rgba(255,255,255,0.05);border-radius:6px;margin-bottom:0.5rem;">' +
+                        '<div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.3rem;">Prescribed: ' + (rx.created_at || '') + '</div>' +
+                        '<div style="font-weight:500;font-size:0.9rem;color:var(--text-main);margin-bottom:0.5rem;">' + rx.prescription + '</div>' +
+                        '<div style="display:flex;gap:0.5rem;">' +
+                        '<a href="' + API_BASE_URL + '/prescription/download/' + rx.id + '?view=true" target="_blank" style="padding:0.3rem 0.6rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:6px;font-size:0.75rem;color:#10b981;text-decoration:none;font-weight:600;"><i class="fas fa-eye"></i> View</a>' +
+                        '<a href="' + API_BASE_URL + '/prescription/download/' + rx.id + '" target="_blank" style="padding:0.3rem 0.6rem;background:rgba(14,165,233,0.1);border:1px solid rgba(14,165,233,0.3);border-radius:6px;font-size:0.75rem;color:#0ea5e9;text-decoration:none;font-weight:600;"><i class="fas fa-download"></i> PDF</a>' +
+                        '</div></div>';
+                }).join('');
+            } catch (e) { console.error(e); }
+        }
+
+        // --- Zone Actions ---
+        function showZoneActions(zone, trackingId) {
+            var actions = deptActions[zone];
+            var panel = document.getElementById('zoneActionsPanel');
+            var grid = document.getElementById('actionBtnGrid');
+            document.getElementById('actionZoneBadge').textContent = fmtZone(zone);
+            document.getElementById('actionResult').style.display = 'none';
+            grid.innerHTML = '';
+            if (!actions || !actions.length) { panel.classList.remove('show'); return; }
+            actions.forEach(function (name) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'action-btn';
+                btn.textContent = name;
+                btn.onclick = function () { submitZoneAction(zone, trackingId, name, btn); };
+                grid.appendChild(btn);
+            });
+            panel.classList.add('show');
+        }
+
+        async function submitZoneAction(zone, trackingId, action, btnEl) {
+            btnEl.disabled = true;
+            btnEl.textContent = 'Saving...';
+            try {
+                await AppAPI.post('/patient/update-stage', {
+                    tracking_id: trackingId,
+                    department: zone,
+                    action: action,
+                    next_department: null,
+                    staff_id: currentUserId
+                });
+                btnEl.classList.add('done');
+                btnEl.textContent = action + ' \u2713';
+                document.getElementById('actionResult').textContent = '\u2713 ' + action + ' recorded';
+                document.getElementById('actionResult').style.display = 'block';
+                addHistory('action', trackingId, action, zone, null);
+                if (typeof showToast === 'function') showToast(action + ' recorded', 'success');
+            } catch (e) {
+                btnEl.disabled = false;
+                btnEl.textContent = action;
+                if (typeof showToast === 'function') showToast(e.detail || 'Action failed', 'error');
+            }
+        }
+
+        // --- QR Movement ---
+        btnScan.addEventListener('click', async function () {
+            if (!currentPatient) return;
+            btnScan.disabled = true;
+            btnScan.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            try {
+                var result = await AppAPI.post('/tracking/qr-scan', {
+                    qr_token: qrInput.value.trim(),
+                    zone_name: zoneSelect.value,
+                    scanned_by: currentUserId
+                });
+                resultCard.className = 'result-card show result-success';
+                document.getElementById('resultTitle').innerHTML = '<i class="fas fa-check-circle" style="color:var(--accent-color)"></i> ' + result.message;
+                document.getElementById('resultDetail').innerHTML =
+                    '<strong>Patient:</strong> ' + result.tracking_id +
+                    '<br><strong>From:</strong> ' + fmtZone(result.from_zone) +
+                    '<br><strong>To:</strong> ' + fmtZone(result.to_zone) +
+                    '<br><strong>Method:</strong> <span class="badge-qr">QR</span>';
+                addHistory('move', result.tracking_id, null, result.from_zone, result.to_zone);
+                // Update preview to new zone
+                currentPatient.current_zone = result.to_zone;
+                document.getElementById('prevZone').textContent = fmtZone(result.to_zone);
+                showZoneActions(result.to_zone, result.tracking_id);
+                zoneSelect.value = '';
+                if (result.to_zone === 'pharmacy') fetchPrescriptions(result.tracking_id);
+                else document.getElementById('rxSection').style.display = 'none';
+                if (typeof showToast === 'function') showToast('Patient moved', 'success');
+            } catch (e) {
+                resultCard.className = 'result-card show result-error';
+                document.getElementById('resultTitle').innerHTML = '<i class="fas fa-times-circle" style="color:var(--danger-color)"></i> Move Failed';
+                document.getElementById('resultDetail').textContent = e.detail || 'Unknown error';
+                if (typeof showToast === 'function') showToast(e.detail || 'Failed', 'error');
+            }
+            btnScan.innerHTML = '<i class="fas fa-check-circle"></i> Record Movement via QR';
+            btnScan.disabled = !currentPatient || !zoneSelect.value;
+        });
+
+        // --- History ---
+        function addHistory(type, trackingId, action, fromZone, toZone) {
+            recentHistory.unshift({
+                type: type,
+                tracking_id: trackingId,
+                action: action,
+                from_zone: fromZone,
+                to_zone: toZone,
+                time: new Date().toISOString()
+            });
+            if (recentHistory.length > 30) recentHistory = recentHistory.slice(0, 30);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(recentHistory));
+            // Update stats
+            actionCount++;
+            localStorage.setItem(ACTION_COUNT_KEY, actionCount);
+            document.getElementById('my-action-count').innerText = actionCount;
+            var now = new Date();
+            document.getElementById('last-update-time').innerText = now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false});
+            localStorage.setItem(LAST_UPDATE_KEY, now.toISOString());
+            updateTimeSinceBadge();
+        }
+
+        // --- Patient Approvals ---
+        fetchPatientApprovals();
+        setInterval(fetchPatientApprovals, 10000);
+
+        async function fetchPatientApprovals() {
+            try {
+                var res = await fetch(API_BASE_URL + '/auth/pending-approvals?role=patient');
+                if (!res.ok) return;
+                var data = await res.json();
+                var pending = data.pending || [];
+                var badge = document.getElementById('patient-pending-badge');
+                badge.textContent = pending.length; badge.style.display = pending.length > 0 ? 'inline' : 'none';
+                var list = document.getElementById('patient-approvals-list');
+                if (!pending.length) {
+                    list.innerHTML = '<div style="text-align:center;padding:0.75rem;color:var(--text-muted);font-size:0.85rem;"><i class="fas fa-check-circle" style="color:#10b981;"></i> No pending registrations</div>';
+                    return;
+                }
+                list.innerHTML = pending.map(function(u) {
+                    return '<div style="display:flex;align-items:center;gap:0.75rem;padding:0.6rem;border:1px solid var(--border-color);border-radius:8px;margin-bottom:0.5rem;">' +
+                        '<div style="width:32px;height:32px;border-radius:8px;background:rgba(16,185,129,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-user" style="color:#10b981;"></i></div>' +
+                        '<div style="flex:1;min-width:0;"><div style="font-weight:600;color:var(--text-main);font-size:0.85rem;">' + u.username + '</div>' +
+                        '<div style="font-size:0.7rem;color:var(--text-muted);">' + (u.mobile||'') + ' &middot; ' + u.generated_id + '</div></div>' +
+                        '<div style="display:flex;gap:0.3rem;flex-shrink:0;">' +
+                        '<button onclick="approvePatient(' + u.id + ')" style="padding:0.3rem 0.6rem;background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);border-radius:6px;cursor:pointer;font-weight:600;font-size:0.75rem;"><i class="fas fa-check"></i></button>' +
+                        '<button onclick="rejectPatient(' + u.id + ')" style="padding:0.3rem 0.6rem;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);border-radius:6px;cursor:pointer;font-weight:600;font-size:0.75rem;"><i class="fas fa-times"></i></button>' +
+                        '</div></div>';
+                }).join('');
+            } catch (e) {}
+        }
+
+        async function approvePatient(userId) {
+            var approverId = localStorage.getItem('currentUserId');
+            try {
+                var res = await fetch(API_BASE_URL + '/auth/approve/' + userId, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({approver_id:parseInt(approverId)}) });
+                if (res.ok) { showToast('Patient approved','success'); fetchPatientApprovals(); }
+                else { var d=await res.json(); showToast(d.detail||'Failed','error'); }
+            } catch(e) { showToast('Error','error'); }
+        }
+        async function rejectPatient(userId) {
+            var approverId = localStorage.getItem('currentUserId');
+            try {
+                var res = await fetch(API_BASE_URL + '/auth/reject/' + userId, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({approver_id:parseInt(approverId)}) });
+                if (res.ok) { showToast('Patient rejected','success'); fetchPatientApprovals(); }
+                else { var d=await res.json(); showToast(d.detail||'Failed','error'); }
+            } catch(e) { showToast('Error','error'); }
+        }
+
+        // --- Notifications ---
+        fetchStaffNotifications();
+        setInterval(fetchStaffNotifications, 15000);
+
+        async function fetchStaffNotifications() {
+            var recipientId = localStorage.getItem('currentUser');
+            if (!recipientId) return;
+            try {
+                var res = await fetch(API_BASE_URL + '/admin/notifications/' + encodeURIComponent(recipientId));
+                if (!res.ok) return;
+                var data = await res.json();
+                var notifs = data.notifications || [];
+                var badge = document.getElementById('notif-badge');
+                var pendingCount = notifs.filter(function(n){return n.status==='pending';}).length;
+                badge.textContent = pendingCount; badge.style.display = pendingCount > 0 ? 'inline' : 'none';
+                var list = document.getElementById('staff-notif-list');
+                if (!notifs.length) { list.innerHTML = '<div style="text-align:center;padding:0.75rem;color:var(--text-muted);font-size:0.85rem;"><i class="fas fa-check-circle" style="color:#10b981;"></i> No notifications</div>'; return; }
+                list.innerHTML = notifs.map(function(n) {
+                    var sc = n.status==='pending'?'#f59e0b':n.status==='accepted'?'#10b981':'#ef4444';
+                    var si = n.status==='pending'?'fa-hourglass-half':n.status==='accepted'?'fa-check-circle':'fa-times-circle';
+                    var time = n.created_at ? new Date(n.created_at).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+                    var btns = n.status==='pending' ? '<div style="display:flex;gap:0.3rem;margin-top:0.35rem;"><button onclick="respondNotif('+n.id+',\'accepted\')" style="padding:0.25rem 0.5rem;background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);border-radius:6px;cursor:pointer;font-weight:600;font-size:0.7rem;"><i class="fas fa-check"></i> Accept</button><button onclick="respondNotif('+n.id+',\'rejected\')" style="padding:0.25rem 0.5rem;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);border-radius:6px;cursor:pointer;font-weight:600;font-size:0.7rem;"><i class="fas fa-times"></i> Decline</button></div>' : '';
+                    return '<div style="padding:0.6rem;border:1px solid var(--border-color);border-radius:8px;margin-bottom:0.5rem;border-left:3px solid '+sc+';"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem;"><span style="font-weight:600;color:var(--text-main);font-size:0.85rem;">'+n.title+'</span><span style="font-size:0.7rem;color:'+sc+';"><i class="fas '+si+'"></i> '+n.status+'</span></div><div style="font-size:0.8rem;color:var(--text-muted);">'+( n.message||'')+'</div><div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.2rem;">'+time+'</div>'+btns+'</div>';
+                }).join('');
+            } catch(e) {}
+        }
+
+        async function respondNotif(notifId, action) {
+            try {
+                var res = await fetch(API_BASE_URL + '/admin/notifications/' + notifId + '/respond?action=' + action, {method:'POST'});
+                if (res.ok) { showToast('Notification '+action,'success'); fetchStaffNotifications(); }
+                else showToast('Failed','error');
+            } catch(e) { showToast('Error','error'); }
+        }
+
+        // --- WebSocket ---
+        (function() {
+            var userId = localStorage.getItem('currentUser'); if (!userId) return;
+            var wsUrl = (location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/ws?user_id='+encodeURIComponent(userId);
+            try {
+                var ws = new WebSocket(wsUrl);
+                ws.onmessage = function(ev) {
+                    try { var msg=JSON.parse(ev.data);
+                        if (msg.type==='staff_assignment') { showToast(msg.data.message||'New assignment','success'); if(msg.data.department) localStorage.setItem('currentDept',msg.data.department); }
+                        else if (msg.type==='deployment_request') { showToast(msg.data.title||'New request','success'); fetchStaffNotifications(); }
+                    } catch(e){}
+                };
+            } catch(e){}
+        })();
+    </script>
+</body>
+</html>

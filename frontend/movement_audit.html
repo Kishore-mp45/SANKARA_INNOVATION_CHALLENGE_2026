@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PatientPath AI - Movement Audit Trail</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .audit-container { max-width: 1000px; margin: 0 auto; padding: 2rem; }
+        .filter-bar {
+            display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: flex-end;
+        }
+        .filter-group { flex: 1; min-width: 180px; }
+        .filter-label { display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
+        .filter-input, .filter-select {
+            width: 100%; padding: 0.6rem 0.8rem; border-radius: 8px;
+            border: 1px solid var(--border-color); background: var(--sidebar-bg);
+            color: var(--text-main); font-size: 0.9rem;
+        }
+        .stats-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+        .mini-stat {
+            background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px;
+            padding: 0.75rem; text-align: center;
+        }
+        .mini-stat .num { font-size: 1.4rem; font-weight: 700; }
+        .mini-stat .lbl { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-top: 0.2rem; }
+        .num-qr { color: #059669; }
+        .num-reid { color: #2563eb; }
+        .num-confirmed { color: #7c3aed; }
+        .num-pending { color: #d97706; }
+        .num-rejected { color: #dc2626; }
+
+        .audit-table { width: 100%; border-collapse: collapse; background: var(--card-bg); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); }
+        .audit-table th {
+            background: var(--sidebar-bg); padding: 0.75rem 1rem; text-align: left;
+            font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .audit-table td { padding: 0.75rem 1rem; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-main); }
+        .audit-table tr:hover td { background: rgba(255,255,255,0.03); }
+
+        .badge-source {
+            display: inline-block; padding: 0.15rem 0.45rem; border-radius: 4px;
+            font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+        }
+        .badge-qr { background: #059669; color: #fff; }
+        .badge-reid_auto { background: #2563eb; color: #fff; }
+        .badge-manual_confirmed { background: #7c3aed; color: #fff; }
+        .badge-pending_review { background: #d97706; color: #fff; }
+        .badge-rejected { background: #dc2626; color: #fff; }
+
+        .empty-state { text-align: center; padding: 3rem; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <img src="assets/Sankara-Eye-Foundation-Logo.png" alt="SANKARA EYE FOUNDATION" style="width:32px;height:32px;object-fit:contain;">
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu"></ul>
+    </div>
+    <div class="main-content">
+        <header><h1><i class="fas fa-clipboard-list"></i> Movement Audit Trail</h1></header>
+            <div class="audit-container">
+                <div class="stats-bar" id="statsBar">
+                    <div class="mini-stat"><div class="num num-qr" id="statQR">0</div><div class="lbl">QR Scans</div></div>
+                    <div class="mini-stat"><div class="num num-reid" id="statReID">0</div><div class="lbl">Re-ID Auto</div></div>
+                    <div class="mini-stat"><div class="num num-confirmed" id="statConfirmed">0</div><div class="lbl">Manual Confirmed</div></div>
+                    <div class="mini-stat"><div class="num num-pending" id="statPending">0</div><div class="lbl">Pending Review</div></div>
+                    <div class="mini-stat"><div class="num num-rejected" id="statRejected">0</div><div class="lbl">Rejected</div></div>
+                </div>
+
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <label class="filter-label">Tracking ID</label>
+                        <input type="text" class="filter-input" id="filterTrackingId" placeholder="e.g. CV-12345">
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Source Type</label>
+                        <select class="filter-select" id="filterSource">
+                            <option value="">All</option>
+                            <option value="qr">QR</option>
+                            <option value="reid_auto">Re-ID Auto</option>
+                            <option value="manual_confirmed">Manual Confirmed</option>
+                            <option value="pending_review">Pending Review</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <div class="filter-group" style="flex: 0;">
+                        <label class="filter-label">&nbsp;</label>
+                        <button onclick="loadEvents()" style="padding: 0.6rem 1.2rem; background: var(--primary-color); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            <i class="fas fa-search"></i> Filter
+                        </button>
+                    </div>
+                </div>
+
+                <div id="tableContainer">
+                    <table class="audit-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Patient</th>
+                                <th>From</th>
+                                <th>To</th>
+                                <th>Source</th>
+                                <th>Confidence</th>
+                                <th>Actor</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eventsBody">
+                            <tr><td colspan="8" class="empty-state">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        function badgeHTML(source) {
+            const labels = { qr: 'QR', reid_auto: 'Re-ID Auto', manual_confirmed: 'Confirmed', pending_review: 'Pending', rejected: 'Rejected' };
+            return '<span class="badge-source badge-' + source + '">' + (labels[source] || source) + '</span>';
+        }
+
+        async function loadStats() {
+            try {
+                const s = await AppAPI.get('/tracking/stats');
+                const bs = s.by_source || {};
+                document.getElementById('statQR').textContent = bs.qr || 0;
+                document.getElementById('statReID').textContent = bs.reid_auto || 0;
+                document.getElementById('statConfirmed').textContent = bs.manual_confirmed || 0;
+                document.getElementById('statPending').textContent = bs.pending_review || 0;
+                document.getElementById('statRejected').textContent = bs.rejected || 0;
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadEvents() {
+            const tid = document.getElementById('filterTrackingId').value.trim();
+            const source = document.getElementById('filterSource').value;
+            let url = '/tracking/events?limit=100';
+            if (tid) url += '&tracking_id=' + encodeURIComponent(tid);
+
+            try {
+                let events = await AppAPI.get(url);
+                if (source) events = events.filter(e => e.source_type === source);
+
+                const tbody = document.getElementById('eventsBody');
+                if (!events.length) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No events found</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = events.map(ev => {
+                    const time = ev.event_timestamp || '—';
+                    const conf = ev.confidence != null ? Math.round(ev.confidence * 100) + '%' : '—';
+                    return '<tr>' +
+                        '<td>' + time + '</td>' +
+                        '<td><strong>' + ev.tracking_id + '</strong></td>' +
+                        '<td>' + (AppAPI.deptName(ev.from_zone) || ev.from_zone || '—') + '</td>' +
+                        '<td>' + AppAPI.deptName(ev.to_zone) + '</td>' +
+                        '<td>' + badgeHTML(ev.source_type) + '</td>' +
+                        '<td>' + conf + '</td>' +
+                        '<td>' + (ev.actor || '—') + '</td>' +
+                        '<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + (ev.notes || '') + '">' + (ev.notes || '—') + '</td>' +
+                        '</tr>';
+                }).join('');
+            } catch (e) {
+                console.error(e);
+                document.getElementById('eventsBody').innerHTML = '<tr><td colspan="8" class="empty-state">Error loading events</td></tr>';
+            }
+        }
+
+        loadStats();
+        loadEvents();
+        setInterval(loadStats, 10000);
+    </script>
+</body>
+</html>

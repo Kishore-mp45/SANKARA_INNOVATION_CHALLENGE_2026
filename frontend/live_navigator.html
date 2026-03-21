@@ -421,26 +421,11 @@
         }
 
         .nav-path {
-            fill: none;
-            stroke: url(#path-gradient);
-            stroke-width: 5;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            stroke-dasharray: 14 10;
-            animation: dash-march .8s linear infinite;
-            filter: drop-shadow(0 0 4px rgba(59, 130, 246, .3))
-        }
-
-        @keyframes dash-march {
-            to {
-                stroke-dashoffset: -24
-            }
+            display: none !important;
         }
 
         .direction-arrow {
-            fill: #3b82f6;
-            opacity: .85;
-            animation: arrow-pulse 1.5s ease-in-out infinite
+            display: none !important;
         }
 
         @keyframes arrow-pulse {
@@ -858,8 +843,9 @@
                             text-anchor="middle" letter-spacing="1">SOUTH PASSAGE</text>
 
                         <!-- Navigation path + arrows -->
-                        <path id="nav-path" class="nav-path" d="" />
-                        <g id="direction-arrows"></g>
+                        <!-- Path and arrows removed: only show YOU ARE HERE marker -->
+                        <path id="nav-path" d="" style="display:none" />
+                        <g id="direction-arrows" style="display:none"></g>
 
                         <!-- Patient marker -->
                         <g id="patient-marker" class="patient-marker-group" style="display:none;">
@@ -1004,82 +990,19 @@
                 return d;
             }
 
-            function drawDirectionArrows(wps) {
-                const c = document.getElementById('direction-arrows'); c.innerHTML = '';
-                if (!wps || wps.length < 2) return;
-                const pts = wps.map(n => WAYPOINTS[n]);
-                for (let i = 0; i < pts.length - 1; i++) {
-                    const p1 = pts[i], p2 = pts[i + 1];
-                    const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-                    if (dist < 40) continue;
-                    const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-                    const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
-                    const a = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-                    a.setAttribute('points', '-6,-4 6,0 -6,4');
-                    a.setAttribute('transform', `translate(${mx},${my}) rotate(${angle})`);
-                    a.setAttribute('class', 'direction-arrow');
-                    c.appendChild(a);
-                }
-            }
+            function drawDirectionArrows() { /* disabled */ }
 
             function setActiveRoom(dk) {
                 document.querySelectorAll('.room-group').forEach(g => g.classList.remove('room-active'));
                 if (dk) { const el = document.getElementById('room-' + dk); if (el) el.classList.add('room-active'); }
             }
 
-            // ─── SMOOTH MARKER ANIMATION ALONG PATH ───
-            let animFrame = null;
+            // Marker animation disabled — marker jumps directly to current department
             function animateMarkerAlongPath(fromDept, toDept, onDone) {
-                if (animFrame) cancelAnimationFrame(animFrame);
                 const marker = document.getElementById('patient-marker');
-                const fromCoord = DEPT_COORDS[fromDept];
                 const toCoord = DEPT_COORDS[toDept];
-                if (!fromCoord || !toCoord) { if (onDone) onDone(); return; }
-
-                // Build path waypoints
-                const startN = DEPT_DOOR[fromDept], endN = DEPT_DOOR[toDept];
-                const route = findPath(startN, endN);
-                if (!route || route.length < 2) {
-                    marker.setAttribute('transform', `translate(${toCoord.x},${toCoord.y})`);
-                    if (onDone) onDone();
-                    return;
-                }
-
-                // Build point array: fromDept center -> door waypoints -> toDept center
-                const pts = [fromCoord, ...route.map(n => WAYPOINTS[n]), toCoord];
-                // Calculate total distance
-                let totalDist = 0;
-                const segs = [];
-                for (let i = 0; i < pts.length - 1; i++) {
-                    const d = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
-                    segs.push(d); totalDist += d;
-                }
-
-                const duration = Math.min(2500, Math.max(800, totalDist * 2.5));
-                const start = performance.now();
-
-                function step(ts) {
-                    const elapsed = ts - start;
-                    const t = Math.min(1, elapsed / duration);
-                    const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // easeInOutQuad
-                    const targetDist = eased * totalDist;
-
-                    let acc = 0, px = pts[0].x, py = pts[0].y;
-                    for (let i = 0; i < segs.length; i++) {
-                        if (acc + segs[i] >= targetDist) {
-                            const f = (targetDist - acc) / segs[i];
-                            px = pts[i].x + (pts[i + 1].x - pts[i].x) * f;
-                            py = pts[i].y + (pts[i + 1].y - pts[i].y) * f;
-                            break;
-                        }
-                        acc += segs[i];
-                        px = pts[i + 1].x; py = pts[i + 1].y;
-                    }
-                    marker.setAttribute('transform', `translate(${px},${py})`);
-                    if (t < 1) { animFrame = requestAnimationFrame(step); }
-                    else { animFrame = null; if (onDone) onDone(); }
-                }
-                animFrame = requestAnimationFrame(step);
+                if (toCoord) marker.setAttribute('transform', `translate(${toCoord.x},${toCoord.y})`);
+                if (onDone) onDone();
             }
 
             function moveMarker(dk) {
@@ -1087,28 +1010,13 @@
                 const coords = DEPT_COORDS[dk];
                 if (!coords) { marker.style.display = 'none'; return; }
                 marker.style.display = '';
-
-                if (prevDept && prevDept !== dk && DEPT_COORDS[prevDept]) {
-                    animateMarkerAlongPath(prevDept, dk);
-                } else {
-                    marker.setAttribute('transform', `translate(${coords.x},${coords.y})`);
-                }
+                // Place marker directly at current department (no path animation)
+                marker.setAttribute('transform', `translate(${coords.x},${coords.y})`);
+                prevDept = dk;
             }
 
             function updatePath(cur, nxt) {
-                const pathEl = document.getElementById('nav-path');
-                if (!cur || !nxt || !DEPT_DOOR[cur] || !DEPT_DOOR[nxt]) {
-                    pathEl.setAttribute('d', ''); document.getElementById('direction-arrows').innerHTML = ''; return;
-                }
-                const route = findPath(DEPT_DOOR[cur], DEPT_DOOR[nxt]);
-                if (route) {
-                    pathEl.setAttribute('d', buildSvgPath(route));
-                    pathEl.style.opacity = '1';
-                    drawDirectionArrows(route);
-                } else {
-                    pathEl.setAttribute('d', ''); pathEl.style.opacity = '0';
-                    document.getElementById('direction-arrows').innerHTML = '';
-                }
+                // Path/route drawing disabled — only YOU ARE HERE marker is shown
             }
 
             // ─── FETCH ───
@@ -1171,8 +1079,9 @@
                 if (cur && DEPT_COORDS[cur] && !done) { moveMarker(cur); setActiveRoom(cur); }
                 else { document.getElementById('patient-marker').style.display = 'none'; setActiveRoom(null); }
 
-                if (!done && cur && nxt) updatePath(cur, nxt);
-                else { document.getElementById('nav-path').setAttribute('d', ''); document.getElementById('direction-arrows').innerHTML = ''; }
+                // No path/route lines — just show "YOU ARE HERE" marker
+                document.getElementById('nav-path').setAttribute('d', '');
+                document.getElementById('direction-arrows').innerHTML = '';
 
                 if (data.department_loads) {
                     lastLoadData = data.department_loads;

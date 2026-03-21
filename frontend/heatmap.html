@@ -87,10 +87,6 @@
                 <!-- Zones will be rendered here -->
             </div>
 
-            <div class="nav-buttons">
-                <a href="occupancy.html" class="btn btn-secondary">&larr; Back</a>
-                <a href="metrics.html" class="btn btn-primary">Next: Metrics &rarr;</a>
-            </div>
         </div>
     </div>
 
@@ -130,12 +126,19 @@
             });
         }
 
+        const ZONE_CAPACITY = {
+            registration: 20, vision_lab: 12, dilation_hall: 20,
+            diagnostics: 15, consultation: 12, pharmacy: 12, billing_insurance: 15
+        };
+
         function createZoneCard(zone, count, timestamp) {
             let color, status;
-            if (count <= 5) {
+            var cap = ZONE_CAPACITY[zone] || 15;
+            var pct = Math.round((count / cap) * 100);
+            if (pct <= 40) {
                 color = 'var(--accent-color)'; // Green
                 status = 'Low';
-            } else if (count <= 10) {
+            } else if (pct <= 75) {
                 color = 'var(--warning-color)'; // Yellow/Orange
                 status = 'Med';
             } else {

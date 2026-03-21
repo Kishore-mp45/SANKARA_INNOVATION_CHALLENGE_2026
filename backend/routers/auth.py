@@ -10,12 +10,15 @@ Approval Hierarchy:
 
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from database.database import get_db
 from models.user import User
+from models.patient import Patient, PatientStatus
+from models.zone import Zone
 from schemas.user import UserRegister, UserLogin, AdminLogin, ApprovalAction
 from services.id_generation_service import IDGenerationService
 
@@ -171,11 +174,46 @@ async def approve_user(user_id: int, data: ApprovalAction, db: Session = Depends
 
     user.status = "approved"
     user.approved_by = data.approver_id
-    user.approved_at = datetime.utcnow()
+    user.approved_at = datetime.now()
+
+    # When a patient is approved, create a Patient tracking record at registration
+    patient_record = None
+    if user.role == "patient":
+        existing_patient = db.query(Patient).filter(
+            Patient.tracking_id == user.generated_id
+        ).first()
+        if not existing_patient:
+            patient_record = Patient(
+                name=user.username,
+                tracking_id=user.generated_id,
+                qr_token=Patient.generate_qr_token(),
+                mobile=user.mobile,
+                status=PatientStatus.ENTERED,
+                current_zone="registration",
+                tracking_method="manual",
+                updated_by_source="registration_approval",
+                entry_time=datetime.now(),
+            )
+            db.add(patient_record)
+            # Update registration zone occupancy
+            reg_zone = db.query(Zone).filter(Zone.zone_name == "registration").first()
+            if reg_zone:
+                reg_zone.current_occupancy += 1
+
     db.commit()
     db.refresh(user)
 
-    return {"message": f"{user.role.capitalize()} '{user.username}' has been approved.", "user": user.to_dict()}
+    result = {
+        "message": f"{user.role.capitalize()} '{user.username}' has been approved.",
+        "user": user.to_dict(),
+    }
+    if patient_record:
+        db.refresh(patient_record)
+        result["patient_tracking_id"] = patient_record.tracking_id
+        result["current_zone"] = patient_record.current_zone
+        result["qr_token"] = patient_record.qr_token
+
+    return result
 
 
 @router.post("/reject/{user_id}")
@@ -204,7 +242,7 @@ async def reject_user(user_id: int, data: ApprovalAction, db: Session = Depends(
 
     user.status = "rejected"
     user.approved_by = data.approver_id
-    user.approved_at = datetime.utcnow()
+    user.approved_at = datetime.now()
     db.commit()
 
     return {"message": f"{user.role.capitalize()} '{user.username}' has been rejected."}
@@ -219,6 +257,30 @@ async def get_profile(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
 
     return user.to_dict()
+
+
+@router.get("/qr-code/{generated_id}")
+async def get_qr_code(generated_id: str, db: Session = Depends(get_db)):
+    """Generate QR code image for a patient's qr_token."""
+    import qrcode
+    import io
+
+    patient = db.query(Patient).filter(Patient.tracking_id == generated_id).first()
+    if not patient or not patient.qr_token:
+        raise HTTPException(status_code=404, detail="Patient QR token not found")
+
+    qr = qrcode.QRCode(version=1, box_size=8, border=2,
+                        error_correction=qrcode.constants.ERROR_CORRECT_M)
+    qr.add_data(patient.qr_token)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="#0e4a7b", back_color="white")
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+
+    return StreamingResponse(buf, media_type="image/png",
+                             headers={"Cache-Control": "public, max-age=3600"})
 
 
 @router.get("/pending-count")

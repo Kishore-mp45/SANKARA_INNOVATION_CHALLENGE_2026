@@ -266,6 +266,10 @@ app.include_router(staff_router)
 from routers.prescription import router as prescription_router
 app.include_router(prescription_router)
 
+# QR-first tracking + Re-ID fallback routes
+from routers.tracking import router as tracking_router
+app.include_router(tracking_router)
+
 # Serve frontend static files
 frontend_dir = os.path.join(os.path.dirname(backend_dir), "frontend")
 if os.path.isdir(frontend_dir):

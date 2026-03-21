@@ -58,6 +58,30 @@ WORKFLOW_DISPLAY = {
 }
 
 
+def _build_patient_response(p) -> PatientResponse:
+    """Build a PatientResponse from a Patient model instance."""
+    return PatientResponse(
+        id=p.id,
+        name=p.name,
+        mobile=p.mobile,
+        tracking_id=p.tracking_id,
+        qr_token=getattr(p, 'qr_token', None),
+        entry_time=p.entry_time,
+        exit_time=p.exit_time,
+        status=p.status,
+        current_zone=p.current_zone,
+        is_active=p.is_active,
+        last_action=getattr(p, 'last_action', None),
+        tracking_method=getattr(p, 'tracking_method', None),
+        reid_confidence=getattr(p, 'reid_confidence', None),
+        needs_confirmation=getattr(p, 'needs_confirmation', None),
+        updated_by_source=getattr(p, 'updated_by_source', None),
+        dwell_time_minutes=p.dwell_time_minutes,
+        created_at=p.created_at,
+        updated_at=p.updated_at
+    )
+
+
 @router.post(
     "/enter",
     response_model=PatientResponse,
@@ -142,11 +166,16 @@ async def patient_enter(
         name=patient.name,
         mobile=patient.mobile,
         tracking_id=patient.tracking_id,
+        qr_token=patient.qr_token,
         entry_time=patient.entry_time,
         exit_time=patient.exit_time,
         status=patient.status,
         current_zone=patient.current_zone,
         is_active=patient.is_active,
+        tracking_method=patient.tracking_method,
+        reid_confidence=patient.reid_confidence,
+        needs_confirmation=patient.needs_confirmation,
+        updated_by_source=patient.updated_by_source,
         dwell_time_minutes=patient.dwell_time_minutes,
         created_at=patient.created_at,
         updated_at=patient.updated_at
@@ -220,20 +249,7 @@ async def patient_exit(
         user_id="System"
     )
 
-    return PatientResponse(
-        id=patient.id,
-        name=patient.name,
-        mobile=patient.mobile,
-        tracking_id=patient.tracking_id,
-        entry_time=patient.entry_time,
-        exit_time=patient.exit_time,
-        status=patient.status,
-        current_zone=patient.current_zone,
-        is_active=patient.is_active,
-        dwell_time_minutes=patient.dwell_time_minutes,
-        created_at=patient.created_at,
-        updated_at=patient.updated_at
-    )
+    return _build_patient_response(patient)
 
 
 @router.get(
@@ -306,23 +322,7 @@ async def list_patients(
     patients = query.offset(offset).limit(page_size).all()
     
     return PatientListResponse(
-        patients=[
-            PatientResponse(
-                id=p.id,
-                name=p.name,
-                mobile=p.mobile,
-                tracking_id=p.tracking_id,
-                entry_time=p.entry_time,
-                exit_time=p.exit_time,
-                status=p.status,
-                current_zone=p.current_zone,
-                is_active=p.is_active,
-                dwell_time_minutes=p.dwell_time_minutes,
-                created_at=p.created_at,
-                updated_at=p.updated_at
-            )
-            for p in patients
-        ],
+        patients=[_build_patient_response(p) for p in patients],
         total=total,
         active_count=active_count,
         page=page,
@@ -670,20 +670,7 @@ async def get_patient(
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
     
-    return PatientResponse(
-        id=patient.id,
-        name=patient.name,
-        mobile=patient.mobile,
-        tracking_id=patient.tracking_id,
-        entry_time=patient.entry_time,
-        exit_time=patient.exit_time,
-        status=patient.status,
-        current_zone=patient.current_zone,
-        is_active=patient.is_active,
-        dwell_time_minutes=patient.dwell_time_minutes,
-        created_at=patient.created_at,
-        updated_at=patient.updated_at
-    )
+    return _build_patient_response(patient)
 
 
 @router.get(
@@ -802,20 +789,7 @@ async def record_movement(
         user_id="CV-Module"
     )
     
-    return PatientResponse(
-        id=patient.id,
-        name=patient.name,
-        mobile=patient.mobile,
-        tracking_id=patient.tracking_id,
-        entry_time=patient.entry_time,
-        exit_time=patient.exit_time,
-        status=patient.status,
-        current_zone=patient.current_zone,
-        is_active=patient.is_active,
-        dwell_time_minutes=patient.dwell_time_minutes,
-        created_at=patient.created_at,
-        updated_at=patient.updated_at
-    )
+    return _build_patient_response(patient)
 
 
 @router.get(
@@ -832,23 +806,7 @@ async def get_patients_by_zone(
     patient_service = PatientService(db)
     patients = patient_service.get_patients_by_zone(zone_name)
     
-    return [
-        PatientResponse(
-            id=p.id,
-            name=p.name,
-            mobile=p.mobile,
-            tracking_id=p.tracking_id,
-            entry_time=p.entry_time,
-            exit_time=p.exit_time,
-            status=p.status,
-            current_zone=p.current_zone,
-            is_active=p.is_active,
-            dwell_time_minutes=p.dwell_time_minutes,
-            created_at=p.created_at,
-            updated_at=p.updated_at
-        )
-        for p in patients
-    ]
+    return [_build_patient_response(p) for p in patients]
 
 
 @router.post(

@@ -3,18 +3,17 @@ PatientPath AI - Patient Model
 ==============================
 """
 
-from sqlalchemy import Column, Integer, String, DateTime, Enum, Index, Text
+from sqlalchemy import Column, Integer, String, DateTime, Enum, Index, Text, Float, Boolean
 from datetime import datetime
 import enum
 import json
+import uuid
 import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database.database import Base
 
-
-# Force reload for model update 2026-02-13 22:30
 
 class PatientStatus(str, enum.Enum):
     """Patient status enumeration."""
@@ -24,27 +23,47 @@ class PatientStatus(str, enum.Enum):
     EXITED = "exited"
 
 
+class TrackingMethod(str, enum.Enum):
+    """How the last movement was tracked."""
+    QR = "qr"
+    REID_AUTO = "reid_auto"
+    MANUAL_CONFIRMED = "manual_confirmed"
+    PENDING_REVIEW = "pending_review"
+    MANUAL = "manual"
+
+
 class Patient(Base):
     """Patient model for tracking individuals."""
-    
+
     __tablename__ = "patients"
-    
+
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(100), nullable=True)
     tracking_id = Column(String(50), unique=True, nullable=False, index=True)
+    qr_token = Column(String(64), unique=True, nullable=True, index=True)
     mobile = Column(String(20), nullable=True)
     entry_time = Column(DateTime, default=datetime.now, nullable=False)
     exit_time = Column(DateTime, nullable=True)
-    status = Column(Enum(PatientStatus), default=PatientStatus.ENTERED, nullable=False)
+    status = Column(Enum(PatientStatus, values_callable=lambda x: [e.value for e in x]), default=PatientStatus.ENTERED, nullable=False)
     current_zone = Column(String(50), nullable=True, index=True)
     last_action = Column(String(200), nullable=True)
+    tracking_method = Column(String(30), default="manual", nullable=True)
+    reid_confidence = Column(Float, nullable=True)
+    needs_confirmation = Column(Boolean, default=False, nullable=False)
+    updated_by_source = Column(String(100), default="system", nullable=True)
+    last_movement_time = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     action_history = Column(Text, nullable=True, default="[]")
-    
+
     __table_args__ = (
         Index('ix_patients_status_zone', 'status', 'current_zone'),
     )
+
+    @staticmethod
+    def generate_qr_token():
+        """Generate a unique QR token for a patient."""
+        return str(uuid.uuid4())
     
     @property
     def is_active(self):
@@ -75,11 +94,17 @@ class Patient(Base):
             "id": self.id,
             "name": self.name,
             "tracking_id": self.tracking_id,
+            "qr_token": self.qr_token,
             "entry_time": self.entry_time.isoformat() if self.entry_time else None,
             "exit_time": self.exit_time.isoformat() if self.exit_time else None,
             "status": self.status.value if self.status else None,
             "current_zone": self.current_zone,
             "mobile": self.mobile,
+            "tracking_method": self.tracking_method,
+            "reid_confidence": self.reid_confidence,
+            "needs_confirmation": self.needs_confirmation,
+            "updated_by_source": self.updated_by_source,
+            "last_movement_time": self.last_movement_time.isoformat() if self.last_movement_time else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "dwell_time_minutes": self.dwell_time_minutes,

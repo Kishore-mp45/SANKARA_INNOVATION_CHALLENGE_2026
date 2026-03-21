@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PatientPath AI - Staff Confirmation Queue</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .confirm-container { max-width: 900px; margin: 0 auto; padding: 2rem; }
+        .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+        .stat-box {
+            background: var(--card-bg); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1rem; text-align: center;
+        }
+        .stat-box .stat-number { font-size: 1.8rem; font-weight: 700; color: var(--primary-color); }
+        .stat-box .stat-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem; }
+        .queue-list { display: flex; flex-direction: column; gap: 1rem; }
+        .queue-card {
+            background: var(--card-bg); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 1.5rem; border-left: 4px solid var(--warning-color);
+        }
+        .queue-card.approved { border-left-color: var(--accent-color); opacity: 0.6; }
+        .queue-card.rejected { border-left-color: var(--danger-color); opacity: 0.6; }
+        .queue-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .queue-patient { font-size: 1.1rem; font-weight: 600; color: var(--text-main); }
+        .queue-confidence { font-size: 0.9rem; font-weight: 600; }
+        .conf-high { color: var(--accent-color); }
+        .conf-medium { color: var(--warning-color); }
+        .conf-low { color: var(--danger-color); }
+        .queue-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem; }
+        .queue-details .label { color: var(--text-muted); }
+        .queue-details .value { color: var(--text-main); font-weight: 500; }
+        .queue-actions { display: flex; gap: 0.75rem; }
+        .btn-approve, .btn-reject {
+            flex: 1; padding: 0.6rem 1rem; border: none; border-radius: 8px;
+            font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: opacity 0.2s;
+        }
+        .btn-approve { background: var(--accent-color); color: #fff; }
+        .btn-reject { background: var(--danger-color); color: #fff; }
+        .btn-approve:hover, .btn-reject:hover { opacity: 0.85; }
+        .btn-approve:disabled, .btn-reject:disabled { opacity: 0.4; cursor: not-allowed; }
+        .badge-method {
+            display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px;
+            font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+        }
+        .badge-pending { background: #d97706; color: #fff; }
+        .badge-approved { background: #059669; color: #fff; }
+        .badge-rejected { background: #dc2626; color: #fff; }
+        .empty-state {
+            text-align: center; padding: 3rem; color: var(--text-muted);
+            background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color);
+        }
+        .empty-state i { font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; }
+        .threshold-info {
+            background: var(--sidebar-bg); border-radius: 8px; padding: 1rem;
+            margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-muted);
+        }
+        .threshold-info strong { color: var(--text-main); }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <img src="assets/Sankara-Eye-Foundation-Logo.png" alt="SANKARA EYE FOUNDATION" style="width:32px;height:32px;object-fit:contain;">
+            <span>PatientPath AI</span>
+        </div>
+        <ul class="nav-menu"></ul>
+    </div>
+    <div class="main-content">
+        <header><h1><i class="fas fa-user-check"></i> Staff Confirmation Queue</h1></header>
+            <div class="confirm-container">
+                <div class="threshold-info">
+                    <i class="fas fa-info-circle"></i>
+                    Re-ID confidence thresholds: <strong>&ge; 85%</strong> auto-moves, <strong>60%–84%</strong> requires your confirmation, <strong>&lt; 60%</strong> logged only (manual handling).
+                </div>
+
+                <div class="stats-row">
+                    <div class="stat-box"><div class="stat-number" id="pendingCount">0</div><div class="stat-label">Pending Review</div></div>
+                    <div class="stat-box"><div class="stat-number" id="totalEvents">0</div><div class="stat-label">Total Events</div></div>
+                    <div class="stat-box"><div class="stat-number" id="autoMoved">0</div><div class="stat-label">Auto Re-ID Moves</div></div>
+                </div>
+
+                <div class="queue-list" id="queueList">
+                    <div class="empty-state"><i class="fas fa-check-double"></i><p>No pending confirmations</p></div>
+                </div>
+            </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/toast.js"></script>
+    <script>
+        let pendingItems = [];
+
+        async function loadStats() {
+            try {
+                const stats = await AppAPI.get('/tracking/stats');
+                document.getElementById('pendingCount').textContent = stats.pending_confirmations || 0;
+                document.getElementById('totalEvents').textContent = stats.total_events || 0;
+                document.getElementById('autoMoved').textContent = (stats.by_source && stats.by_source.reid_auto) || 0;
+            } catch (e) { console.error('Stats load error:', e); }
+        }
+
+        async function loadQueue() {
+            try {
+                pendingItems = await AppAPI.get('/tracking/confirmations/pending');
+                renderQueue();
+            } catch (e) { console.error('Queue load error:', e); }
+        }
+
+        function getConfClass(conf) {
+            if (conf >= 0.85) return 'conf-high';
+            if (conf >= 0.60) return 'conf-medium';
+            return 'conf-low';
+        }
+
+        function renderQueue() {
+            const el = document.getElementById('queueList');
+            if (!pendingItems.length) {
+                el.innerHTML = '<div class="empty-state"><i class="fas fa-check-double"></i><p>No pending confirmations</p></div>';
+                return;
+            }
+            el.innerHTML = pendingItems.map(item => {
+                const confPct = Math.round(item.confidence * 100);
+                return `
+                <div class="queue-card" id="card-${item.id}">
+                    <div class="queue-header">
+                        <div class="queue-patient"><i class="fas fa-user"></i> ${item.patient_name || 'Unknown'} <small style="color: var(--text-muted)">(${item.tracking_id})</small></div>
+                        <div class="queue-confidence ${getConfClass(item.confidence)}">${confPct}% confidence</div>
+                    </div>
+                    <div class="queue-details">
+                        <div><span class="label">From Zone:</span></div><div><span class="value">${AppAPI.deptName(item.from_zone) || item.from_zone || '—'}</span></div>
+                        <div><span class="label">Candidate Zone:</span></div><div><span class="value">${AppAPI.deptName(item.candidate_zone)}</span></div>
+                        <div><span class="label">Detected At:</span></div><div><span class="value">${item.created_at || '—'}</span></div>
+                        <div><span class="label">Status:</span></div><div><span class="badge-method badge-pending">Pending</span></div>
+                    </div>
+                    <div class="queue-actions">
+                        <button class="btn-approve" onclick="handleAction(${item.id}, 'approve')"><i class="fas fa-check"></i> Approve Move</button>
+                        <button class="btn-reject" onclick="handleAction(${item.id}, 'reject')"><i class="fas fa-times"></i> Reject</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function handleAction(confirmationId, action) {
+            const card = document.getElementById('card-' + confirmationId);
+            const buttons = card.querySelectorAll('button');
+            buttons.forEach(b => b.disabled = true);
+
+            let reason = null;
+            if (action === 'reject') {
+                reason = prompt('Rejection reason (optional):');
+            }
+
+            try {
+                const staffId = localStorage.getItem('currentUser') || 'staff';
+                const result = await AppAPI.post('/tracking/confirmations/action', {
+                    confirmation_id: confirmationId,
+                    action: action,
+                    staff_id: staffId,
+                    reason: reason
+                });
+
+                if (action === 'approve') {
+                    card.classList.add('approved');
+                    card.querySelector('.queue-actions').innerHTML = '<span class="badge-method badge-approved"><i class="fas fa-check"></i> Approved — moved to ' + (result.to_zone ? AppAPI.deptName(result.to_zone) : 'zone') + '</span>';
+                } else {
+                    card.classList.add('rejected');
+                    card.querySelector('.queue-actions').innerHTML = '<span class="badge-method badge-rejected"><i class="fas fa-times"></i> Rejected</span>';
+                }
+
+                if (typeof showToast === 'function') showToast(result.message, 'success');
+                loadStats();
+            } catch (e) {
+                buttons.forEach(b => b.disabled = false);
+                if (typeof showToast === 'function') showToast(e.detail || 'Action failed', 'error');
+            }
+        }
+
+        // Initial load + auto-refresh
+        loadStats();
+        loadQueue();
+        setInterval(() => { loadStats(); loadQueue(); }, 5000);
+    </script>
+</body>
+</html>

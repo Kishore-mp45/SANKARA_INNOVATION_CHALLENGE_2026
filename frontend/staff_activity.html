@@ -8,131 +8,38 @@
     <link rel="stylesheet" href="css/style.css?v=200">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .activity-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 2rem;
+        .activity-container { max-width: 800px; margin: 0 auto; padding: 2rem; }
+
+        .summary-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+        .summary-item {
+            background: var(--card-bg); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 1rem 1.25rem; text-align: center;
         }
+        .summary-item .s-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem; }
+        .summary-item .s-value { font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
 
         .activity-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+            background: var(--card-bg); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.15);
         }
-
         .activity-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.25rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);
         }
+        .activity-header h3 { font-size: 1.05rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 0.6rem; }
 
-        .activity-header h3 {
-            font-size: 1.05rem;
-            font-weight: 600;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-        }
+        .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 0.75rem; display: block; opacity: 0.5; }
 
-        .btn-clear {
-            background: none;
-            border: 1px solid var(--border-color);
-            color: var(--text-muted);
-            cursor: pointer;
-            font-size: 0.8rem;
-            padding: 0.4rem 0.85rem;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-
-        .btn-clear:hover {
-            border-color: #ef4444;
-            color: #ef4444;
-        }
-
-        .activity-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .activity-item {
-            display: flex;
-            align-items: center;
-            padding: 1rem 0.5rem;
-            border-bottom: 1px solid var(--glass-border);
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            transition: background 0.15s;
-        }
-
-        .activity-item:hover {
-            background: rgba(255, 255, 255, 0.02);
-        }
-
-        .activity-item:last-child {
-            border-bottom: none;
-        }
-
-        .activity-time {
-            width: 80px;
-            font-weight: 600;
-            color: var(--primary-color);
-            flex-shrink: 0;
-        }
-
-        .activity-desc {
-            flex: 1;
-            color: var(--text-main);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem 1rem;
-            color: var(--text-muted);
-        }
-
-        .empty-state i {
-            font-size: 2.5rem;
-            margin-bottom: 0.75rem;
-            display: block;
-            opacity: 0.5;
-        }
-
-        .summary-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .summary-item {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 1rem 1.25rem;
-            text-align: center;
-        }
-
-        .summary-item .s-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 0.3rem;
-        }
-
-        .summary-item .s-value {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--text-main);
-        }
+        .history-item { padding: 0.75rem 0.5rem; border-bottom: 1px solid var(--glass-border); font-size: 0.9rem; }
+        .history-item:last-child { border-bottom: none; }
+        .history-item:hover { background: rgba(255,255,255,0.02); }
+        .history-time { color: var(--text-muted); font-size: 0.75rem; }
+        .history-action { color: var(--primary-color); font-weight: 600; }
+        .history-zone { color: var(--text-muted); font-size: 0.8rem; }
+        .badge-action { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+        .badge-move { background: #059669; color: #fff; }
+        .badge-task { background: #7c3aed; color: #fff; }
     </style>
 </head>
 
@@ -142,25 +49,14 @@
             <img src="assets/Sankara-Eye-Foundation-Logo.png" alt="SANKARA EYE FOUNDATION" style="width:32px;height:32px;object-fit:contain;">
             <span>PatientPath AI</span>
         </div>
-        <ul class="nav-menu">
-            <li><a href="index.html" class="nav-item"><span class="step-badge">1</span> About / Home</a></li>
-            <li><a href="occupancy.html" class="nav-item"><span class="step-badge">2</span> Live Occupancy</a></li>
-            <li><a href="heatmap.html" class="nav-item"><span class="step-badge">3</span> Zone Heatmap</a></li>
-            <li><a href="metrics.html" class="nav-item"><span class="step-badge">4</span> Metrics</a></li>
-            <li><a href="alerts.html" class="nav-item"><span class="step-badge">5</span> Alerts</a></li>
-            <li><a href="charts.html" class="nav-item"><span class="step-badge">6</span> Charts</a></li>
-            <li><a href="prediction.html" class="nav-item"><span class="step-badge">7</span> Prediction</a></li>
-            <li><a href="video.html" class="nav-item"><span class="step-badge">8</span> Live Video</a></li>
-            <li><a href="doctor_dashboard.html" class="nav-item"><span class="step-badge">9</span> Doctor Panel</a></li>
-            <li><a href="staff_panel.html" class="nav-item"><span class="step-badge">3</span> Staff Panel</a></li>
-        </ul>
+        <ul class="nav-menu"></ul>
     </div>
 
     <div class="main-content">
         <header>
             <div class="header-title-container">
                 <h1>Recent Activity</h1>
-                <p class="header-subtitle">History of staff actions and patient updates</p>
+                <p class="header-subtitle">History of QR scans, zone actions, and patient movements</p>
             </div>
         </header>
 
@@ -179,17 +75,15 @@
                     </div>
                 </div>
 
-                <!-- Activity list card -->
+                <!-- Activity list -->
                 <div class="activity-card">
                     <div class="activity-header">
                         <h3><i class="fas fa-history" style="color: var(--primary-color);"></i> Activity Log</h3>
                     </div>
-                    <ul class="activity-list" id="activity-list">
-                        <!-- JS generated -->
-                    </ul>
+                    <div id="activity-list"></div>
                     <div class="empty-state" id="empty-state" style="display:none;">
                         <i class="fas fa-clipboard-list"></i>
-                        No activity recorded yet. Actions from the Staff Panel will appear here.
+                        No activity recorded yet. Actions from the QR Scanner will appear here.
                     </div>
                 </div>
             </div>
@@ -202,48 +96,57 @@
 
     <script>
         var currentUserId = localStorage.getItem('currentUser') || 'unknown';
+        var HISTORY_KEY = 'qrScannerHistory_' + currentUserId;
         var ACTION_COUNT_KEY = 'staffActionCount_' + currentUserId;
-        var ACTION_LOG_KEY = 'staffActivityLogs_' + currentUserId;
+
+        function fmtZone(z) {
+            if (!z) return '--';
+            var m = {"registration":"Registration","vision_lab":"Vision Lab","dilation_hall":"Dilation Hall","diagnostics":"Diagnostics","consultation":"Consultation","pharmacy":"Pharmacy","billing_insurance":"Billing & Insurance"};
+            return m[z] || z.replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+        }
 
         function loadActivityLog() {
-            var list = document.getElementById('activity-list');
+            var listEl = document.getElementById('activity-list');
             var emptyState = document.getElementById('empty-state');
-            list.innerHTML = '';
+            listEl.innerHTML = '';
 
-            var logs = JSON.parse(localStorage.getItem(ACTION_LOG_KEY) || '[]');
+            var history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
 
-            if (logs.length === 0) {
+            if (history.length === 0) {
                 emptyState.style.display = 'block';
                 return;
             }
             emptyState.style.display = 'none';
 
-            logs.forEach(function (log) {
-                var li = document.createElement('li');
-                li.className = 'activity-item';
-                var timeStr = new Date(log.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-                var dateStr = new Date(log.time).toLocaleDateString([], { month: 'short', day: 'numeric' });
+            listEl.innerHTML = history.map(function (h) {
+                var t = new Date(h.time);
+                var timeStr = t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+                var dateStr = t.toLocaleDateString([],{month:'short',day:'numeric'});
 
-                var desc = '<strong>' + log.id + '</strong>: ' + log.action;
-                if (log.next) desc += ' <i class="fas fa-arrow-right" style="font-size:0.8em; margin:0 5px;"></i> ' + log.next;
-
-                li.innerHTML =
-                    '<div class="activity-time">' + timeStr + '</div>' +
-                    '<div class="activity-desc">' + desc + '</div>' +
-                    '<div style="font-size:0.75rem;color:var(--text-muted);flex-shrink:0;">' + dateStr + '</div>';
-                list.appendChild(li);
-            });
+                if (h.type === 'move') {
+                    return '<div class="history-item">' +
+                        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                        '<div><span class="badge-action badge-move">QR MOVE</span> <strong>' + h.tracking_id + '</strong></div>' +
+                        '<span class="history-time">' + dateStr + ' ' + timeStr + '</span></div>' +
+                        '<div class="history-zone" style="margin-top:0.25rem;">' + fmtZone(h.from_zone) + ' &rarr; ' + fmtZone(h.to_zone) + '</div></div>';
+                } else {
+                    return '<div class="history-item">' +
+                        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                        '<div><span class="badge-action badge-task">ACTION</span> <strong>' + h.tracking_id + '</strong></div>' +
+                        '<span class="history-time">' + dateStr + ' ' + timeStr + '</span></div>' +
+                        '<div style="margin-top:0.25rem;"><span class="history-action">' + h.action + '</span> <span class="history-zone">@ ' + fmtZone(h.from_zone) + '</span></div></div>';
+                }
+            }).join('');
 
             // Update summary
             document.getElementById('total-actions').textContent = parseInt(localStorage.getItem(ACTION_COUNT_KEY) || '0');
-            if (logs.length > 0) {
-                var lastTime = new Date(logs[0].time);
-                document.getElementById('last-action-time').textContent = lastTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            if (history.length > 0) {
+                var lastTime = new Date(history[0].time);
+                document.getElementById('last-action-time').textContent = lastTime.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false});
             }
         }
 
         loadActivityLog();
     </script>
 </body>
-
 </html>

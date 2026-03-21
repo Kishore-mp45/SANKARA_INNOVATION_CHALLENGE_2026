@@ -509,20 +509,8 @@
                             </div>
                         </div>
 
-                        <!-- Hidden Inputs to store state for submission -->
-                        <div class="form-group">
-                            <label class="form-label">Next Department (Optional)</label>
-                            <select class="form-select" id="next-dept-select">
-                                <option value="">-- Stay in Current Zone --</option>
-                                <option value="registration">Registration</option>
-                                <option value="vision_lab">Vision Lab</option>
-                                <option value="dilation_hall">Dilation Hall</option>
-                                <option value="diagnostics">Diagnostics</option>
-                                <option value="consultation">Consultation</option>
-                                <option value="pharmacy">Pharmacy</option>
-                                <option value="billing_insurance">Billing & Insurance</option>
-                            </select>
-                        </div>
+                        <!-- Next department is handled via QR Scanner destination zone -->
+                        <input type="hidden" id="next-dept-select" value="">
                 </div>
 
             </div>

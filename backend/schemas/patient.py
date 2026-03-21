@@ -66,12 +66,17 @@ class PatientResponse(BaseModel):
     name: Optional[str]
     mobile: Optional[str] = None
     tracking_id: str
+    qr_token: Optional[str] = None
     entry_time: datetime
     exit_time: Optional[datetime]
     status: str
     current_zone: Optional[str]
     is_active: Optional[bool] = None
     last_action: Optional[str] = None
+    tracking_method: Optional[str] = None
+    reid_confidence: Optional[float] = None
+    needs_confirmation: Optional[bool] = None
+    updated_by_source: Optional[str] = None
     dwell_time_minutes: Optional[float] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

@@ -37,8 +37,10 @@ class PatientService:
             name=patient_data.name,
             mobile=patient_data.mobile,
             tracking_id=patient_data.tracking_id,
+            qr_token=Patient.generate_qr_token(),
             status=patient_data.status,
             current_zone=patient_data.current_zone,
+            tracking_method="manual",
             entry_time=datetime.now()
         )
         db.add(patient)
@@ -143,14 +145,25 @@ class PatientService:
             if next_department == "exit":
                 patient.status = PatientStatus.EXITED
                 patient.exit_time = datetime.now()
-                
+
                 # Decrease occupancy of old zone if it exists
                 if patient.current_zone:
                     old_zone = zone_service.get_zone_by_name(patient.current_zone)
                     if old_zone and old_zone.current_occupancy > 0:
                         old_zone.current_occupancy -= 1
-                
+
                 patient.current_zone = "exit"
+
+                # Remove patient's User account so they must re-register next visit
+                try:
+                    from models.user import User
+                    user = db.query(User).filter(
+                        User.generated_id == tracking_id, User.role == "patient"
+                    ).first()
+                    if user:
+                        db.delete(user)
+                except Exception:
+                    pass
             else:
                 target_zone = zone_service.get_zone_by_name(next_department)
                 if not target_zone:

@@ -29,12 +29,8 @@ class SavePrescriptionRequest(BaseModel):
 
 @router.post("/doctor/save-prescription", summary="Save a prescription")
 def save_prescription(body: SavePrescriptionRequest, db: Session = Depends(get_db)):
+    # Always use server local time for consistent display
     ts = datetime.now()
-    if body.timestamp:
-        try:
-            ts = datetime.fromisoformat(body.timestamp)
-        except ValueError:
-            pass
 
     rx = Prescription(
         doctor_id=body.doctor_id,

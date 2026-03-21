@@ -88,5 +88,7 @@ def init_db():
     from models.prescription import Prescription
     from models.user import User
     from models.notification import Notification
+    from models.movement_event import MovementEvent
+    from models.staff_confirmation import StaffConfirmation
 
     Base.metadata.create_all(bind=engine)

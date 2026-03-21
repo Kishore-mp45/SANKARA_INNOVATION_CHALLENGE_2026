@@ -24,8 +24,9 @@ import requests
 import os
 
 # ---- Configuration ----
-MODEL_PATH = "C:/PATIENTPATH-AI/ml_models/yolov8n.pt"
-VIDEO_DIR = "C:/PATIENTPATH-AI/frontend/assets/videos"
+_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(_PROJECT_ROOT, "ml_models", "yolov8n.pt")
+VIDEO_DIR = os.path.join(_PROJECT_ROOT, "frontend", "assets", "videos")
 BACKEND_URL = "http://127.0.0.1:8000"
 SEND_INTERVAL = 5  # seconds between backend updates
 

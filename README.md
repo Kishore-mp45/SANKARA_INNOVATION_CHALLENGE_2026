@@ -12,6 +12,8 @@ Hospitals worldwide face critical operational challenges: overcrowded waiting ro
 
 **PatientPath AI** is a real-time Digital Twin platform that mirrors live hospital operations through an integrated stack of Computer Vision, Machine Learning, and WebSocket-driven communication. The system ingests live video feeds from seven hospital departments, detects and counts patients using YOLOv8n, predicts operational bottlenecks with XGBoost models, and pushes actionable intelligence to role-specific dashboards within seconds.
 
+The platform features a **QR-first hybrid patient tracking system** with Re-ID fallback, enabling precise per-patient journey tracking across departments. QR scans provide instant, 100% accurate location updates, while Re-ID camera matching serves as an automated fallback with confidence-based routing -- high-confidence matches auto-move patients, medium-confidence matches queue for staff review, and low-confidence matches are logged without action.
+
 The result: hospital administrators move from reactive firefighting to proactive orchestration, with AI-driven decisions reducing wait times, balancing staff allocation, and maintaining smooth patient throughput across every department.
 
 ---
@@ -24,6 +26,7 @@ The result: hospital administrators move from reactive firefighting to proactive
 | **Long Waiting Times** | Without predictive tools, bottlenecks form silently. Patients accumulate in departments before staff recognize the congestion, leading to cascading delays. |
 | **Resource Misallocation** | Staff deployment follows fixed schedules rather than dynamic demand. Departments oscillate between being overstaffed and critically understaffed within the same shift. |
 | **Manual Tracking Inefficiency** | Paper-based or badge-scan tracking creates data gaps. Patients who move between departments without scanning are invisible to the system. |
+| **Tracking Accuracy Gaps** | Single-method tracking (badge-only or camera-only) creates blind spots. Badge scans miss patients who forget to scan; camera-only systems lack identity verification. |
 | **Lack of Real-Time Orchestration** | No unified system connects occupancy data, predictive analytics, and staff management into a single decision loop that operates in real time. |
 
 ---
@@ -46,6 +49,7 @@ Person Counting   Arrival Rate      Threshold          Live Panels
 
 - **Computer Vision (YOLOv8n):** Continuously processes video feeds from seven hospital zones, detecting and counting patients without manual intervention.
 - **Machine Learning Models:** Five XGBoost models predict waiting times, arrival rates, exit rates, bottleneck severity, and optimal staff allocation per department.
+- **QR-First Hybrid Tracking:** Primary QR code scanning with Re-ID camera fallback for seamless patient journey tracking. Confidence-based routing ensures accuracy with staff-in-the-loop verification for ambiguous matches.
 - **WebSocket Real-Time Layer:** Sub-second propagation of occupancy changes and alerts from backend to all connected dashboards.
 - **Role-Based Dashboards:** Dedicated views for administrators, doctors, staff, and patients, each showing contextually relevant information and controls.
 - **Automation Integration:** n8n workflow engine handles automated appointment booking, alert escalation, and notification dispatch.
@@ -155,10 +159,94 @@ When a deficit is detected, the system generates staff deployment recommendation
 
 ---
 
-### 3. Workflow & Orchestration
+### 3. QR-First Hybrid Patient Tracking System
 
-#### Implicit Event-Driven Patient Tracking
-Patient movement through the hospital is tracked via CV detection and manual stage updates. Each state transition is recorded in the patient's `action_history` (JSON array), creating a complete audit trail without requiring physical badge scans at every checkpoint.
+#### Architecture Overview
+
+```
+                    +------------------+
+                    |  Patient Arrives |
+                    +--------+---------+
+                             |
+                    +--------v---------+
+                    | QR Token Assigned|
+                    | (UUID per patient)|
+                    +--------+---------+
+                             |
+              +--------------+--------------+
+              |                             |
+    +---------v---+              +----------v----------+
+    | QR Scan     |              | Re-ID Camera Match  |
+    | (Primary)   |              | (Fallback)          |
+    | 100% Accurate|             +----------+----------+
+    +------+------+                         |
+           |                  +-------------+-------------+
+           |                  |             |             |
+           |          +-------v----+ +------v------+ +---v---------+
+           |          | HIGH >=85% | | MED 60-84%  | | LOW <60%    |
+           |          | Auto-Move  | | Staff Queue | | Log Only    |
+           |          +------+-----+ +------+------+ +------+------+
+           |                 |              |               |
+           +--------+--------+       +------v------+       |
+                    |                | Staff Review |       |
+                    |                | Approve/Deny |       |
+                    |                +------+------+       |
+                    |                       |               |
+                    +-----------+-----------+               |
+                                |                           |
+                       +--------v---------+        +--------v---------+
+                       | Movement Event   |        | Unresolved Log   |
+                       | (Immutable Audit)|        | (No Movement)    |
+                       +------------------+        +------------------+
+```
+
+#### QR Code Scanning (Primary Method)
+- Each patient is assigned a unique `qr_token` (UUID) at registration
+- Staff scan patient QR codes at department transitions using the QR Scanner page
+- Provides instant, 100% accurate location updates
+- QR scans always take priority over Re-ID matches within a 60-second conflict window
+
+#### Re-ID Camera Fallback (Automated)
+When a patient misses a QR scan, the Re-ID system provides automated tracking with confidence-based routing:
+
+| Confidence Level | Threshold | Action | Source Tag |
+|-----------------|-----------|--------|------------|
+| **High** | >= 85% | Auto-move patient immediately | `reid_auto` |
+| **Medium** | 60% - 84% | Queue for staff confirmation | `pending_review` |
+| **Low** | < 60% | Log only, no movement | `unresolved` |
+
+#### Staff Confirmation Workflow
+Medium-confidence Re-ID matches enter a staff review queue:
+1. Match appears in the Staff Confirmation page with patient details, zones, and confidence score
+2. Staff reviews and clicks **Approve** or **Reject**
+3. Approved matches execute the zone transition (source: `manual_confirmed`)
+4. Rejected matches are logged with rejection reason (source: `rejected`)
+5. All actions are recorded with staff ID and timestamp
+
+#### Safety Mechanisms
+- **QR Priority Window:** QR scans within 60 seconds cancel any pending Re-ID confirmations for the same patient
+- **Duplicate Prevention:** Same patient cannot trigger movement to the same zone within a 120-second window
+- **Zone Transition Validation:** Supports both sequential (department order) and free-move modes
+- **Invalid Transition Blocking:** Out-of-sequence movements are blocked in sequential mode
+
+#### Department Sequence
+```
+Registration → Vision Lab → Dilation Hall → Diagnostics → Consultation → Pharmacy → Billing & Insurance → Exit
+```
+
+#### Movement Event Audit Trail
+Every movement (successful or not) creates an immutable `MovementEvent` record:
+- Patient ID and tracking ID
+- Source and destination zones
+- Source type (QR, Re-ID Auto, Manual Confirmed, Pending Review, Rejected, Unresolved)
+- Confidence score and embedding ID (for Re-ID events)
+- Actor (staff ID or "system")
+- Timestamp and notes
+
+### 4. Workflow & Orchestration
+
+#### Event-Driven Patient Tracking
+Patient movement through the hospital is tracked via QR scans, Re-ID camera matching, CV detection, and manual stage updates. Each state transition is recorded in the patient's `action_history` (JSON array) and as immutable `MovementEvent` records, creating a complete audit trail.
 
 #### Sequential Patient Journey State Machine
 
@@ -210,7 +298,7 @@ Staff members check into departments through the Staff Panel or API endpoint. Ea
 
 ---
 
-### 4. Automation Integration
+### 5. Automation Integration
 
 #### n8n Workflow Engine
 The platform supports integration with n8n for automated workflow orchestration:
@@ -220,7 +308,7 @@ The platform supports integration with n8n for automated workflow orchestration:
 
 ---
 
-### 5. Dashboard & Analytics
+### 6. Dashboard & Analytics
 
 #### Admin Command Center
 The central operations hub displaying:
@@ -282,6 +370,27 @@ Per-department AI bottleneck analysis for staff members:
 Quick patient lookup tool:
 - Search by tracking ID
 - Displays current stage, next department, predicted ETA
+
+#### QR Scanner
+Staff-facing QR code scanning interface:
+- Scan patient QR codes at department transition points
+- Patient preview lookup by QR token
+- Real-time zone transition recording
+- Integration with hybrid tracking service
+
+#### Staff Confirmation Panel
+Re-ID match review interface for staff:
+- Pending Re-ID matches queue with approve/reject actions
+- Real-time statistics (pending count, total events, auto-moved count)
+- Confidence level badges (high/medium/low) with color coding
+- Zone transition details and patient information
+- 5-second auto-refresh polling for new matches
+
+#### Movement Audit Trail
+Complete movement history dashboard:
+- Filterable by tracking ID and source type (QR, Re-ID Auto, Manual Confirmed, Pending, Rejected)
+- Statistics bar showing event counts by source type
+- Detailed table with timestamp, patient, zone transitions, source, confidence, actor, and notes
 
 #### Escalation System
 Operational issue reporting and management:
@@ -353,7 +462,7 @@ Data visualization panels including:
 
 ---
 
-### 6. Security & Access
+### 7. Security & Access
 
 #### Role-Based Access Control
 The system implements four user roles with differentiated access:
@@ -616,9 +725,12 @@ for zone_name, cap in self._captures.items():
 |                     | - MJPEG Stream   |    | - occupancy_logs      |     |
 |                     | - Prediction Svc |    | - alerts              |     |
 |                     | - Risk Engine    |    | - metrics             |     |
-|                     | - Alert Service  |    | - doctors             |     |
-|                     +--------+---------+    | - consultation_logs   |     |
-|                              |              | - escalations         |     |
+|                     | - Tracking Svc   |    | - doctors             |     |
+|                     | - Alert Service  |    | - consultation_logs   |     |
+|                     +--------+---------+    | - escalations         |     |
+|                              |              | - movement_events     |     |
+|                              |              | - staff_confirmations |     |
+|                              |              | - users               |     |
 |                     +--------v---------+    +-----------------------+     |
 |                     | WebSocket Layer  |                                  |
 |                     | Real-Time Push   |                                  |
@@ -659,6 +771,7 @@ flowchart TB
         API[FastAPI Server<br/>Uvicorn :8000]
         WS[WebSocket Manager]
         CVS[CV Detection Service<br/>Background Thread + MJPEG]
+        TS[Tracking Service<br/>QR + Re-ID Hybrid]
         PS[Prediction Service]
         AS[Alert Service]
         SAS[Staff Allocation Service]
@@ -674,6 +787,9 @@ flowchart TB
         T5[metrics]
         T6[doctors + consultation_logs]
         T7[escalations]
+        T8[movement_events]
+        T9[staff_confirmations]
+        T10[users]
     end
 
     subgraph Frontend Dashboards
@@ -714,13 +830,15 @@ The system operates as a continuous feedback loop:
 
 ```
 1. DETECTION:  Camera feeds --> YOLOv8n --> Person count per zone
-2. STORAGE:    Count + confidence --> Zone table + OccupancyLog table
-3. PREDICTION: Zone occupancy --> ML Models --> Bottleneck/Wait/Staff predictions
-4. ALERTING:   Predictions --> Alert engine --> Threshold-based alert generation
-5. BROADCAST:  Alerts + updates --> WebSocket --> All connected dashboards
-6. ACTION:     Admin/Staff sees alert --> Checks in staff / reallocates resources
-7. UPDATE:     Staff check-in --> Database update --> Deficit recalculation
-8. FEEDBACK:   Updated staff count --> ML re-prediction --> New recommendations
+2. TRACKING:   QR scans / Re-ID matches --> Tracking Service --> Movement events
+3. STORAGE:    Count + confidence --> Zone table + OccupancyLog + MovementEvent tables
+4. PREDICTION: Zone occupancy --> ML Models --> Bottleneck/Wait/Staff predictions
+5. ALERTING:   Predictions --> Alert engine --> Threshold-based alert generation
+6. BROADCAST:  Alerts + updates --> WebSocket --> All connected dashboards
+7. ACTION:     Admin/Staff sees alert --> Checks in staff / reallocates resources
+8. CONFIRM:    Staff reviews Re-ID matches --> Approve/Reject --> Movement update
+9. UPDATE:     Staff check-in --> Database update --> Deficit recalculation
+10. FEEDBACK:  Updated staff count --> ML re-prediction --> New recommendations
 ```
 
 ---
@@ -829,6 +947,18 @@ is_bottleneck = True (still needs 1 more)
 | `GET` | `/prediction/staff-recommendation` | Staff recommendations (all) |
 | `GET` | `/prediction/staff-recommendation/{dept}` | Staff recommendation (dept) |
 | `POST` | `/prediction/staff-checkin/{dept}` | Staff check-in |
+
+### Patient Tracking (Hybrid QR + Re-ID)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/tracking/qr-scan` | Process QR code scan for zone transition |
+| `POST` | `/tracking/reid-event` | Submit Re-ID camera detection event |
+| `GET` | `/tracking/confirmations/pending` | List pending staff confirmations |
+| `POST` | `/tracking/confirmations/action` | Approve or reject a pending confirmation |
+| `GET` | `/tracking/events` | Movement audit trail with filtering |
+| `GET` | `/tracking/stats` | Tracking statistics and method breakdown |
+| `GET` | `/tracking/department-sequence` | Department workflow sequence definition |
 
 ### Staff Allocation & Analytics
 
@@ -993,6 +1123,43 @@ is_bottleneck = True (still needs 1 more)
 }
 ```
 
+**POST /tracking/qr-scan**
+```json
+// Request
+{
+  "qr_token": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "scanned_zone": "consultation",
+  "scanned_by": "STAFF-001"
+}
+// Response
+{
+  "success": true,
+  "patient_id": 42,
+  "tracking_id": "PAT-042",
+  "from_zone": "diagnostics",
+  "to_zone": "consultation",
+  "source": "qr",
+  "message": "Patient moved from diagnostics to consultation via QR scan"
+}
+```
+
+**GET /tracking/stats**
+```json
+{
+  "total_events": 156,
+  "by_source": {
+    "qr": 98,
+    "reid_auto": 31,
+    "manual_confirmed": 15,
+    "pending_review": 4,
+    "rejected": 5,
+    "unresolved": 3
+  },
+  "pending_confirmations": 4,
+  "timestamp": "2026-03-21T10:30:00.000000"
+}
+```
+
 ---
 
 ## Tech Stack
@@ -1009,8 +1176,11 @@ is_bottleneck = True (still needs 1 more)
 | **Video Processing** | OpenCV (cv2) | Frame extraction, MJPEG stream generation |
 | **Real-Time Layer** | WebSockets | Sub-second event broadcasting (5 message types) |
 | **Automation** | n8n | Workflow automation and alert orchestration |
-| **Serialization** | Joblib / Pickle | ML model persistence |
+| **Authentication** | Werkzeug | Secure password hashing and verification |
+| **Serialization** | Pickle | ML model persistence |
+| **QR Code** | qrcode, ReportLab | QR code generation for patient tracking tokens |
 | **PDF Export** | jsPDF | Client-side PDF generation for patient activity |
+| **Testing** | Pytest | Unit and integration test framework |
 | **Deployment** | Docker, Railway | Containerized deployment with health checks |
 
 ---
@@ -1051,10 +1221,13 @@ pip install -r requirements.txt
 Key dependencies installed:
 - `fastapi`, `uvicorn` - Web framework and server
 - `sqlalchemy`, `pymysql` - Database ORM and MySQL driver
-- `xgboost`, `scikit-learn`, `joblib` - ML model inference
+- `xgboost`, `scikit-learn` - ML model inference
 - `ultralytics`, `opencv-python-headless` - Computer vision
 - `numpy`, `pandas` - Data processing
 - `websockets` - Real-time communication
+- `werkzeug` - Password hashing and authentication
+- `qrcode`, `reportlab` - QR code generation for patient tracking
+- `pytest` - Testing framework
 
 ### 4. Database Setup
 
@@ -1118,7 +1291,7 @@ python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 On startup, the server will:
-1. Initialize the database and create all tables (7 tables)
+1. Initialize the database and create all tables (10 tables including movement_events, staff_confirmations, users)
 2. Seed sample data (zones, patients, occupancy logs, alerts, metrics)
 3. Load the YOLOv8n model and start CV detection (if model exists)
 4. Begin processing video feeds every 5 seconds across 7 departments
@@ -1134,7 +1307,14 @@ On startup, the server will:
 | **CV Detection Status** | `http://localhost:8000/detection/status` |
 | **Live Detection Stream** | `http://localhost:8000/detection/stream/{zone_name}` |
 
-### 9. Verify CV Detection
+### 9. Run Tests
+
+```bash
+cd backend
+python -m pytest tests/test_tracking_service.py -v
+```
+
+### 10. Verify CV Detection
 
 ```bash
 curl http://localhost:8000/detection/status
@@ -1174,13 +1354,18 @@ The project includes `railway.toml` for one-click deployment:
 | `DB_NAME` | `hospital` | MySQL database name |
 | `DEBUG` | `True` | Debug mode (enables SQL echo, hot-reload) |
 | `LOG_LEVEL` | `INFO` | Logging level |
+| `REID_AUTO_THRESHOLD` | `0.85` | Re-ID high-confidence auto-move threshold |
+| `REID_REVIEW_THRESHOLD` | `0.60` | Re-ID medium-confidence staff review threshold |
+| `QR_PRIORITY_WINDOW_SECS` | `60` | QR scan priority window over Re-ID (seconds) |
+| `DUPLICATE_WINDOW_SECS` | `120` | Duplicate movement prevention window (seconds) |
+| `ENABLE_FREE_MOVE` | `true` | Allow any-to-any zone transitions (vs. sequential) |
 
 ---
 
 ## Scalability & Future Enhancements
 
-### Cross-Camera Re-Identification
-Integration of Re-ID models to track individual patients across multiple department cameras, enabling precise per-patient journey analytics without physical badge scans.
+### Cross-Camera Re-Identification Enhancement
+The hybrid tracking architecture already supports Re-ID event ingestion with confidence-based routing. Future enhancements include deploying dedicated Re-ID embedding models (OSNet, TransReID) on edge devices for real-time cross-camera person matching, replacing the current API-driven Re-ID event submission.
 
 ### Cloud Deployment
 Containerization with Docker and orchestration via Kubernetes for horizontal scaling. Cloud-native deployment on AWS/Azure/GCP with managed database services and GPU instances for CV inference.
@@ -1237,13 +1422,16 @@ PATIENTPATH-AI/
 |   |   |-- database.py             # SQLAlchemy engine, session, base (MySQL + SQLite)
 |   |
 |   |-- models/
-|   |   |-- patient.py              # Patient ORM model
+|   |   |-- patient.py              # Patient ORM model (with QR token & tracking fields)
 |   |   |-- zone.py                 # Zone ORM model
 |   |   |-- occupancy.py            # OccupancyLog ORM model
 |   |   |-- alert.py                # Alert ORM model
 |   |   |-- metric.py               # Metric ORM model
 |   |   |-- doctor.py               # Doctor + ConsultationLog ORM models
 |   |   |-- escalation.py           # Escalation ORM model
+|   |   |-- movement_event.py       # Immutable movement audit log (QR/Re-ID/Manual)
+|   |   |-- staff_confirmation.py   # Pending Re-ID confirmations for staff review
+|   |   |-- user.py                 # User authentication model
 |   |
 |   |-- routers/
 |   |   |-- patients.py             # Patient CRUD + journey tracking endpoints
@@ -1251,6 +1439,9 @@ PATIENTPATH-AI/
 |   |   |-- occupancy.py            # Occupancy tracking endpoints
 |   |   |-- prediction.py           # AI prediction endpoints
 |   |   |-- detection.py            # CV detection status + MJPEG streaming
+|   |   |-- tracking.py             # QR scan, Re-ID events, staff confirmations, audit trail
+|   |   |-- auth.py                 # User registration, login, admin approval
+|   |   |-- prescription.py         # Prescription management endpoints
 |   |   |-- admin.py                # Admin dashboard + escalation review
 |   |   |-- system.py               # Health check, cache management
 |   |   |-- metrics.py              # Analytics endpoints
@@ -1264,6 +1455,7 @@ PATIENTPATH-AI/
 |   |
 |   |-- services/
 |   |   |-- cv_detection_service.py # YOLOv8 background detection + MJPEG streaming
+|   |   |-- tracking_service.py     # QR scan + Re-ID hybrid tracking logic (~560 lines)
 |   |   |-- prediction_service.py   # ML model inference (4 XGBoost models)
 |   |   |-- staff_allocation_service.py # Staff optimization (1 XGBoost model)
 |   |   |-- risk_engine.py          # AI Risk Engine (aggregates all 5 models)
@@ -1279,6 +1471,11 @@ PATIENTPATH-AI/
 |   |-- schemas/
 |   |   |-- patient.py              # Pydantic request/response schemas
 |   |   |-- occupancy.py            # Occupancy update schemas
+|   |   |-- tracking.py             # QR scan, Re-ID, confirmation schemas
+|   |
+|   |-- tests/
+|   |   |-- conftest.py             # Pytest fixtures (DB, sample patients, zones)
+|   |   |-- test_tracking_service.py # Tracking system unit + integration tests (~840 lines)
 |   |
 |   |-- utils/
 |       |-- cache.py                # In-memory caching utility with TTL
@@ -1319,6 +1516,10 @@ PATIENTPATH-AI/
 |   |   |-- theme.js                # Light/dark theme toggle with localStorage
 |   |   |-- websocket.js            # WebSocket client with auto-reconnect
 |   |
+|   |-- qr_scanner.html              # QR code scanner for patient tracking
+|   |-- staff_confirmation.html      # Re-ID match review (approve/reject)
+|   |-- movement_audit.html          # Movement event audit trail
+|   |
 |   |-- css/
 |   |   |-- style.css               # Global styles, CSS variables, responsive layout
 |   |
@@ -1339,6 +1540,17 @@ PATIENTPATH-AI/
 |   |-- exit_rate_model.pkl         # Exit rate prediction model
 |   |-- bottleneck_classification_model.pkl  # Bottleneck classifier model
 |   |-- staff_allocation_model.pkl  # Staff allocation model
+|
+|-- scripts/
+|   |-- demo_short.py               # 3-minute judges demo walkthrough
+|   |-- demo_full.py                # 8-minute detailed demo walkthrough
+|   |-- migrate_tracking.py         # Database migration for tracking schema
+|   |-- test_tracking_system.py     # Integration test runner for tracking API
+|
+|-- docs/
+|   |-- PRE_IMPLEMENTATION_BRIEF.md # Product specification and implementation roadmap
+|   |-- DEPLOYMENT_CHECKLIST.md     # Pre-demo setup and startup checklist
+|   |-- RISK_REGISTER.md            # Implementation risks and mitigation strategies
 |
 |-- detect.py                       # Standalone GUI detection tracker (OpenCV window)
 |-- headless_detect.py              # Headless detection tracker (server/testing)
